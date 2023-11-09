@@ -1,0 +1,11 @@
+.DS_Store
+.htaccess
+.idea/
+build/
+vendor/
+*~
+node_modules/
+\#*\#
+public/
+-pubic/static
+
