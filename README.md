@@ -7,4 +7,5 @@ FM Online schedule
 * Make a more flexible admin
 * Add import into excel
 * Support dynamic tag color and text areas
+* Verify js is being used in here
 
