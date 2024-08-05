@@ -3,7 +3,7 @@
 Plugin Name: OnlineSched
 Plugin URI: 
 Description: Online Event Scheduling
-Version: 0.3
+Version: 0.4
 License: BSD 2-Clause
 
 Todo List:
@@ -22,6 +22,7 @@ Todo List:
 
 include_once("lib/theme.php");
 include_once("lib/help.php");
+require_once("online-importer.php");
 
 // Define Actions
 add_action('init', 'OnlineSched_init');
@@ -534,4 +535,3 @@ function OnlineSched_posts_filter($query){
 	}
 }
 
-?>
