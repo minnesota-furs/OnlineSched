@@ -80,14 +80,14 @@ function delete_all_event_schedule_posts() {
 
 function delete_unused_panelists() {
     $terms = get_terms(array(
-        'taxonomy' => 'onlinesched_panelists',
+        'taxonomy' => 'event_schedule_panelist_type',
         'hide_empty' => false,
     ));
 
     foreach ($terms as $term) {
         $term_count = $term->count;
         if ($term_count == 0) {
-            wp_delete_term($term->term_id, 'onlinesched_panelists');
+            wp_delete_term($term->term_id, 'event_schedule_panelist_type');
         }
     }
 
@@ -96,10 +96,15 @@ function delete_unused_panelists() {
 
 
 function handle_event_schedule_csv_upload($file) {
-    if (($handle = fopen($file['tmp_name'], 'r')) !== FALSE) {
-        $headers = fgetcsv($handle, 1000, ',');
+    set_time_limit(600); // 5 minutes
+    ini_set('memory_limit', '4096M');
 
-        $required_headers = array('name', 'DateTime', 'description', 'room_type', 'Speakers', 'tags');
+    if (($handle = fopen($file['tmp_name'], 'r')) !== FALSE) {
+        $headers = fgetcsv($handle, 4000, ',');
+
+//        $required_headers = array('name', 'DateTime', 'description', 'room_type', 'Speakers', 'tags');
+        $required_headers = array('ID', 'Name', 'Date', 'Time', 'Description', 'Room_Type', 'Speakers', 'Length', 'Tags');
+
         if (array_slice($headers, 0, count($required_headers)) !== $required_headers) {
             echo '<div class="error"><p>CSV file format is incorrect. Expected headers: name, DateTime, description, room_type, Speakers, tags.</p></div>';
             return;
@@ -110,49 +115,75 @@ function handle_event_schedule_csv_upload($file) {
             $unscheduled_term = wp_insert_term('Unscheduled', 'event_schedule_day_type', array('description' => '0'));
         }
 
+        // Disable W3 Total Cache before starting the import
+        if (function_exists('w3tc_flush_all')) {
+            // Disable page caching
+            define('DONOTCACHEPAGE', true);
+            // Disable database caching
+          //  define('DONOTCACHEDB', true);
+            // Disable object caching
+          //  define('DONOTCACHEOBJECT', true);
+            // Disable minify caching
+            define('DONOTMINIFY', true);
+        }
+
         $row = 1;
-        while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
+        while (($data = fgetcsv($handle, 4000, ',')) !== FALSE) {
             $row++;
             if (count($data) < count($required_headers)) {
                 echo "<div class='error'><p>Row $row has a mismatched number of fields.</p></div>";
                 continue;
             }
 
-            $name = sanitize_text_field($data[0]);
-            $datetime = sanitize_text_field($data[1]);
-            $description = sanitize_text_field($data[2]);
-            $room_type = sanitize_text_field($data[3]);
-            $speakers = sanitize_text_field($data[4]);
-            $tags = sanitize_text_field($data[5]);
+            $external_event_id = sanitize_text_field($data[0]);
+            $name = sanitize_text_field($data[1]);
+            $date = sanitize_text_field($data[2]);
+            $time = sanitize_text_field($data[3]);
+            $description = sanitize_text_field($data[4]);
+            $room_type = sanitize_text_field($data[5]);
+            $speakers = sanitize_text_field($data[6]);
+            $length = sanitize_text_field($data[7]);
+            $tags = sanitize_text_field($data[8]);
 
-            if (empty($datetime)) {
+            if (empty($date) || empty($time)) {
                 $day_of_week = 'Unscheduled';
                 $formatted_date = '0';
                 $hour = 0;
                 $minutes = 0;
-                $mysql_time = '00:00';
+                $mysql_time = 0;
             } else {
-                $date = DateTime::createFromFormat('j/m/Y H:i:s', $datetime);
-                if (!$date) {
-                    echo "<div class='error'><p>Row $row has an invalid DateTime format. Expected format: j/m/Y H:i:s.</p></div>";
+                // Check if the time string includes seconds
+                if (strpos($time, ':') === false || substr_count($time, ':') == 1) {
+                    // Time does not include seconds, append ':00'
+                    $time = "{$time}:00";
+                }
+
+                $full_date = DateTime::createFromFormat('Y-m-d H:i:s', "{$date} {$time}");
+
+                if (!$full_date) {
+                    // Try without leading zeros for day and month
+                    $full_date = DateTime::createFromFormat('Y-n-j H:i:s', "{$date} {$time}");
+                }
+                if (!$full_date) {
+                    echo "<div class='error'><p>Row $row has an invalid DateTime format. Expected format: Y-m-d H:i:s. {$date} {$time}</p></div>";
                     continue;
                 }
 
-                $day_of_week = $date->format('l');
-                $formatted_date = $date->format('n/j/Y');
-                $hour = $date->format('H');
-                $minutes = $date->format('i');
-                $mysql_time = $date->format('H:i');
+                $day_of_week = $full_date->format('l');
+                $formatted_date = $full_date->format('n/j/Y');
+                $hour = $full_date->format('H');
+                $minutes = $full_date->format('i');
+                $mysql_time = $full_date->getTimestamp();
             }
-
             // Check for existing event
-            $existing_event = get_page_by_title($name, OBJECT, 'event_schedule');
-            if ($existing_event) {
+            $event_id = get_post_id_by_event_id($external_event_id);
+            if ($event_id) {
                 wp_update_post(array(
-                    'ID' => $existing_event->ID,
-                    'post_content' => $description
+                    'ID' => $event_id,
+                    'title' => $name,
+                    'post_content' => $description,
+                    'post_status' => 'publish',
                 ));
-                $event_id = $existing_event->ID;
             } else {
                 $new_event = array(
                     'post_title' => $name,
@@ -164,26 +195,31 @@ function handle_event_schedule_csv_upload($file) {
             }
 
             // Update custom post meta
-            update_post_meta($event_id, 'datetime', $datetime);
             update_post_meta($event_id, 'onlinesched_time_hr', $hour);
             update_post_meta($event_id, 'onlinesched_time_min', $minutes);
             update_post_meta($event_id, 'onlinesched_year', get_option('event_schedule_year'));
             update_post_meta($event_id, 'onlinesched_sorttime', $mysql_time);
+            update_post_meta($event_id, 'onlinesched_timelen', $length);
 
             // Remove previous custom taxonomies
-            wp_set_post_terms($event_id, array(), 'event_schedule_room_type');
-            wp_set_post_terms($event_id, array(), 'event_schedule_day_type');
-            wp_set_post_terms($event_id, array(), 'onlinesched_panelists');
-            wp_set_post_terms($event_id, array(), 'event_schedule_tags_type');
+            // terms are reset automatically by the item.
+            // wp_set_post_terms($event_id, array(), 'event_schedule_room_type');
+            // wp_set_post_terms($event_id, array(), 'event_schedule_day_type');
+            // wp_set_post_terms($event_id, array(), 'onlinesched_panelists');
+            // wp_set_post_terms($event_id, array(), 'event_schedule_tags_type');
+                
+            //  Save external event ID
+            update_post_meta($event_id, 'onlinesched_external_event_id', $external_event_id);;
 
             // Handle room_type taxonomy
             $room_type_term = term_exists($room_type, 'event_schedule_room_type');
             if (!$room_type_term) {
+                print "Creating room";
                 $room_type_term = wp_insert_term($room_type, 'event_schedule_room_type');
             }
 
             if (!is_wp_error($room_type_term)) {
-                wp_set_post_terms($event_id, array($room_type_term['term_id']), 'event_schedule_room_type');
+                wp_set_post_terms($event_id, $room_type, 'event_schedule_room_type');
             }
 
             // Handle event_schedule_day_type taxonomy
@@ -217,19 +253,19 @@ function handle_event_schedule_csv_upload($file) {
             }
 
             // Handle speakers taxonomy
-            $panelist_terms = array();
-            $speakers_list = explode(',', $speakers);
+            $speakers_IDs = array();
+            $speakers_list =  array_map('trim', explode(',', $speakers));
             foreach ($speakers_list as $speaker) {
-                $speaker = trim($speaker);
-                $panelist_term = term_exists($speaker, 'onlinesched_panelists');
+                $panelist_term = term_exists($speaker, 'event_schedule_panelist_type');
                 if (!$panelist_term) {
-                    $panelist_term = wp_insert_term($speaker, 'onlinesched_panelists');
+                    $panelist_term = wp_insert_term($speaker, 'event_schedule_panelist_type');
                 }
+
                 if (!is_wp_error($panelist_term)) {
-                    $panelist_terms[] = (int) $panelist_term['term_id'];
+                    $speakers_IDs[] = (int) $panelist_term['term_id'];
                 }
             }
-            wp_set_post_terms($event_id, $panelist_terms, 'onlinesched_panelists');
+            wp_set_post_terms($event_id, $speakers_IDs, 'event_schedule_panelist_type');
 
             // Handle tags taxonomy
             $tags_terms = array();
@@ -245,8 +281,23 @@ function handle_event_schedule_csv_upload($file) {
                 }
             }
             wp_set_post_terms($event_id, $tags_terms, 'event_schedule_tags_type');
+
+
+            /*echo '<pre>';
+            var_dump(array($external_event_id, $name, $date, $time, $description, $room_type, $speakers, $length, $tags));
+            var_dump($day_of_week, $formatted_date, $hour, $minutes, $mysql_time);
+            print "date object<br />";
+            var_dump($full_date);
+            echo "</pre>";
+            wp_die();*/
+
         }
         fclose($handle);
+
+        if (function_exists('w3tc_flush_all')) {
+            w3tc_flush_all();
+        }
+
         echo '<div class="updated"><p>CSV file processed successfully.</p></div>';
     } else {
         echo '<div class="error"><p>Failed to open the uploaded CSV file.</p></div>';
@@ -260,7 +311,7 @@ function export_event_schedule_csv() {
     header('Content-Disposition: attachment;filename=' . $filename);
 
     $output = fopen('php://output', 'w');
-    fputcsv($output, array('name', 'Date', 'Time', 'description', 'room_type', 'Speakers', 'length', 'tags'));
+    fputcsv($output, array('ID', 'Name', 'Date', 'Time', 'Description', 'Room_Type', 'Speakers', 'Length', 'Tags'));
 
     $args = array(
         'post_type' => 'event_schedule',
@@ -269,35 +320,99 @@ function export_event_schedule_csv() {
     $events = get_posts($args);
 
     foreach ($events as $event) {
+        $post_id = $event->ID;
+
+        // Check if the EventId meta field is missing or empty
+        $event_id = get_post_meta($post_id, 'onlinesched_external_event_id', true);
+
+        if (empty($event_id)) {
+            // Generate a unique EventId
+            $event_id = generate_unique_event_id();
+
+            // Save the EventId as post meta
+            update_post_meta($post_id, 'onlinesched_external_event_id', $event_id);
+        }
+
+
         $name = $event->post_title;
         $description = $event->post_content;
-        $sorttime = get_post_meta($event->ID, 'onlinesched_sorttime', true);
+        $sorttime = get_post_meta($post_id, 'onlinesched_sorttime', true);
         // Convert timestamp to Excel-compatible format
         if ($sorttime) {
-            $datetime = get_date_from_gmt(date('Y-m-d H:i:s', $sorttime), 'Y-m-d H:i:s');
-            $date =  get_date_from_gmt(date('Y-m-d', $sorttime), 'Y-m-d H:i:s');
-            $time = get_date_from_gmt(date('H:i:s', $sorttime), 'Y-m-d H:i:s');
+            // use default system timezone stuff
+            $date =  date( 'Y-m-d ', $sorttime);
+            $time = date('H:i', $sorttime);
         } else {
-            $datetime = '';
             $date = '';
             $time = '';
         }
 
 
 
-        $room_type = wp_get_post_terms($event->ID, 'event_schedule_room_type', array('fields' => 'names'));
-        $$speakers = wp_get_post_terms($event->ID, 'event_schedule_panelist_type', array('fields' => 'names'));
-        $tags = wp_get_post_terms($event->ID, 'event_schedule_tags_type', array('fields' => 'names'));
+        $room_type = wp_get_post_terms($post_id, 'event_schedule_room_type', array('fields' => 'names'));
+        $speakers = wp_get_post_terms($post_id, 'event_schedule_panelist_type', array('fields' => 'names'));
+        $tags = wp_get_post_terms($post_id, 'event_schedule_tags_type', array('fields' => 'names'));
 
         $room_type = !empty($room_type) ? implode(', ', $room_type) : '';
         $speakers = !empty($speakers) ? implode(', ', $speakers) : '';
-        $length = get_post_meta($event->ID, 'onlinesched_timelen', true);
+        $length = get_post_meta($post_id, 'onlinesched_timelen', true);
         $tags = !empty($tags) ? implode(', ', $tags) : '';
 
-        fputcsv($output, array($name, $date, $time, $description, $room_type, $speakers, $length, $tags));
+        fputcsv($output, array($event_id, $name, $date, $time, $description, $room_type, $speakers, $length, $tags));
     }
 
     fclose($output);
     exit();
+}
+
+
+function generate_unique_event_id() {
+    $min = 1000; // Minimum value for EventId
+    $max = 999999; // Maximum value for EventId
+
+    do {
+        // Generate a random number within the specified range
+        $unique_id = rand($min, $max);
+
+        // Check if the generated ID is already used
+        $existing_posts = new WP_Query(array(
+            'post_type' => 'event_schedule',
+            'meta_query' => array(
+                array(
+                    'key' => 'onlinesched_external_event_id',
+                    'value' => $unique_id,
+                    'compare' => '='
+                )
+            ),
+            'posts_per_page' => 1,
+            'fields' => 'ids'
+        ));
+    } while ($existing_posts->have_posts());
+
+    return $unique_id;
+}
+
+// Fast way to get event id
+function get_post_id_by_event_id($external_event_id) {
+    $args = array(
+        'post_type' => 'event_schedule',
+        'meta_query' => array(
+            array(
+                'key' => 'onlinesched_external_event_id',
+                'value' => $external_event_id,
+                'compare' => '='
+            )
+        ),
+        'posts_per_page' => 1, // We only need one post since onlinesched_external_event_id should be unique
+        'fields' => 'ids' // Only retrieve the post ID
+    );
+
+    $matching_posts = get_posts($args);
+
+    if (!empty($matching_posts)) {
+        return $matching_posts[0]; // Return the post ID of the matching post
+    } else {
+        return false; // Return false if no post is found
+    }
 }
 
