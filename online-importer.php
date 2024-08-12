@@ -7,7 +7,7 @@ function event_schedule_csv_uploader_menu() {
         'edit.php?post_type=event_schedule',  // Parent slug
         'CSV Uploader',                       // Page title
         'CSV Uploader',                       // Menu title
-        'manage_options',                     // Capability
+        'edit_onlinesched_event_schedules',                     // Capability
         'event-schedule-csv-uploader',        // Menu slug
         'event_schedule_csv_uploader_page'    // Function to display the page
     );
