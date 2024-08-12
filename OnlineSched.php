@@ -395,7 +395,7 @@ function OnlineSched_register_options_page()
 {
 
 
-    add_options_page('Online Sched', 'OnlineSched ', 'manage_options', 'event_schedule', 'OnlineSched_options_page');
+    add_options_page('Online Sched', 'OnlineSched ', 'edit_onlinesched_event_schedules', 'event_schedule', 'OnlineSched_options_page');
 }
 
 function OnlineSched_options_page()
