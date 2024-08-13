@@ -114,8 +114,10 @@ function delete_unused_tax($taxonomy, $name) {
 
 function handle_event_schedule_csv_upload($file) {
 
-    set_time_limit(600); // 5 minutes
+    set_time_limit(1200); // 10 minutes
     ini_set('memory_limit', '4096M');
+    //$pauser = new YoastPauser();
+    //$pauser->pause();
 
     $event_schedule_year = get_option('event_schedule_year');
 
@@ -273,7 +275,7 @@ function handle_event_schedule_csv_upload($file) {
             ));
             $day_term_id = null;
             foreach ($day_terms as $term) {
-                print "I am comparing $formatted_date<br />";
+                print "I am comparing $formatted_date ".date("Y-m-d h:i:sa")."<br />";
                 if ($term->description === $formatted_date) {
                     $day_term_id = $term->term_id;
                     break;
@@ -355,11 +357,16 @@ function handle_event_schedule_csv_upload($file) {
         echo '<div class="error"><p>Failed to open the uploaded CSV file.</p></div>';
     }
 
+
+    // $pauser->resume();
     if (function_exists('w3tc_flush_all')) {
         w3tc_flush_all();
     }
 
     wp_defer_term_counting(false);
+
+    print "Finished ".date("Y-m-d h:i:sa");
+
 }
 
 function export_event_schedule_csv() {

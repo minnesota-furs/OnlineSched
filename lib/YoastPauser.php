@@ -48,6 +48,49 @@ class YoastPauser {
         add_filter('wpseo_parse_twitter_image', '__return_false');
 
         $this->paused = true;
+
+
+        # Disable WP Obj Caching ...
+        wp_using_ext_object_cache(false);
+
+        # Disable W3 Constants (not sure whether they are recognized during runtime)
+        $cons = array(
+            'DONOTCACHEPAGE',
+            'DONOTCACHEDB',
+            'DONOTMINIFY',
+            'DONOTCDN',
+            'DONOTCACHEOBJECT',
+            'DONOTCACHEPAGE'
+        );
+        foreach($cons as $c)
+        {
+            if(!defined($c))
+                define($c, true);
+        }
+
+        # Add Filter w3tc_dbcache_can_cache_sql
+        add_filter('w3tc_dbcache_can_cache_sql', function() { return 'DONT_CACHE_MY_CRONS'; });
+
+        ########## CHANGE CACHE REJECT REASON for DB CACHING...
+        // Create the closure by reference
+        // https://stackoverflow.com/a/17560595/701049
+        $reader = function & ($object, $property) {
+            $value = & Closure::bind(function & () use ($property) {
+                return $this->$property;
+            }, $object, $object)->__invoke();
+            return $value;
+        };
+
+        global $wpdb;
+        try {
+            $active_processor = & $reader($wpdb, 'active_processor'); # GET property by reference ... to be able to change it
+            $reject_reason = & $reader($active_processor, 'cache_reject_reason'); # GET property by reference ... to be able to change it
+            $reject_reason = 'DOING_CRON'; # Change private property by reference -> modifies original WPDB
+        } catch (Exception $e) {}
+
+        # flush cache
+         wp_cache_flush();
+        wp_cache_init();
     }
 
     public function resume() {
@@ -67,9 +110,14 @@ class YoastPauser {
         remove_filter('wpseo_parse_twitter_image', '__return_false');
 
         $this->paused = false;
+
+        # Disable WP Obj Caching ...
+        wp_using_ext_object_cache(true);
+        wp_cache_flush();
+        wp_cache_init();
     }
 
-    private function remove_action_safely($hook_name, $class_name, $method_name, $priority) {
+    private function remove_action_safely($hook_name, $class_name, $method_name, $priority = 10) {
         global $wp_filter;
         if (isset($wp_filter[$hook_name][$priority])) {
             foreach ($wp_filter[$hook_name][$priority] as $key => $filter) {
