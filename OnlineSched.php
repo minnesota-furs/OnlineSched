@@ -140,6 +140,48 @@ function OnlineSched_plugin_activate()
         ));
     }
 
+
+    $role_sched_admin =& get_role('onlinesched_admin');
+
+    if ($role_sched_admin == NULL) {
+        add_role('onlinesched_admin', 'OnlineSched Admin', array(
+
+            // Core Events
+            'read',
+
+            // Basic Events
+            'edit_onlinesched_event_schedules',
+            'publish_onlinesched_event_schedules',
+            'read_onlinesched_event_schedules',
+            'delete_onlinesched_event_schedules',
+
+            // Room Types
+            'manage_event_schedule_room_type',
+            'edit_event_schedule_room_type',
+            'delete_event_schedule_room_type',
+            'assign_event_schedule_room_type',
+
+            // Tags Types
+            'manage_event_schedule_tags_type',
+            'edit_event_schedule_tags_type',
+            'delete_event_schedule_tags_type',
+            'assign_event_schedule_tags_type',
+
+            // Manage day Types
+            'manage_event_schedule_day_type',
+            'edit_event_schedule_day_type',
+            'delete_event_schedule_day_type',
+            'assign_event_schedule_day_type',
+
+            // Manage panelist Types
+            'manage_event_schedule_panelist_type',
+            'edit_event_schedule_panelist_type',
+            'delete_event_schedule_panelist_type',
+            'assign_event_schedule_panelist_type',
+        ));
+    }
+
+
     // Native Wordpress roles
     $role_administrator =& get_role('administrator');
     if ($role_administrator != NULL) {

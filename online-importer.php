@@ -7,7 +7,7 @@ function event_schedule_csv_uploader_menu() {
         'edit.php?post_type=event_schedule',  // Parent slug
         'CSV Uploader',                       // Page title
         'CSV Uploader',                       // Menu title
-        'edit_onlinesched_event_schedules',                     // Capability
+        'manage_event_schedule_room_type',                     // Capability
         'event-schedule-csv-uploader',        // Menu slug
         'event_schedule_csv_uploader_page'    // Function to display the page
     );
@@ -114,7 +114,7 @@ function delete_unused_tax($taxonomy, $name) {
 
 function handle_event_schedule_csv_upload($file) {
 
-
+    $start_time = microtime(true);
 
     // prevent writing to innodb until it needs to
     global $wpdb;
@@ -471,7 +471,12 @@ function handle_event_schedule_csv_upload($file) {
         }
         fclose($handle);
 
-        echo '<div class="updated"><p>CSV file processed successfully.</p></div>';
+
+
+        $end_time = microtime(true);
+        $execution_time = $end_time - $start_time;
+
+        echo '<div class="updated"><p>CSV file processed successfully taking '.intval($execution_time).' seconds.</p></div>';
     } else {
         echo '<div class="error"><p>Failed to open the uploaded CSV file.</p></div>';
     }
@@ -561,6 +566,7 @@ function online_create_custom_slug($text) {
     $replace_pairs = array(
         '$' => 'dollar',
         '#' => 'hash',
+        '&amp' => 'and',
         '&' => 'and',
         '%' => 'percent',
         '^' => 'caret',
