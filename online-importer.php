@@ -37,6 +37,7 @@ function event_schedule_csv_uploader_page() {
             <br />
             <p><strong>Note:</strong> All imports will be associated with <?php echo get_option('event_schedule_year');?> year. Change in settings->Online scheduler.<br />
                 <strong>Note:</strong> If item doesn't exist in the upload set it will still stay there.
+                <strong>Note:</strong> This will take some time to upload. Please be patient.
             </p>
         </form>
 
