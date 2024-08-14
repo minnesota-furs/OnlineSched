@@ -20,6 +20,11 @@ function OnlineSched_terms_list($term) {
         return $tags;
 }
 
+// return as array
+function OnlineSched_terms_slug_array($term) {
+    $tags = wp_get_post_terms(get_the_ID(), $term, array('fields' => 'slugs'));
+    return $tags;
+}
 function OnlineSched_terms_list2($term, $id = 0) {
 	if ($id == 0) {
 		$id = get_the_ID();

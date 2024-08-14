@@ -114,8 +114,15 @@ function delete_unused_tax($taxonomy, $name) {
 
 function handle_event_schedule_csv_upload($file) {
 
+
+
+    // prevent writing to innodb until it needs to
+    global $wpdb;
+    $wpdb->query('START TRANSACTION');
+
     set_time_limit(1200); // 10 minutes
     ini_set('memory_limit', '4096M');
+
     //$pauser = new YoastPauser();
     //$pauser->pause();
 
@@ -123,6 +130,22 @@ function handle_event_schedule_csv_upload($file) {
 
     if (($handle = fopen($file['tmp_name'], 'r')) !== FALSE) {
         wp_defer_term_counting(true);
+
+        $room_cache = online_sched_grab_all_tags('event_schedule_room_type');
+        $panelist_cache = online_sched_grab_all_tags('event_schedule_panelist_type', 'name');
+        $tag_cache = online_sched_grab_all_tags('event_schedule_tags_type');
+
+        // disable sitemaps
+        add_filter('wp_sitemaps_enabled', '__return_false');
+
+        // disable some yoast stuff
+        add_filter('wpseo_enable_metabox_insights', '__return_false');
+        add_filter('wpseo_use_page_analysis', '__return_false');
+        add_filter('wpseo_should_index_link', '__return_false');
+
+        // remove action since we are handling the upload
+        remove_action('save_post', 'OnlineSched_add_timeslot_fields', 10);
+
         $headers = fgetcsv($handle, 4000, ',');
 
         $required_headers = array('ID', 'Name', 'Date', 'Time', 'Description', 'Room_Type', 'Speakers', 'Length', 'Tags');
@@ -140,6 +163,7 @@ function handle_event_schedule_csv_upload($file) {
         if (!$unscheduled_term) {
             $unscheduled_term = wp_insert_term('Unscheduled', 'event_schedule_day_type', array('description' => '0'));
         }
+        $day_tag_cache = online_sched_grab_all_tags('event_schedule_day_type');
 
         // Disable W3 Total Cache before starting the import
         if (function_exists('w3tc_flush_all')) {
@@ -226,6 +250,7 @@ function handle_event_schedule_csv_upload($file) {
             // Check for existing event
             $event_id = get_post_id_by_event_id($external_event_id);
 
+
             $post_data = array(
                 'post_title' => $name,
                 'post_content' => $description,
@@ -235,7 +260,7 @@ function handle_event_schedule_csv_upload($file) {
                     'onlinesched_time_hr' => $hour,
                     'onlinesched_time_min' => $minutes,
                     'onlinesched_year' => $event_schedule_year,
-                    'onlinesched_sorttitme' => $mysql_time,
+                    'onlinesched_sorttime' => intval($mysql_time),
                     'onlinesched_timelen' => $length,
                     'onlinesched_external_event_id' => $external_event_id,
                 )
@@ -243,31 +268,83 @@ function handle_event_schedule_csv_upload($file) {
 
             if ($event_id) {
                 $post_data['ID'] = $event_id;
-                wp_update_post($post_data);
-            } else {
-                $event_id = wp_insert_post($post_data);
             }
 
-            // DO it seperate to get around some behavior that is setitng it to -99 in the db
+            $room_type_slug = online_create_custom_slug($room_type);
+            if (empty($room_cache[$room_type_slug]['term_id'])) {
+                $room_type_term = wp_insert_term($room_type, 'event_schedule_room_type', array('slug'=>$room_type_slug));
 
-            update_post_meta($event_id, 'onlinesched_sorttime', $mysql_time);
+                if (is_wp_error($room_type_term)) {
+                    echo "couldn't create a room fatal error $room_type";
+                    wp_die();
+                }
 
-//            echo "<pre>"; var_dump($post_data); echo "</pre>";
+                $room_cache[$room_type_slug] = array(
+                        'term_id' => $room_type_term['term_id']
 
-// if ($name === "Salsa Dancing 101") {wp_die("end of line"); die();}
+                );
+
+            }
 
             // Handle room_type taxonomy
-            $room_type_term = term_exists($room_type, 'event_schedule_room_type');
-            if (!$room_type_term) {
-                print "Creating room";
-                $room_type_term = wp_insert_term($room_type, 'event_schedule_room_type');
-            }
+//             $room_type_term = term_exists($room_type, 'event_schedule_room_type');
+  //          if (!$room_type_term) {
+                // print "Creating room";
+    //            $room_type_term = wp_insert_term($room_type, 'event_schedule_room_type');
+     //       }
 
-            if (!is_wp_error($room_type_term)) {
-                wp_set_post_terms($event_id, $room_type, 'event_schedule_room_type');
-            }
+            // Ok if this person has the privlidges should be able to do
+                // wp_set_post_terms($event_id, $room_type, 'event_schedule_room_type');
+                $post_data['tax_input']['event_schedule_room_type'] = array($room_cache[$room_type_slug]['term_id']);
 
             // Handle event_schedule_day_type taxonomy
+            $day_term_id = null;
+
+
+
+                print "I am comparing $formatted_date ".date("Y-m-d h:i:sa")."<br />";
+            $day_of_week_slug = strtolower($day_of_week);
+
+                if (!empty($day_tag_cache[$day_of_week_slug])) {
+                    if ($day_tag_cache[$day_of_week_slug]['description'] === $formatted_date) {
+                        $day_term_id = $day_tag_cache[$day_of_week_slug]['term_id'];
+                    } else {
+                        $date = DateTime::createFromFormat('n/j/Y', trim($day_tag_cache[$day_of_week_slug]['description']));
+                        $year = $date->format('Y');
+                        $new_name = $day_tag_cache[$day_of_week_slug]['name'] . '-' . $year;
+                        $new_slug = strtolower(sanitize_title($new_name));
+                        wp_update_term($day_tag_cache[$day_of_week_slug]['term_id'], 'event_schedule_day_type', array(
+                            'name' => $new_name,
+                            'slug' => $new_slug
+                        ));
+
+                        // update ecache since that would take time otherwise
+                        $day_tag_cache[$new_slug] = $day_tag_cache[$day_of_week_slug];
+                        $day_tag_cache[$new_slug]['name'] = $new_name;
+                    }
+                }
+
+
+                if (!$day_term_id) {
+                    $day_term = wp_insert_term($day_of_week, 'event_schedule_day_type', array(
+                        'description' => $formatted_date,
+                        'slug' => $day_of_week_slug,
+                    ));
+                    if (is_wp_error($day_term)) {
+                           echo "fatal error creating day type $day_of_week slug $day_of_week_slug";
+                            wp_die();
+                        }
+                        $day_tag_cache[$day_of_week_slug]['term_id'] = $day_term['term_id'];
+                        $day_tag_cache[$day_of_week_slug]['slug'] = $day_of_week;
+                        $day_tag_cache[$day_of_week_slug]['name'] = $day_of_week;
+                        $day_tag_cache[$day_of_week_slug]['description'] = $formatted_date;
+                        $day_term_id = $day_term['term_id'];
+
+                }
+
+                $post_data['tax_input']['event_schedule_day_type']  = array($day_term_id);
+
+            /*
             $day_terms = get_terms(array(
                 'taxonomy' => 'event_schedule_day_type',
                 'name' => $day_of_week,
@@ -302,43 +379,88 @@ function handle_event_schedule_csv_upload($file) {
             }
 
             if ($day_term_id) {
-                wp_set_post_terms($event_id, array($day_term_id), 'event_schedule_day_type');
+                $post_data['tax_input']['event_schedule_day_type']  = array($day_term_id);
+                // wp_set_post_terms($event_id, array($day_term_id), 'event_schedule_day_type');
             } else {
-                wp_set_post_terms($event_id, array($unscheduled_term['term_id']), 'event_schedule_day_type');
+                $post_data['tax_input']['event_schedule_day_type']  = array($unscheduled_term['term_id']);
+                // wp_set_post_terms($event_id, array($unscheduled_term['term_id']), 'event_schedule_day_type');
             }
+            */
+
 
             // Handle speakers taxonomy
             $speakers_IDs = array();
             $speakers_list =  array_map('trim', explode(',', $speakers));
             foreach ($speakers_list as $speaker) {
-                $panelist_term = term_exists($speaker, 'event_schedule_panelist_type');
-                if (!$panelist_term) {
-                    $panelist_term = wp_insert_term($speaker, 'event_schedule_panelist_type');
+                if (!empty($speaker)) {
+                    if (empty($panelist_cache[$speaker])) {
+                        $panelist_term = wp_insert_term($speaker, 'event_schedule_panelist_type');
+                        if (is_wp_error($panelist_term)) {
+                            echo "fatal error on panelist update boom! Speaker $speaker";
+                            wp_die();
+                        }
+
+                        $panelist_cache[$speaker] = array(
+                            'term_id' => $panelist_term['term_id'],
+                            'name' => $speaker,
+                            'slug' => $speaker,
+                        );
+                    }
+
+                    $speakers_IDs[] = $panelist_cache[$speaker]['term_id'];
                 }
 
-                if (!is_wp_error($panelist_term)) {
-                    $speakers_IDs[] = (int) $panelist_term['term_id'];
-                }
             }
-            wp_set_post_terms($event_id, $speakers_IDs, 'event_schedule_panelist_type');
+            $post_data['tax_input']['event_schedule_panelist_type']  = $speakers_IDs;
+            // wp_set_post_terms($event_id, $speakers_IDs, 'event_schedule_panelist_type');
+
+
+
 
             // Handle tags taxonomy
             $tags_terms = array();
             $tags_list = explode(',', $tags);
             foreach ($tags_list as $tag) {
                 $tag = trim($tag);
-                $tag= ucwords($tag);
+                if (!empty($tag)) {
+                    $tag = ucwords($tag);
+                    $tag_slug = online_create_custom_slug($tag);
 
-                $tags_term = term_exists($tag, 'event_schedule_tags_type');
-                if (!$tags_term) {
-                    $tags_term = wp_insert_term($tag, 'event_schedule_tags_type',
-                    array ('slug'=> str_replace('+', '', $tag)));
-                }
-                if (!is_wp_error($tags_term)) {
-                    $tags_terms[] = (int) $tags_term['term_id'];
+                    if (empty($tag_cache[$tag_slug])) {
+                        $tags_term = wp_insert_term($tag, 'event_schedule_tags_type',
+                            array('slug' => $tag_slug));
+
+                        if (is_wp_error($tags_term)) {
+                            echo "fatal error creating term $tag and $tag_slug";
+                            wp_die();
+                        }
+                        $tag_cache[$tag_slug] = array(
+                            'term_id' => $tags_term['term_id'],
+                            'slug' => $tag_slug,
+                            'name' => $tag,
+                        );
+                    }
+
+                    $tags_terms[] = (int)$tag_cache[$tag_slug]['term_id'];
                 }
             }
-            wp_set_post_terms($event_id, $tags_terms, 'event_schedule_tags_type');
+
+            $post_data['tax_input']['event_schedule_tags_type']  = $tags_terms;
+            // wp_set_post_terms($event_id, $tags_terms, 'event_schedule_tags_type');
+
+
+
+            // write out room woot!
+            $event_id = wp_insert_post($post_data);
+
+            // DO it seperate to get around some behavior that is setitng it to -99 in the db
+//            update_post_meta($event_id, 'onlinesched_sorttime', $mysql_time);
+
+//            echo "<pre>"; var_dump($post_data); echo "</pre>";
+
+// if ($name === "Salsa Dancing 101") {wp_die("end of line"); die();}
+
+
 
 
 //            echo '<pre>';
@@ -358,20 +480,27 @@ function handle_event_schedule_csv_upload($file) {
     }
 
 
+    // Re-enable post revisions
+
+    wp_defer_term_counting(false);
+
     // $pauser->resume();
     if (function_exists('w3tc_flush_all')) {
         w3tc_flush_all();
     }
 
-    wp_defer_term_counting(false);
+
+    $wpdb->query('COMMIT;');
 
     print "Finished ".date("Y-m-d h:i:sa");
+
+
 
 }
 
 function export_event_schedule_csv() {
-    // Kill the hidden fields
 
+    // Kill the hidden fields
     remove_filter( 'parse_query', 'OnlineSched_posts_filter');
 
 
@@ -435,6 +564,40 @@ function export_event_schedule_csv() {
     exit();
 }
 
+function online_create_custom_slug($text) {
+    // Convert special characters to their textual representations
+    $replace_pairs = array(
+        '$' => 'dollar',
+        '#' => 'hash',
+        '&' => 'and',
+        '%' => 'percent',
+        '^' => 'caret',
+        '@' => 'at',
+        '(' => 'left-parenthesis',
+        ')' => 'right-parenthesis',
+        '*' => 'asterisk',
+        '!' => 'exclamation'
+    );
+
+    // Replace the special characters
+    $text = strtr($text, $replace_pairs);
+
+    // Replace spaces with hyphens
+    $text = preg_replace('/\s+/', '-', $text);
+
+    // Remove any characters that are not alphanumeric, hyphens, or underscores
+    $text = preg_replace('/[^a-zA-Z0-9-_]/', '', $text);
+
+    // Convert to lowercase
+    $text = strtolower($text);
+
+    // Trim any leftover hyphens
+    $text = trim($text, '-');
+
+    return $text;
+}
+
+
 
 function generate_unique_event_id() {
     $min = 1000; // Minimum value for EventId
@@ -488,5 +651,25 @@ function get_post_id_by_event_id($external_event_id) {
     } else {
         return false; // Return false if no post is found
     }
+}
+
+function online_sched_grab_all_tags($tax, $by = 'slug') {
+    $tags_by_array = array();
+    $tags = get_terms([
+            'taxonomy' => $tax,
+            'hide_empty' => false,
+            ]);
+
+    foreach ($tags as $tag) {
+        $build_array =  array(
+            'name' => $tag->name,
+            'term_id' => $tag->term_id,
+            'description' => $tag->description,
+            'slug' => $tag->slug,
+        );
+        $tags_by_array[$build_array[$by]] = $build_array;
+    }
+
+    return $tags_by_array;
 }
 
