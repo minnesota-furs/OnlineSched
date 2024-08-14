@@ -271,13 +271,13 @@ function handle_event_schedule_csv_upload($file) {
             }
 
             $room_type_id = null;
-            if (empty($room_type)) {
+            if (!empty($room_type)) {
                 $room_type_slug = online_create_custom_slug($room_type);
                 if (empty($room_cache[$room_type_slug]['term_id'])) {
                     $room_type_term = wp_insert_term($room_type, 'event_schedule_room_type', array('slug' => $room_type_slug));
 
                     if (is_wp_error($room_type_term)) {
-                        echo "<div class=\"error\"><p>couldn't create a room fatal error $room_type</p></div>";
+                        echo "<div class=\"error\"><p>couldn't create a room fatal error {$room_type}</p></div>";
                         return;
                     }
 
