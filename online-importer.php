@@ -132,6 +132,10 @@ function handle_event_schedule_csv_upload($file)
 	set_time_limit(1200); // 10 minutes
 	ini_set('memory_limit', '4096M');
 
+    // handle the stop button as ignore like a 8 year old just continue to work
+	ignore_user_abort(true);
+	set_time_limit(0);
+
 	//$pauser = new YoastPauser();
 	//$pauser->pause();
 
