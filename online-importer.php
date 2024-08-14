@@ -275,8 +275,8 @@ function handle_event_schedule_csv_upload($file) {
                 $room_type_term = wp_insert_term($room_type, 'event_schedule_room_type', array('slug'=>$room_type_slug));
 
                 if (is_wp_error($room_type_term)) {
-                    echo "couldn't create a room fatal error $room_type";
-                    wp_die();
+                    echo "<div class=\"error\"><p>couldn't create a room fatal error $room_type</p></div>";
+                    return;
                 }
 
                 $room_cache[$room_type_slug] = array(
@@ -300,9 +300,6 @@ function handle_event_schedule_csv_upload($file) {
             // Handle event_schedule_day_type taxonomy
             $day_term_id = null;
 
-
-
-                print "I am comparing $formatted_date ".date("Y-m-d h:i:sa")."<br />";
             $day_of_week_slug = strtolower($day_of_week);
 
                 if (!empty($day_tag_cache[$day_of_week_slug])) {
@@ -331,8 +328,8 @@ function handle_event_schedule_csv_upload($file) {
                         'slug' => $day_of_week_slug,
                     ));
                     if (is_wp_error($day_term)) {
-                           echo "fatal error creating day type $day_of_week slug $day_of_week_slug";
-                            wp_die();
+                           echo "<div class=\"error\"><p>fatal error creating day type $day_of_week slug $day_of_week_slug</p></div>";
+                            return;
                         }
                         $day_tag_cache[$day_of_week_slug]['term_id'] = $day_term['term_id'];
                         $day_tag_cache[$day_of_week_slug]['slug'] = $day_of_week;
@@ -396,8 +393,8 @@ function handle_event_schedule_csv_upload($file) {
                     if (empty($panelist_cache[$speaker])) {
                         $panelist_term = wp_insert_term($speaker, 'event_schedule_panelist_type');
                         if (is_wp_error($panelist_term)) {
-                            echo "fatal error on panelist update boom! Speaker $speaker";
-                            wp_die();
+                            echo "<div class=\"error\"><p>fatal error on panelist update boom! Speaker $speaker</p></div>";
+                            return;
                         }
 
                         $panelist_cache[$speaker] = array(
@@ -431,7 +428,7 @@ function handle_event_schedule_csv_upload($file) {
                             array('slug' => $tag_slug));
 
                         if (is_wp_error($tags_term)) {
-                            echo "fatal error creating term $tag and $tag_slug";
+                            echo "<div class=\"error\"><p>fatal error creating term $tag and $tag_slug</p></div>";
                             wp_die();
                         }
                         $tag_cache[$tag_slug] = array(
@@ -489,12 +486,7 @@ function handle_event_schedule_csv_upload($file) {
         w3tc_flush_all();
     }
 
-
     $wpdb->query('COMMIT;');
-
-    print "Finished ".date("Y-m-d h:i:sa");
-
-
 
 }
 
