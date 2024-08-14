@@ -270,20 +270,24 @@ function handle_event_schedule_csv_upload($file) {
                 $post_data['ID'] = $event_id;
             }
 
-            $room_type_slug = online_create_custom_slug($room_type);
-            if (empty($room_cache[$room_type_slug]['term_id'])) {
-                $room_type_term = wp_insert_term($room_type, 'event_schedule_room_type', array('slug'=>$room_type_slug));
+            $room_type_id = null;
+            if (empty($room_type)) {
+                $room_type_slug = online_create_custom_slug($room_type);
+                if (empty($room_cache[$room_type_slug]['term_id'])) {
+                    $room_type_term = wp_insert_term($room_type, 'event_schedule_room_type', array('slug' => $room_type_slug));
 
-                if (is_wp_error($room_type_term)) {
-                    echo "<div class=\"error\"><p>couldn't create a room fatal error $room_type</p></div>";
-                    return;
-                }
+                    if (is_wp_error($room_type_term)) {
+                        echo "<div class=\"error\"><p>couldn't create a room fatal error $room_type</p></div>";
+                        return;
+                    }
 
-                $room_cache[$room_type_slug] = array(
+                    $room_cache[$room_type_slug] = array(
                         'term_id' => $room_type_term['term_id']
 
-                );
+                    );
 
+                }
+                $room_type_id = array($room_cache[$room_type_slug]['term_id'])
             }
 
             // Handle room_type taxonomy
@@ -295,7 +299,7 @@ function handle_event_schedule_csv_upload($file) {
 
             // Ok if this person has the privlidges should be able to do
                 // wp_set_post_terms($event_id, $room_type, 'event_schedule_room_type');
-                $post_data['tax_input']['event_schedule_room_type'] = array($room_cache[$room_type_slug]['term_id']);
+                $post_data['tax_input']['event_schedule_room_type'] = $room_type_id;
 
             // Handle event_schedule_day_type taxonomy
             $day_term_id = null;
