@@ -287,7 +287,7 @@ function handle_event_schedule_csv_upload($file) {
                     );
 
                 }
-                $room_type_id = array($room_cache[$room_type_slug]['term_id'])
+                $room_type_id = array($room_cache[$room_type_slug]['term_id']);
             }
 
             // Handle room_type taxonomy
