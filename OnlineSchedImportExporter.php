@@ -198,15 +198,15 @@ function handle_event_schedule_csv_upload($file)
 				continue;
 			}
 
-			$external_event_id = sanitize_text_field($data[0]);
-			$name = sanitize_text_field($data[1]);
-			$date = sanitize_text_field($data[2]);
-			$time = sanitize_text_field($data[3]);
-			$description = wp_kses_post($data[4]);
-			$room_type = sanitize_text_field($data[5]);
-			$speakers = sanitize_text_field($data[6]);
-			$length = sanitize_text_field($data[7]);
-			$tags = sanitize_text_field($data[8]);
+			$external_event_id = schedule_convert_to_utf8_and_santize($data[0]);
+			$name = schedule_convert_to_utf8_and_santize($data[1]);
+			$date = schedule_convert_to_utf8_and_santize($data[2]);
+			$time = schedule_convert_to_utf8_and_santize($data[3]);
+			$description = schedule_convert_to_utf8_and_kses($data[4]);
+			$room_type = schedule_convert_to_utf8_and_santize($data[5]);
+			$speakers = schedule_convert_to_utf8_and_santize($data[6]);
+			$length = schedule_convert_to_utf8_and_santize($data[7]);
+			$tags = schedule_convert_to_utf8_and_santize($data[8]);
 
 			if (empty($name)) {
 				$name = trim(wp_kses_post($data[1])); // reduce it a bit just in case
@@ -462,7 +462,16 @@ function handle_event_schedule_csv_upload($file)
 
 
 			// write out room woot!
-			$event_id = wp_insert_post($post_data);
+			$post_id = wp_insert_post($post_data);
+            if (is_wp_error($post_id) || $post_id == 0) {
+                if (!empty($post_id)) {
+                    $error_message = $post_id->get_error_message();
+                } else {
+                    $error_message = "no error message provided";
+                }
+                echo "<div class=\"error\"><p>fatal error creating event in row {$row} - {$error_message}</p></div>";
+            }
+
 
 			// DO it seperate to get around some behavior that is setitng it to -99 in the db
 //            update_post_meta($event_id, 'onlinesched_sorttime', $mysql_time);
@@ -493,6 +502,7 @@ function handle_event_schedule_csv_upload($file)
 	}
 
 
+	$wpdb->query('COMMIT;');
 	// Re-enable post revisions
 
 	wp_defer_term_counting(false);
@@ -502,7 +512,6 @@ function handle_event_schedule_csv_upload($file)
 		w3tc_flush_all();
 	}
 
-	$wpdb->query('COMMIT;');
 
 }
 
@@ -685,3 +694,95 @@ function online_sched_grab_all_tags($tax, $by = 'slug')
 	return $tags_by_array;
 }
 
+
+function schedule_convert_to_utf8_and_kses($input) {
+	return wp_kses_post(schedule_convert_to_utf8($input));
+}
+
+function schedule_convert_to_utf8_and_santize($input) {
+
+    return sanitize_text_field(schedule_convert_to_utf8($input));
+}
+
+function schedule_convert_to_utf8($input) {
+
+	$replace = array(
+
+		// Smart quotes (UTF-8 and Windows-1252 encoding) to HTML entities
+		"\xE2\x80\x98" => '&lsquo;', // ‘ (left single quotation mark)
+		"\xE2\x80\x99" => '&rsquo;', // ’ (right single quotation mark)
+		"\xE2\x80\x9C" => '&ldquo;', // “ (left double quotation mark)
+		"\xE2\x80\x9D" => '&rdquo;', // ” (right double quotation mark)
+		chr(145) => '&lsquo;',       // ‘ (left single quotation mark, Windows-1252)
+		chr(146) => '&rsquo;',       // ’ (right single quotation mark, Windows-1252)
+		chr(147) => '&ldquo;',       // “ (left double quotation mark, Windows-1252)
+		chr(148) => '&rdquo;',       // ” (right double quotation mark, Windows-1252)
+		// En dash and em dash to HTML entities
+		"\xE2\x80\x93" => '&ndash;', // – (en dash)
+		"\xE2\x80\x94" => '&mdash;', // — (em dash)
+		chr(150) => '&ndash;',       // – (en dash, Windows-1252)
+		chr(151) => '&mdash;',       // — (em dash, Windows-1252)
+		// Ellipsis to HTML entity
+		"\xE2\x80\xA6" => '&hellip;', // … (ellipsis)
+		chr(133) => '&hellip;',      // … (ellipsis, Windows-1252)
+		// Dagger to HTML entity
+		chr(134) => '&dagger;',      // † (dagger symbol, Windows-1252)
+		// Double dagger to HTML entity
+		chr(135) => '&Dagger;',      // ‡ (double dagger symbol, Windows-1252)
+		// Non-breaking space to HTML entity
+		"\xC2\xA0" => '&nbsp;',       //   (non-breaking space, UTF-8)
+		chr(160) => '&nbsp;',         //   (non-breaking space, Windows-1252)
+		// Trademark to HTML entity
+		chr(153) => '&trade;',       // ™ (trademark, Windows-1252)
+		// Euro sign to HTML entity
+		chr(128) => '&euro;',        // € (euro sign, Windows-1252)
+		// Bullet to HTML entity
+		chr(149) => '&bull;',        // • (bullet, Windows-1252)
+	);
+
+	$input =  str_replace(array_keys($replace), array_values($replace), $input);
+
+    if (stripos($input, 'mins') !== false){
+        echo "<strong>founds</strong> $input <br />";
+
+    }
+
+	// Detect the character encoding
+	$encoding = mb_detect_encoding($input, mb_detect_order(), true);
+
+    if ($encoding == 'ASCII') {
+        // assume windows
+	    $input = mb_convert_encoding($input, 'UTF-8', 'Windows-1252');
+    }
+	// If it's not UTF-8, convert it
+	if ($encoding !== 'UTF-8') {
+		 $input = mb_convert_encoding($input, 'UTF-8', $encoding);
+	}
+
+	// Replace any invalid UTF-8 characters with HTML entities
+	// $input = mb_convert_encoding($input, 'HTML-ENTITIES', 'UTF-8');
+
+	// Now apply wp_kses_post to sanitize while keeping allowed HTML
+	return $input;
+}
+
+function scan_for_non_ascii_characters($text) {
+	$non_ascii_characters = [];
+
+	// Loop through each character in the string
+	for ($i = 0; $i < strlen($text); $i++) {
+		$char = $text[$i];
+
+		// Check if the character is non-ASCII
+		if (ord($char) > 127) {
+			$hex_value = bin2hex($char);
+			$non_ascii_characters[] = [
+				'character' => $char,
+				'hex' => $hex_value,
+				'ord' => ord($char),
+			];
+		}
+	}
+
+	return $non_ascii_characters;
+}
