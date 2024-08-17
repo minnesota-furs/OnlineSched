@@ -762,7 +762,7 @@ function schedule_convert_to_utf8($input) {
 	// Replace any invalid UTF-8 characters with HTML entities
 	// $input = mb_convert_encoding($input, 'HTML-ENTITIES', 'UTF-8');
 
-	// Now apply wp_kses_post to sanitize while keeping allowed HTML
+	// Now return string so it can get santized the last bits.
 	return $input;
 }
 
