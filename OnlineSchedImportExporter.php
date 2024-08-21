@@ -742,15 +742,11 @@ function schedule_convert_to_utf8($input) {
 
 	$input =  str_replace(array_keys($replace), array_values($replace), $input);
 
-    if (stripos($input, 'mins') !== false){
-        echo "<strong>founds</strong> $input <br />";
-
-    }
 
 	// Detect the character encoding
 	$encoding = mb_detect_encoding($input, mb_detect_order(), true);
 
-    if ($encoding == 'ASCII') {
+    if ($encoding == 'ASCII' || !$encoding) {
         // assume windows
 	    $input = mb_convert_encoding($input, 'UTF-8', 'Windows-1252');
     }
