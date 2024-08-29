@@ -11,7 +11,7 @@ function OnlineSched_terms_list($term, &$masterList = null): string
 
 	$tag_names = [];
 	foreach ($tags_arr as $tag) {
-		$tag_names[] = $tag->name;
+		$tag_names[] = ($masterList === null) ? $tag : $tag->name ;
 
 		if ($masterList !== null) {
 			$masterList[$tag->name] = $tag->slug;
