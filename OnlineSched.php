@@ -25,7 +25,7 @@ include_once("lib/help.php");
 require_once("OnlineSchedImportExporter.php");
 require_once('OnlineSchedHelp.php');
 require_once('lib/install_theme_support.php');
-require_once( 'schedule-support/schedule.php')
+require_once('lib/schedule.php')
 ;
 // Define Actions
 add_action('init', 'OnlineSched_init');
