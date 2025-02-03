@@ -17,7 +17,7 @@ require_once('html2text/html2text.php');
  * @copyright      2014 - Ben Lidnstrom , 2016 Brian Mogged, 2024 FM
  * @license        license.txt
  * @version        Release: 2.0
- * @filesource     wp-content/themes/furry-migration/ical.php
+ * @filesource     wp-content/ical.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29
  * @since          available since Release 1.0
  */

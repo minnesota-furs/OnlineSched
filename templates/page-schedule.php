@@ -17,21 +17,24 @@ if (!defined('ABSPATH')) {
  * @copyright      2016-current Furry Migration
  * @license        BSD 2-Clause
  * @version        Release: 3.1
- * @filesource     wp-content/themes/fm-2015/grid.php
+ * @filesource     wp-content/plugins/OnlineSched/grid.php
  */
 
+wp_enqueue_script('jquery');
+wp_enqueue_style( 'online-schedule-css', plugin_dir_url(dirname(__FILE__))."build/main.css", array(),   filemtime(plugin_dir_url(dirname(__FILE__))."build/main.css"));
+wp_enqueue_script( 'online-schedule-js', plugin_dir_url(dirname(__FILE__)) . "build/bundle.js", array('jquery'),  filemtime(plugin_dir_url(dirname(__FILE__)) . 'build/bundle.js'));
 
-// should be handled
-// wp_enqueue_script('schedule-js', get_stylesheet_directory_uri() . "/schedule-support/schedule.js", array(), filemtime(get_stylesheet_directory() . '/schedule-support/schedule.js'), true);
 
-$theming = "";
+$theming_filename = $theming = "";
+
 $cssClass = 'standard-schedule';
 $filterLINKS = false;
 
-if ($post->post_name == "kiosk-schedule") {
+if ($post->post_name === "kiosk-schedule") {
 	$theming = "schedule";
 	$cssClass = 'kiosk-schedule';
 	$filterLINKS = true;
+	$theming_filename = 'header-schedule.php';
 }
 
 $liveStreaming = false;
@@ -43,7 +46,12 @@ if ($post->post_name == 'live') {
 $masterTags = array();
 $masterRooms = array();
 
-get_header($theming);
+if (!empty($theming)){
+	include plugin_dir_path(__FILE__) . $theming_filename;
+} else {
+	get_header();
+}
+
 $start = microtime(true);
 ?>
 
@@ -375,18 +383,16 @@ $start = microtime(true);
 												if (!$eventCancelled) {
 													if ($theming != "schedule") {
 
+														$ical_base_url = plugin_dir_url(dirname(__FILE__));
+														$ical_base_url = preg_replace('/^https?:\/\//', '', $ical_base_url); // Remove http:// or https://
+														$ical_link = 'webcal://' . $ical_base_url . 'ical.php?cal-id=' . get_the_ID();
+
 														echo '<button title="copy to clipboard" class="schedule-clipboard"><i class="fas fa-copy" aria-hidden="true"></i></button>';
+														echo '<a href="'.$ical_link.'" title="Add to Apple Calendar" class="schedule-ical" target="_blank" onclick="return confirmCalendarAppleSubscription(this);"><i class="fab fa-apple" aria-hidden="true"></i></a>';
 
-														echo '<a href="' . get_bloginfo('template_directory') . '/ical.php?cal-id=' . get_the_ID() . '" title="Add to Apple Calendar" class="schedule-ical" target="_blank"><i class="fab fa-apple" aria-hidden="true"></i></a>';
+                                                        $googleLink  ='https://calendar.google.com/calendar/r?cid=' . urlencode($ical_link);
 
-														//
-
-														$googleLink = 'http://www.google.com/calendar/event?action=TEMPLATE&text=' . urlencode(get_the_title()) . '&location=' . urlencode(html_entity_decode($rooms)) .
-															'&details=' . urlencode(get_the_content()) .
-															'&dates=' . $googleStart . '/' . $googleEnd .
-															'&trp=false';
-
-														echo '<a href="' . $googleLink . '" title="Add to Google Calendar" class="schedule-google" target="_blank"><i class="fab fa-google" aria-hidden="true"></i></a>';
+														echo '<a href="' . $googleLink . '" title="Add to Google Calendar" class="schedule-google" target="_blank"><i class="fab fa-google" aria-hidden="true" onclick="return confirmCalendarGoogleSubscription(this);"></i></a>';
 													}
 												}
 												echo '</div>';

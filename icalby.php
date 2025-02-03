@@ -19,7 +19,7 @@ require_once('html2text/html2text.php');
  * @copyright      2014, 2016, 2018, 2020, 2021, 2022, 2023, 2024
  * @license        license.txt
  * @version        Release: 2.0
- * @filesource     wp-content/themesfurry-migration/icalby.php
+ * @filesource     wp-content/plugins/OnlineSched/icalby.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29
  * @since          available since Release 1.0
  */

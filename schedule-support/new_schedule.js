@@ -790,7 +790,7 @@ function currentDateTimeTimestampUTC() {
                     url = '?' + url.slice(1);
                 }
             }
-            return 'webcal://' + window.location.host + '/wp-content/themes/furry-migration/icalby.php' + url;
+            return 'webcal://' + window.location.host + '/wp-content/plugins/OnlineSched/icalby.php' + url;
         }
 
 });
@@ -813,4 +813,33 @@ function currentDateTimeTimestampUTC() {
         }
     }
 
+
+    window.confirmCalendarAppleSubscription = function(link){
+        return confirmCalendarSubscription(link, "Apple");
+    };
+
+
+    window.confirmCalendarGoogleSubscription = function(link){
+        return confirmCalendarSubscription(link, "Google");
+    };
+
+    window.confirmCalendarSubscription= function(link, service){
+
+
+        if (confirm("This will subscribe you to your "+service+" calendar. This will keep updating until you delete it. Do you want to continue?")) {
+            gtag('event', 'click', {
+                'event_category': 'engagement',
+                'event_label': 'subscribe-'+service+'-calendar-single'
+            });
+
+            // Allow navigation after tracking
+            setTimeout(function() {
+                window.location.href = link.href;
+            }, 300); // Small delay to allow tracking
+
+            return false; // Prevent default behavior to handle navigation manually
+        }
+        return false; // Cancel action if they click "Cancel"
+
+    };
 }

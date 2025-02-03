@@ -15,10 +15,10 @@ require_once('../../../wp-load.php');
  * @file           icalbyroom.php
  * @package        FM-2018 
  * @author         Ben Lindstrom, Brian Mogged
- * @copyright      2014, 2016, 2018, 2020
+ * @copyright      2014, 2016, 2018, 2020, 2025
  * @license        license.txt
  * @version        Release: 2.0
- * @filesource     wp-content/themes/fm-2022/icalbyroom.php
+ * @filesource     wp-content/plugins/OnlineSched/icalbyroom.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29
  * @since          available since Release 1.0
  */
@@ -174,4 +174,3 @@ foreach ($postsArr as $item) {
 header('Content-type: text/calendar');
 header('Content-Disposition: attachment; filename="mnfm-'.$slug.'.ics"');
 echo $iCal->display();
-?>

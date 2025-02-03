@@ -13,5 +13,9 @@ COPY src/ /app/src/
 RUN npm install && npm run build
 RUN rm -fr /app/npm_modules
 
+# specif for this "Schedule"
+RUN mkdir -p /app/schedule-support
+COPY schedule-support/ /app/schedule-support/
+
 FROM scratch AS export-stage
 COPY --from=build-stage /app/build /
