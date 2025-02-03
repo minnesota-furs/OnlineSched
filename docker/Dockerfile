@@ -9,9 +9,6 @@ COPY src/ /app/src/
 # if needed copy assets
 # COPY assets/ /app/assets/
 
-# specif for this "Schedule"
-RUN mkdir -p /app/schedule-support
-COPY schedule-support/ /app/schedule-support/
 
 # start build of files
 RUN npm install && npm run build
