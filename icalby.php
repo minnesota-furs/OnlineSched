@@ -7,6 +7,7 @@
  * - Clean code
  */
 require_once('../../../wp-load.php');
+
 require_once('html2text/html2text.php');
 /**
  * Full Content Template
