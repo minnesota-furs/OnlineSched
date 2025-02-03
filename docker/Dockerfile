@@ -14,5 +14,7 @@ COPY src/ /app/src/
 RUN npm install && npm run build
 RUN rm -fr /app/npm_modules
 
+RUN chmod 755 /app/build
+
 FROM scratch AS export-stage
 COPY --from=build-stage /app/build /
