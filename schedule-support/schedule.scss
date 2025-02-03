@@ -1,0 +1,449 @@
+
+.modal-header h3 {
+    /*                            color: #ef1818;*/
+    color: #0d375a;
+    position: relative;
+    z-index: 0;
+}
+
+.modal-header .close {
+    position: relative;
+    z-index: 2;
+    font-size: 32px;
+}
+
+#modal-schedule .modal-footer {
+    text-align: center;
+}
+
+.btn-default .fa {
+    color: #402b56;
+    margin-right: 5px;
+    font-size: 1.1em;
+}
+
+.btn-sm {
+    height: 34px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+}
+
+.canceled, .canceled a {
+    color: #d12229 !important;
+    text-decoration: line-through !important;
+}
+
+ul.schedule-tabs {
+    margin: 0 -20px;
+    border: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 14px;
+    height: 40px;
+    background: #fff;
+}
+
+ul.schedule-tabs li {
+    width: 33.333333333%;
+    margin: 0 !important;
+}
+
+.nav-tabs > li > a {
+    background: #333;
+    color: #fff;
+    text-align: center;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav-tabs > li > a:hover {
+    background: #111;
+}
+
+.nav-tabs > li.active > a, .nav-tabs > li.active > a:focus, .nav-tabs > li.active > a:hover {
+    background-color: #eee;
+    background-color: rgba(0, 0, 0, .05);
+    color: #333;
+}
+
+.schedule-sort {
+    margin: 0 -20px;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.schedule-sort .row {
+    margin-left: -8px;
+    margin-right: -7px;
+}
+
+.schedule-sort .row > div {
+    padding-left: 8px;
+    padding-right: 7px;
+}
+
+.schedule-search {
+    position: relative;
+}
+
+.schedule-search input {
+    padding-right: 35px;
+}
+
+.schedule-search button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    background: none;
+    border: none;
+    height: 34px;
+    padding: 7px 10px;
+}
+
+.schedule-item {
+    border-top: 1px solid #e3e3e3;
+    padding: 12px 0;
+    position: relative;
+}
+
+/*.schedule-item:nth-child(2n) { background-color: #eee; background-color: rgba(0, 0, 0, .05); }*/
+.schedule-item.even {
+    background-color: #eee;
+    background-color: rgba(0, 0, 0, .05);
+}
+
+.schedule-item.goh, .schedule-item.specialguest {
+    background: #b5d8ac;
+}
+
+.schedule-item.vip {
+    background: #fff0b2;
+}
+
+.schedule-title {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.schedule-item hr {
+    clear: both;
+    border: none;
+}
+
+.schedule-calendar {
+    position: absolute;
+    right: 20px;
+    top: 12px;
+    white-space: nowrap;
+}
+
+.schedule-calendar a {
+    margin-left: 8px;
+    font-size: 1.1em;
+}
+
+dl.schedule-meta {
+    margin: 0;
+}
+
+dl.schedule-meta dt {
+    float: left;
+    width: 30px;
+    text-align: center;
+}
+
+dl.schedule-meta dd {
+    margin-left: 30px;
+    padding-bottom: 8px;
+}
+
+dl.schedule-meta:after {
+    clear: both;
+    display: block;
+    content: '';
+    height: 0;
+    overflow: hidden;
+}
+
+.schedule-item dl {
+    padding-right: 0;
+    margin: 0;
+}
+
+.schedule-item dt {
+    float: left;
+    width: 25px;
+    text-align: center;
+}
+
+.schedule-item dd {
+    margin-left: 25px;
+}
+
+.schedule-day > h2 {
+    /* background: #ef1818; */
+    background: #0d375a;
+}
+
+.schedule-hour > h3 {
+    background: #333;
+}
+
+/*                        .schedule-day > h2, .schedule-hour > h3 {
+                            font-family: "proxima nova", sans-serif;
+                            margin: 0 -20px;
+                            padding: 10px 20px;
+                            color: #fff;
+                            font-size: 18px;
+                        }
+*/
+
+.schedule-day > h2, .schedule-hour > h3 {
+    font-family: rift, "proxima nova", sans-serif;
+    margin: 0 -20px;
+    padding: 10px 20px;
+    color: #fff;
+    font-size: 24px;
+}
+
+.schedule-description {
+    display: none;
+}
+
+#hours.tab-pane {
+    padding: 0 20px 20px;
+}
+
+#hours.tab-pane:before {
+    display: block;
+    content: '';
+    visibility: hidden;
+    margin-top: -40px;
+    height: 40px;
+}
+
+.hide-cancelled dt, .hide-cancelled dd {
+    display: none;
+}
+
+@media (max-width: 991px) {
+    .schedule-fixed .schedule-tabs {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        z-index: 999;
+    }
+
+    .schedule-fixed .tab-content {
+        padding-top: 40px;
+    }
+}
+
+@media (max-width: 767px) {
+    #schedule-modal .modal-footer .btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+        margin: 2px 0;
+    }
+
+    .schedule-sort .row > div {
+        margin: 5px 0;
+    }
+
+    .schedule-day > h2, .schedule-hour > h3 {
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .schedule-item dl {
+        clear: both;
+        padding-top: 8px;
+    }
+
+    .canceled dl:nth-child(3), .canceled dl:nth-child(4) {
+        display: none;
+    }
+
+    .canceled dl:nth-child(5) {
+        display: block !important;
+    }
+}
+
+
+.page-id-8669 #body {
+    margin-top: 0px;
+    padding-top: 0px;
+}
+
+.page-id-8669 #body .container-fluid {
+    padding-top: 0px;
+}
+
+/* header being dynamic */
+.schedule-day > h2 {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 50px;
+    z-index: 1;
+}
+
+    body.page-id-9880 .schedule-day > h2 {
+        top: 0px;
+    }
+
+/* Kiosk page id */
+@media screen and (min-width: 991px) {
+    body.page-id-9880 .schedule-day > h2 {
+        top: 50px;
+    }
+
+    body.page-id-8669 .schedule-tabs {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0px;
+        z-index: 1;
+    }
+
+    body.page-id-8669 .schedule-day > h2 {
+        top: 40px;
+    }
+}
+
+@media screen and (max-width: 991px) {
+    .schedule-day > h2, body.page-id-8669 .schedule-day > h2 {
+        top: 40px;
+    }
+}
+
+/* Live schedule css */
+.live-schedule .schedule-tabs {
+    display: none;
+}
+
+.live-schedule .schedule-sort {
+    display: none;
+}
+
+.schedule-clipboard {
+    border: none;
+    background: inherit;
+    padding: 0;
+    color: #f36d21; /* Pulled from a */
+}
+
+#modal-copy-url {
+    boder: none;
+}
+
+.clipboard-effect {
+    position: absolute;
+    padding: 10px 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    z-index: 1100;
+    font-size: 28px;
+    color: #ffffff; /* White text */
+    background-color: #0d375a; /* Dark Blue background */
+    text-wrap: nowrap;
+}
+
+@media (max-width: 900px) {
+    .clipboard-effect {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 600px) {
+    .clipboard-effect {
+        font-size: 18px;
+        padding: 8px 15px;
+    }
+}
+#schedule-key {
+
+}
+#schedule-add-to-calendar {
+    margin-top: 20px;
+    border: 5px solid #0d375a;
+    padding: 10px;
+    #schedule-add-to-calendar-div {
+
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        @media (max-width:992px){
+            display:block;
+        }
+    }
+}
+
+/* Bottom add to calendar text */
+.schedule-add-to-calendar-blurb  {
+    font-size: 1.1em;
+    font-weight: bold;
+    justify-content:center;
+    /* align-items: center; */
+    flex-flow: column;
+    display: flex;
+    /* align-items: center; */
+    height: 100%;
+    flex-wrap: wrap; /* Ensure content stays on multiple lines */
+    text-align: center;
+
+    @media (max-width:992px){
+        margin-bottom: 10px;
+    }
+}
+
+/* bottom buttons */
+
+.schedule-add-to-calendar-buttons {
+    display: flex;
+    flex-direction: inherit;
+    justify-content: center;
+    align-items: flex-start; /* Aligns items to the top */
+    text-align: center;
+}
+#schedule-add-to-calendar button {
+    border: none;
+    background: inherit;
+    padding: 0;
+    font-size: 1.1em;
+    margin-left: 10px;
+    i {
+        color: #f36d21; /* Pulled from a */
+    }
+
+    :hover {
+        color: #999999;
+    }
+
+    @media (max-width:760px) {
+        font-size: 0.9em;
+    }
+    &first-child {
+        margin-left: 0px;
+    }
+}
+
+
+
+/* Twich schedule */
+.twitch-container {
+    position: relative;  overflow: hidden;  width: 100%;  padding-top: 56.25%;
+}
+
+.twitch-responsive-iframe {
+    position: absolute;  top: 0;  left: 0;  bottom: 0;  right: 0;  width: 100%;  height: 100%;
+}

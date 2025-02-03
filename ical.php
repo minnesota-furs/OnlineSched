@@ -4,19 +4,20 @@
 //if ( !defined('ABSPATH')) exit;
 
 require_once('../../../wp-load.php');
+require_once('html2text/html2text.php');
 
 /**
  * Full Content Template
  *
    Template Name:  Panel Grid - iCal page
  *
- * @file           grid2.php
+ * @file           ical.php
  * @package        FM-2104 
  * @author         Ben Lindstrom
- * @copyright      2014 - Ben Lidnstrom , 2016 Brian Mogged
+ * @copyright      2014 - Ben Lidnstrom , 2016 Brian Mogged, 2024 FM
  * @license        license.txt
  * @version        Release: 2.0
- * @filesource     wp-content/themes/fm-2014/grid.php
+ * @filesource     wp-content/themes/furry-migration/ical.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29
  * @since          available since Release 1.0
  */
@@ -36,15 +37,19 @@ return preg_replace('/([\,;])/','\\\$1', $string);
 class iCalGen {
 
 	private $output;
-	public $prodid = "-//Furry Migration//Programing Grid 2017//EN";
-	private $calname = "furrymigration2017";
+	public $prodid = "-//Furry Migration//Programing Grid 2024//EN";
+	private $calname = "furrymigration2024";
 
+
+	// categories need to be pre-escaped otherwise could be double escpaed wrong
 	function add($uid,
 		     $startTime,
 		     $endTime,
 		     $location,
 		     $title,
-		     $desc) {
+		     $desc,
+			 $categories,
+	         $cancelled = false) {
 		$start = new DateTime();
 		$start->setTimestamp(strtotime($startTime));
 		$utc = new DateTimeZone('UTC');
@@ -56,23 +61,27 @@ class iCalGen {
 		$end->setTimezone($utc);
 
 		$this->output .= "BEGIN:VEVENT\r\n" .
+"DTSTAMP:" . gmdate(DATE_ICAL) . "\r\n" .
 "DTSTART:" . $start->format(DATE_ICAL) . "\r\n" .
 "DTEND:" . $end->format(DATE_ICAL) . "\r\n"  .
 "SUMMARY:" . escapeString($title) . "\r\n" .
 "DESCRIPTION:" . escapeString($desc) . "\r\n" .
 "LOCATION:" . escapeString($location) . "\r\n" .
+'CATEGORIES:'. $categories. "\r\n" .
+"STATUS:" . ($cancelled ? 'CANCELLED' : 'CONFIRMED') . "\r\n" .
+"SEQUENCE:0\r\n" .
 "UID:$uid\r\n".
 "END:VEVENT\r\n";
 	}
 
 	function display() {
-		return "BEGIN:VCALENDAR\nVERSION:2.0\n".
+		return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n".
 	/* Disabled for one event */
 			/* "X-WR-CALNAME:" . 
 		    $this->calname . "\nX-WR-CALDESC:Event Calendar\n" . */
-		    "CALSCALE:GREGORIAN\nMETHOD:PUBLISH\nPRODID:" . 
-		    $this->prodid . "\nX-WR-TIMEZONE:GMT\n" . 
-		    $this->output . "END:VCALENDAR\n";
+		    "CALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nPRODID:" .
+		    $this->prodid . "\r\nX-WR-TIMEZONE:GMT\r\n" .
+		    $this->output . "END:VCALENDAR\r\n";
 	}
 }
 
@@ -81,6 +90,7 @@ class iCalGen {
 //$list = explode(",", $_GET['uuid']);
 
 // XXX - No validation check on $_GET/$list
+
 $id = intval($_REQUEST['cal-id']);
 if ($id <= 0 ) {
 	exit();
@@ -94,7 +104,9 @@ if (empty($_post)) {
 $iCal = new iCalGen();
 $startTime = get_post_meta($id, 'onlinesched_sorttime', true);
 $endTime = $startTime + (get_post_meta($id, 'onlinesched_timelen', true)*60);
-$rooms = OnlineSched_terms_list('event_schedule_room_type', $id);
+
+$rooms = OnlineSched_terms_list2('event_schedule_room_type', $_post->ID);
+$rooms = html_entity_decode($rooms);
 
 $dst = new DateTime('@'.$startTime);
 $dst->setTimeZone(new DateTimeZone(date_default_timezone_get()));
@@ -104,45 +116,46 @@ $det = new DateTime('@'.$endTime);
 $det->setTimeZone(new DateTimeZone(date_default_timezone_get()));
 $det->setTimeZone(new DateTimeZone('UTC'));
 
- print "ack $startTime $endTime x".date("m/d/Y H:i",$startTime)."x".date("c",$startTime)."x".$dst->format("c")."\r\n";
+$tags = OnlineSched_terms_list2('event_schedule_tags_type', $id);
+$tagsArray   = array_map( 'trim', explode( ",", $tags ) );
+$eventCancelled = array_reduce($tagsArray, function($carry, $item) {
+	$lowercaseItem = strtolower($item);
+	return $carry || $lowercaseItem === 'cancelled' || $lowercaseItem === 'canceled';
+}, false);
+
+if ($eventCancelled) {
+	$rooms = "Canceled";
+}
+
+$content = convert_html_to_text($_post->post_content);
 
 $iCal->add('cal-fm-'.$id,
 	   $dst->format("m/d/Y H:i"),
 	   $det->format("m/d/Y H:i"),
 	   //	   date("m/d/Y H:i", $endTime),
 		   $rooms,
-		   $_post->post_title,
-		   $_post->post_content
+	       html_entity_decode($_post->post_title),
+		   $content,
+		   getEscapedCategoriesForICal($id, 'event_schedule_tags_type'),
+			$eventCancelled
 		  );
 
-		  
-/*$iCal->add()
-
-foreach ($list as $item) {
-	$found = 0;
-	foreach ($table['data'] as $id => $db) {
-		if ($id != 0) {
-			if ($db[6] === $item) {
-				$found = 1;
-				break;
-			}
-		}
-	}
-
-	if ($found == 0) {
-		break;	// Not found, skip
-	}
-	$iCal->add(
-	    $item . "fmorg",
-	    $db[0], 
-	    date("m/d/Y H:i", strtotime($db[0])+ ($db[7] * 60)),   // Calculate Ending based on "Minutes"
-	    $db[1],
-	    $db[3],
-	    $db[4]
-	);
-}
-*/
 header('Content-type: text/calendar');
 header('Content-Disposition: attachment; filename="mnfm'.$id.'.ics"');
 echo $iCal->display();
-?>
+
+
+function getEscapedCategoriesForICal($post_id, $tag = 'event_schedule_tags_type') {
+	// Get the terms for the specified custom taxonomy
+	$terms = wp_get_post_terms($post_id, $tag, array('fields' => 'names'));
+
+	// Escape commas in each term name
+	$escapedCategories = array_map(function($term) {
+		preg_replace('/([\,;])/','\\\$1', $term);
+		$term = html_entity_decode($term);
+		return str_replace(',', '\,', $term);
+	}, $terms);
+
+	// Join categories into a single string separated by commas
+	return implode(',', $escapedCategories);
+}
