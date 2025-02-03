@@ -605,3 +605,24 @@ function OnlineSched_posts_filter($query)
 	}
 }
 
+function warn_before_deleting_event_schedule() {
+	global $post_type;
+
+	// Only apply to event_schedule post type
+	if ($post_type === 'event_schedule') {
+		?>
+        <script type="text/javascript">
+            jQuery(document).ready(function($) {
+                // Warn before deleting from post list screen
+                $('a.submitdelete').on('click', function(e) {
+                    if (!confirm("Are you sure you want to delete this event?\nIf you are canceling it, consider updating tags to be cancelled.\nThis will allow other people to know that it was cancelled just not disappear off their schedules.")) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        </script>
+		<?php
+	}
+}
+add_action('admin_footer', 'warn_before_deleting_event_schedule');
+
