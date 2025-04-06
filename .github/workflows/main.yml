@@ -42,4 +42,4 @@ jobs:
       env:
         USER: ${{ secrets.USER }}
       run: |
-        ssh $USER@reyote.mnfurs.org "cd public_html; wp w3-total-cache flush all"
+        ssh $USER@reyote.mnfurs.org "cd public_html; wp w3-total-cache flush all; chmod -R a+rx wp-content/plugins/OnlineSched/build"
