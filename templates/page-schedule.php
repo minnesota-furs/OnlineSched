@@ -21,8 +21,8 @@ if (!defined('ABSPATH')) {
  */
 
 wp_enqueue_script('jquery');
-wp_enqueue_style( 'online-schedule-css', plugin_dir_url(dirname(__FILE__))."build/main.css", array(),   filemtime(plugin_dir_url(dirname(__FILE__))."build/main.css"));
-wp_enqueue_script( 'online-schedule-js', plugin_dir_url(dirname(__FILE__)) . "build/bundle.js", array('jquery'),  filemtime(plugin_dir_url(dirname(__FILE__)) . 'build/bundle.js'));
+wp_enqueue_style( 'online-schedule-css', plugin_dir_url(dirname(__FILE__))."build/main.css", array(),   filemtime(plugin_dir_path(dirname(__FILE__))."build/main.css"));
+wp_enqueue_script( 'online-schedule-js', plugin_dir_url(dirname(__FILE__)) . "build/bundle.js", array('jquery'), filemtime(plugin_dir_path(dirname(__FILE__)) . 'build/bundle.js'));
 
 
 $theming_filename = $theming = "";
@@ -55,6 +55,61 @@ if (!empty($theming)){
 $start = microtime(true);
 ?>
 
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" id="login-modal-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h3 class="modal-title">Login</h3>
+          </div>
+          <div class="modal-body">
+            <p>Login with your account:</p>
+            <?php
+            $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
+            if (isset($social_config['providers']) && is_array($social_config['providers'])) {
+                foreach ($social_config['providers'] as $provider => $providerData) {
+                    $showProvider = false;
+                    if (isset($providerData['keys']) && is_array($providerData['keys'])) {
+                        foreach ($providerData['keys'] as $key => $val) {
+                            $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
+                            $option_val = get_option($option_name);
+                            if (!empty($option_val)) {
+                                $showProvider = true;
+                                break;
+                            }
+                        }
+                    }
+                    if ($showProvider) {
+                        $icon = '';
+                        if (isset($providerData['use-favicon']) && !empty($providerData['use-favicon']['enabled'])) {
+                            $favicon = !empty($providerData['use-favicon']['favicon']) ? $providerData['use-favicon']['favicon'] : 'fa-user';
+                            $color = !empty($providerData['use-favicon']['color']) ? '#' . ltrim($providerData['use-favicon']['color'], '#') : '';
+                            $icon = '<i class="fab ' . esc_attr($favicon) . '" style="color:' . esc_attr($color) . '; margin-right:8px;"></i>';
+                        } else {
+                            switch (strtolower($provider)) {
+                                case 'facebook':
+                                    $icon = '<i class="fab fa-facebook" style="color:#4267B2; margin-right:8px;"></i>';
+                                    break;
+                                case 'twitter':
+                                    $icon = '<i class="fab fa-twitter" style="color:#1DA1F2; margin-right:8px;"></i>';
+                                    break;
+                                case 'discord':
+                                    $icon = '<i class="fab fa-discord" style="color:#7289DA; margin-right:8px;"></i>';
+                                    break;
+                                default:
+                                    $icon = '<i class="fas fa-user" style="margin-right:8px;"></i>';
+                            }
+                        }
+                        echo '<button onclick="openLoginWithProvider(\'' . esc_js($provider) . '\', event)" class="btn btn-default">' . $icon . 'Login with ' . esc_html($provider) . '</button>';
+                    }
+                }
+            }
+            ?>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="container-fluid">
         <div class="row">
             <div class="col-lg-10 col-lg-offset-1">
@@ -72,9 +127,11 @@ $start = microtime(true);
                     </div>
                     <div class="col-lg-6 schedule-live-right">
 						<?php
-						} ?>
-
-
+						}
+                        if (!$liveStreaming && $theming != "schedule") { ?>
+                        <div style="text-align:right;width:100%;clear:both;margin-bottom:10px;"><button id="login-modal-btn" class="btn btn-primary">Login</button>
+                            <button id="logout-modal-btn" class="btn btn-danger" style="display:none;" onclick="openLogoutProvider('Google', event)">Logout</button></div>
+                        <?php } ?>
                         <div id="schedule" style="display:none" class="<?php echo $cssClass; ?>">
                             <ul class="nav nav-tabs schedule-tabs" role="tablist">
                                 <li role="presentation" class="active"><a href="#programming"
@@ -103,7 +160,7 @@ $start = microtime(true);
                                 <div role="tabpanel" class="tab-pane active" id="programming">
                                     <div class="schedule-sort well">
                                         <div class="row">
-                                            <div class="col-sm-4">
+                                            <div class="col-sm-3">
                                                 <div class="schedule-search">
                                                     <input class="form-control" type="text"
                                                            placeholder="Type to search..."
@@ -142,6 +199,15 @@ $start = microtime(true);
                         <option>(etc)</option> */ ?>
                                                 </select>
                                             </div>
+                                           <?php if (!$liveStreaming && $theming != "schedule") { ?>
+                                            <div class="col-sm-1 schedule-favorites-filter" style="display: flex; align-items: center;">
+                                                <button class="btn btn-default btn-sm btn-block schedule-favorites-toggle" id="schedule-favorites-toggle" title="Show Favorites Only" aria-pressed="false" style="display: flex; align-items: center; justify-content: center;">
+                                                    <span class="favorite-label-mobile visible-xs-inline" style="margin-right: 4px;">Favorite</span>
+                                                    <i class="far fa-star" aria-hidden="true" style="color: #f6c700;"></i>
+                                                    <span class="sr-only">Show Favorites Only</span>
+                                                </button>
+                                            </div>
+                                            <?php } ?>
                                             <div class="col-sm-2 schedule-reset">
                                                 <button class="btn btn-primary btn-sm btn-block" disabled
                                                         id="schedule-reset"><i
@@ -382,16 +448,14 @@ $start = microtime(true);
 												echo '<div class="schedule-calendar' . $hiddenLg . '">';
 												if (!$eventCancelled) {
 													if ($theming != "schedule") {
-
+														// Star toggle button (favorite)
+														echo '<button class="schedule-favorite-toggle" title="Mark as favorite" data-event-id="' . get_the_ID() . '"><i class="far fa-star" aria-hidden="true"></i></button>';
 														$ical_base_url = plugin_dir_url(dirname(__FILE__));
 														$ical_base_url = preg_replace('/^https?:\/\//', '', $ical_base_url); // Remove http:// or https://
 														$ical_link = 'webcal://' . $ical_base_url . 'ical.php?cal-id=' . get_the_ID();
-
 														echo '<button title="copy to clipboard" class="schedule-clipboard"><i class="fas fa-copy" aria-hidden="true"></i></button>';
 														echo '<a href="'.$ical_link.'" title="Add to Apple Calendar" class="schedule-ical" target="_blank" onclick="return confirmCalendarAppleSubscription(this);"><i class="fab fa-apple" aria-hidden="true"></i></a>';
-
-                                                        $googleLink  ='https://calendar.google.com/calendar/r?cid=' . urlencode($ical_link);
-
+														$googleLink  ='https://calendar.google.com/calendar/r?cid=' . urlencode($ical_link);
 														echo '<a href="' . $googleLink . '" title="Add to Google Calendar" class="schedule-google" target="_blank"><i class="fab fa-google" aria-hidden="true" onclick="return confirmCalendarGoogleSubscription(this);"></i></a>';
 													}
 												}
@@ -610,7 +674,116 @@ $start = microtime(true);
         <!-- /.modal-dialog -->
     </div>
     <!-- /.modal -->
+	<script>
+function openLoginWithProvider(provider, event) {
+    if (event) event.preventDefault();
+    var rand = (window.crypto && window.crypto.getRandomValues) ?
+        Array.from(window.crypto.getRandomValues(new Uint32Array(2)), x => x.toString(16)).join('') :
+        Math.random().toString(36).substring(2) + Date.now();
+    var url = '/wp-content/plugins/OnlineSched/includes/login.php?provider=' + encodeURIComponent(provider) + '&cachebreak=' + rand;
+    var w = 500, h = 600;
+    var left = (screen.width/2)-(w/2), top = (screen.height/2)-(h/2);
+    var win = window.open(url, 'onlinesched_login', 'width='+w+',height='+h+',top='+top+',left='+left+',resizable,scrollbars');
+    if (!win) {
+        alert('Popup blocked! Please allow popups for this site to log in.');
+    }
+    return false;
+}
 
+function openLogoutProvider(provider, event) {
+    if (event) event.preventDefault();
+    var rand = (window.crypto && window.crypto.getRandomValues) ?
+        Array.from(window.crypto.getRandomValues(new Uint32Array(2)), x => x.toString(16)).join('') :
+        Math.random().toString(36).substring(2) + Date.now();
+    var url = '/wp-content/plugins/OnlineSched/includes/login.php?logout=' + encodeURIComponent(provider) + '&cachebreak=' + rand;
+    var w = 500, h = 400;
+    var left = (screen.width/2)-(w/2), top = (screen.height/2)-(h/2);
+    var win = window.open(url, 'onlinesched_logout', 'width='+w+',height='+h+',top='+top+',left='+left+',resizable,scrollbars');
+    if (!win) {
+        alert('Popup blocked! Please allow popups for this site to log out.');
+        // Clear login state if popup blocked
+        if (window.ONLINESCHED_USER) {
+            window.ONLINESCHED_USER.loggedIn = false;
+            window.ONLINESCHED_USER.provider = '';
+            window.ONLINESCHED_USER.identifier = '';
+        }
+        if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
+        window.location.reload();
+    } else {
+        // Poll for window close, then reload
+        var pollTimer = window.setInterval(function() {
+            if (win.closed) {
+                window.clearInterval(pollTimer);
+                // Clear login state after logout popup closes
+                if (window.ONLINESCHED_USER) {
+                    window.ONLINESCHED_USER.loggedIn = false;
+                    window.ONLINESCHED_USER.provider = '';
+                    window.ONLINESCHED_USER.identifier = '';
+                }
+                if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
+                window.location.reload();
+            }
+        }, 500);
+    }
+    return false;
+}
+
+// Show/hide login/logout buttons based on login state
+function updateLoginLogoutUI() {
+    var loggedIn = window.ONLINESCHED_USER && window.ONLINESCHED_USER.loggedIn;
+    var loginBtn = document.getElementById('login-modal-btn');
+    var logoutBtn = document.getElementById('logout-modal-btn');
+    if (loginBtn) loginBtn.style.display = loggedIn ? 'none' : '';
+    if (logoutBtn) logoutBtn.style.display = loggedIn ? '' : 'none';
+}
+
+// Fetch login state via AJAX and update UI
+window.ONLINESCHED_USER = { loggedIn: false, provider: '', identifier: '' };
+// Hide login/logout buttons until state is loaded
+function hideLoginButtons() {
+    var loginBtn = document.getElementById('login-modal-btn');
+    var logoutBtn = document.getElementById('logout-modal-btn');
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+}
+hideLoginButtons();
+
+function fetchLoginStateAndInit() {
+    fetch('/wp-content/plugins/OnlineSched/includes/login_state.php', { credentials: 'same-origin' })
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            window.ONLINESCHED_USER = data;
+            if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
+            // If logged in, fetch favorites from DB and sync cookie/UI
+            if (window.ONLINESCHED_USER && window.ONLINESCHED_USER.loggedIn && window.ONLINESCHED_USER.provider && window.ONLINESCHED_USER.identifier) {
+                fetch('/wp-content/plugins/OnlineSched/includes/get_favorites.php?provider=' + encodeURIComponent(window.ONLINESCHED_USER.provider) + '&identifier=' + encodeURIComponent(window.ONLINESCHED_USER.identifier), { credentials: 'same-origin' })
+                    .then(function(resp) { return resp.json(); })
+                    .then(function(favData) {
+                        if (favData.favorites) {
+                            // Set cookie as raw JSON string, not encodeURIComponent
+                            document.cookie = 'schedule_favorites=' + favData.favorites + ';path=/;max-age=' + (60*60*24*30);
+                        }
+                        // Always call restoreFavoritesFromCookie after updating the cookie
+                        if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
+                        if (window.scheduleFavorites) window.scheduleFavorites();
+                    });
+            } else {
+                if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
+                if (window.scheduleFavorites) window.scheduleFavorites();
+            }
+        });
+}
+document.addEventListener('DOMContentLoaded', fetchLoginStateAndInit);
+</script>
+
+<?php
+// Only use custom provider/cookie/session for login state
+$social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
+$valid_providers = array_keys($social_config['providers']);
+$provider = isset($_SESSION['provider']) ? $_SESSION['provider'] : '';
+$identifier = isset($_COOKIE['onlinesched_identifier']) ? $_COOKIE['onlinesched_identifier'] : '';
+$is_logged_in = in_array($provider, $valid_providers) && !empty($identifier);
+?>
 <?php
 
 $end = microtime(true);
@@ -648,4 +821,3 @@ function decode_array_keys($array)
 
 	return $decoded_array;
 }
-

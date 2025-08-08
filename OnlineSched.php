@@ -3,7 +3,7 @@
 Plugin Name: OnlineSched
 Plugin URI: 
 Description: Online Event Scheduling
-Version: 0.4
+Version: 0.5
 License: BSD 2-Clause
 
 Todo List:
@@ -25,8 +25,9 @@ include_once("lib/help.php");
 require_once("OnlineSchedImportExporter.php");
 require_once('OnlineSchedHelp.php');
 require_once('lib/install_theme_support.php');
-require_once('lib/schedule.php')
-;
+require_once('lib/schedule.php');
+require_once('OnlineSchedSettings.php');
+
 // Define Actions
 add_action('init', 'OnlineSched_init');
 add_action('admin_init', 'OnlineSched_admin_init');
@@ -42,6 +43,7 @@ add_filter('post_row_actions', 'OnlineSched_remove_row_actions', 10, 2);
 
 // Define Register
 register_activation_hook(__FILE__, 'OnlineSched_plugin_activate');
+register_activation_hook(__FILE__, 'onlinesched_create_favorites_table');
 //register_deactivation_hook(__FILE__, 'OnlineSched_plugin_deactivation'); // XXX - Implement
 
 //
@@ -220,6 +222,25 @@ function OnlineSched_plugin_activate()
 		$role_administrator->add_cap('delete_event_schedule_panelist_type');
 		$role_administrator->add_cap('assign_event_schedule_panelist_type');
 	}
+}
+
+function onlinesched_create_favorites_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'onlinesched_favorites';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    $sql = "CREATE TABLE $table_name (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        provider varchar(64) NOT NULL,
+        identifier varchar(255) NOT NULL,
+        favorites longtext NULL,
+        last_updated datetime DEFAULT NULL,
+        last_logged_in datetime DEFAULT NULL,
+        PRIMARY KEY  (id),
+        KEY provider_identifier (provider, identifier)
+    ) $charset_collate;";
+    dbDelta($sql);
 }
 
 function OnlineSched_columns_head($defaults)
@@ -423,47 +444,6 @@ function OnlineSched_init()
 	);
 }
 
-function OnlineSched_admin_init()
-{
-	add_meta_box(
-		'OnlineSched_timeslot',
-		'Event Information',
-		'OnlineSched_timeslot_metabox',
-		'event_schedule',
-		'normal',
-		'high');
-	add_option('event_schedule_year', 'Event Schedule Year');
-	register_setting('event_schedule_option_group', 'event_schedule_year', 'OnlineSched_callback');
-}
-
-function OnlineSched_register_options_page()
-{
-
-
-	add_options_page('Online Sched', 'OnlineSched ', 'edit_onlinesched_event_schedules', 'event_schedule', 'OnlineSched_options_page');
-}
-
-function OnlineSched_options_page()
-{
-	?>
-    <div>
-        <h2>OnlineSched Options</h2>
-        <form method="post" action="options.php">
-			<?php settings_fields('event_schedule_option_group'); ?>
-            <table>
-                <tr valign="top">
-                    <th scope="row"><label for="event_schedule_year">OnlineSched Year</label></th>
-                    <td><input type="text" id="event_schedule_year" name="event_schedule_year"
-                               value="<?php echo get_option('event_schedule_year'); ?>"/></td>
-                </tr>
-            </table>
-			<?php submit_button(); ?>
-        </form>
-    </div>
-	<?PHP
-}
-
-
 function OnlineSched_taxonomy_dropdown($id, $taxonomy)
 {
 	$assigned = wp_get_post_terms($id, $taxonomy);
@@ -625,4 +605,3 @@ function warn_before_deleting_event_schedule() {
 	}
 }
 add_action('admin_footer', 'warn_before_deleting_event_schedule');
-

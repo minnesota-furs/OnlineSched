@@ -1,13 +1,14 @@
+
 export function new_schedule() {
-let header_top = 60;
-let header_mobile_top = 0;
-let tablet_width = 900;
+    let header_top = 60;
+    let header_mobile_top = 0;
+    let tablet_width = 900;
 
     //
     // Function needs to be defined asap.
     // so need "before" ready
     //
-    window.scrollTopMenu = function() {
+    window.scrollTopMenu = function () {
 
         var width = jQuery('body').innerWidth();
         var offsetDiv = header_top;
@@ -24,8 +25,8 @@ let tablet_width = 900;
         }, 'slow');
     };
 
-    function gtag_event(eventType = 'click', category = 'schedule', label = 'schedule', value = 1 ){
-        if (typeof gtag === 'function'){
+    function gtag_event(eventType = 'click', category = 'schedule', label = 'schedule', value = 1) {
+        if (typeof gtag === 'function') {
             gtag('event', eventType, {
                 'event_category': category,
                 'event_label': label,
@@ -36,7 +37,7 @@ let tablet_width = 900;
 
     jQuery(document).ready(function () {
         // added for copy url
-        jQuery("#modal-copy-url").on("click", function(e) {
+        jQuery("#modal-copy-url").on("click", function (e) {
 
             e.preventDefault(); // Prevent the default action of the link
 
@@ -45,21 +46,21 @@ let tablet_width = 900;
 
             animate_clipboard(this);
 
-            gtag_event('copy_link_modal', 'engagement', url );
+            gtag_event('copy_link_modal', 'engagement', url);
         });
 
-        jQuery(".schedule-clipboard").on("click", function(e) {
+        jQuery(".schedule-clipboard").on("click", function (e) {
 
             e.preventDefault(); // Prevent the default action of the link
             // get the id
             const eventID = jQuery(this).parent().parent().attr('id').substring(6);
-            const url = window.location.href.replace(location.hash,"")+"#"+eventID;
+            const url = window.location.href.replace(location.hash, "") + "#" + eventID;
 
-            navigator.clipboard.writeText( url);
+            navigator.clipboard.writeText(url);
 
             animate_clipboard(this);
 
-            gtag_event('copy_link', 'engagement', url );
+            gtag_event('copy_link', 'engagement', url);
         });
 
         function animate_clipboard(clipObject) {
@@ -92,7 +93,7 @@ let tablet_width = 900;
             $clipboardEffect.animate({
                 top: topPosition - 80, // Adjust to desired end position
                 opacity: 0,
-            }, 1500, function() {
+            }, 1500, function () {
                 jQuery(this).remove(); // Remove the effect after animation
             });
 
@@ -100,9 +101,9 @@ let tablet_width = 900;
             jQuery(clipObject).blur().focusout().fadeOut(750).fadeIn(750);
         }
 
-        jQuery(document).ready(function() {
+        jQuery(document).ready(function () {
             // Listen for the tab change event
-            jQuery('.nav-tabs a').on('shown.bs.tab', function(e) {
+            jQuery('.nav-tabs a').on('shown.bs.tab', function (e) {
                 // Get the href attribute of the active tab
                 var hash = jQuery(e.target).attr('href');
 
@@ -134,12 +135,39 @@ let tablet_width = 900;
             var googleCal = parent.find('.schedule-google').attr('href');
 
 
-            jQuery("#modal-schedule-title").html(title);
-            if (description !== undefined && description.length >= 4) {
-                jQuery("#modal-schedule-description").show().html(description).siblings('hr').show();
-            } else {
-                jQuery("#modal-schedule-description").hide().siblings('hr').hide();
+            // Insert favorite toggle button before the title in the modal
+            let isFavorite = parent.attr('data-favorite') === 'true';
+            let evt_id = jQuery(parent).attr('id');
+            let favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
+            jQuery("#modal-schedule-title").html(favBtn + title);
+            // Always update the modal star to match the current favorite state
+            function updateModalFavoriteStar(state) {
+                let $modalBtn = jQuery('#modal-schedule-title .schedule-favorite-toggle');
+                $modalBtn.toggleClass('active', state).attr('aria-pressed', state ? 'true' : 'false');
+                $modalBtn.find('i').toggleClass('fas', state).toggleClass('far', !state);
             }
+            jQuery("#modal-schedule-title .schedule-favorite-toggle").off('click').on('click', function(e) {
+                e.preventDefault();
+                // Toggle favorite state for the event in the main schedule list
+                const $mainItem = jQuery('#' + evt_id);
+                const $btn = $mainItem.find('.schedule-favorite-toggle');
+                isFavorite = !isFavorite;
+                if ($mainItem.length) {
+                    $mainItem.attr('data-favorite', isFavorite);
+                    if (isFavorite) {
+                        $btn.addClass('active').attr('aria-pressed', 'true');
+                        $btn.find('i').removeClass('far').addClass('fas');
+                    } else {
+                        $btn.removeClass('active').attr('aria-pressed', 'false');
+                        $btn.find('i').removeClass('fas').addClass('far');
+                    }
+                }
+                // Always update the modal star to match the new state
+                updateModalFavoriteStar(isFavorite);
+                updateFavoritesCookie();
+            });
+
+            jQuery("#modal-schedule-description").show().html(description).siblings('hr').show();
             modal_popup_fill("#modal-schedule-date", date);
             modal_popup_fill("#modal-schedule-time", time);
             modal_popup_fill("#modal-schedule-room", room);
@@ -248,7 +276,9 @@ let tablet_width = 900;
 
         jQuery("#schedule-reset").click(function () {
             resetDropDowns();
-
+            // Reset favorites filter
+            favoritesFilterActive = false;
+            jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
             scheduleSort();
             resetSelectTags();
         });
@@ -324,6 +354,25 @@ let tablet_width = 900;
 
         }
 
+        // --- FAVORITES FILTER BUTTON LOGIC ---
+        let favoritesFilterActive = false;
+        jQuery('#schedule-favorites-toggle').on('click', function() {
+            favoritesFilterActive = !favoritesFilterActive;
+            jQuery(this).toggleClass('active', favoritesFilterActive);
+            jQuery(this).attr('aria-pressed', favoritesFilterActive ? 'true' : 'false');
+            // Toggle star icon between hollow and solid
+            var $icon = jQuery(this).find('i');
+            if (favoritesFilterActive) {
+                $icon.removeClass('far').addClass('fas'); // solid star
+            } else {
+                $icon.removeClass('fas').addClass('far'); // hollow star
+            }
+            if (favoritesFilterActive) {
+                jQuery('#schedule-select-days').val('all');
+            }
+            scheduleSort();
+        });
+
         function scheduleSort() {
             if (jQuery('#schedule').length === 0) {
                 // Element with ID "schedule" doesn't exist exit out of function.
@@ -393,16 +442,6 @@ let tablet_width = 900;
             if (searchText != "") {
 
                 jQuery('.schedule-item:visible').each(function () {
-                    /* var findThis = '.schedule-title a:containsi("'+searchText+'")';
-                     var hide = true;
-                    jQuery(this).find(findThis).each(function(){
-                     hide = false;
-                     alert(jQuery(this).html())
-                     });
-                       if (hide) {
-                         jQuery(this).hide();
-                       }
-                    */
                     var hide = true;
                     jQuery(this).find(".schedule-title a, .schedule-panelists, .schedule-tags, .schedule-room").each(function () {
                         if (jQuery(this).text().toLowerCase().indexOf(searchText) != -1) {
@@ -416,6 +455,16 @@ let tablet_width = 900;
 
                 });
 
+                disableReset = false;
+            }
+
+            // --- FAVORITES FILTER: Only show favorites if active ---
+            if (favoritesFilterActive) {
+                jQuery('.schedule-item:visible').each(function () {
+                    if (jQuery(this).attr('data-favorite') !== 'true') {
+                        jQuery(this).hide();
+                    }
+                });
                 disableReset = false;
             }
 
@@ -621,7 +670,7 @@ let tablet_width = 900;
 
         let eventschedule_hash = window.location.hash;
 
-        gtag_event('hash', 'engagement', eventschedule_hash );
+        gtag_event('hash', 'engagement', eventschedule_hash);
 
         eventschedule_hash = eventschedule_hash.substring(0, 5);
 
@@ -661,7 +710,7 @@ let tablet_width = 900;
             reset_schedule(true);
             scheduleSort();
 
-            let hash = "#online"+window.location.hash.substring(1);
+            let hash = "#online" + window.location.hash.substring(1);
             let event = jQuery(hash);
             if (event !== undefined) {
                 if (jQuery(event).css('display') == 'none') {
@@ -669,22 +718,22 @@ let tablet_width = 900;
                     scheduleSort();
                 }
 
-                    var width = jQuery('body').innerWidth();
-                    var offsetDiv = header_top * 2;
-                    if (width <= tablet_width) {
-                        offsetDiv = header_mobile_top;
-                    }
+                var width = jQuery('body').innerWidth();
+                var offsetDiv = header_top * 2;
+                if (width <= tablet_width) {
+                    offsetDiv = header_mobile_top;
+                }
 
-                    var offset = jQuery(event).offset().top - offsetDiv;
-                    if (offset < 0) {
-                        offset = 0;
-                    }
+                var offset = jQuery(event).offset().top - offsetDiv;
+                if (offset < 0) {
+                    offset = 0;
+                }
 
-                    jQuery('html, body').animate({
-                        scrollTop: offset
-                    }, 'slow');
+                jQuery('html, body').animate({
+                    scrollTop: offset
+                }, 'slow');
 
-                    jQuery(hash + ' .schedule-title a').click();
+                jQuery(hash + ' .schedule-title a').click();
             }
 
         } else {
@@ -707,21 +756,21 @@ let tablet_width = 900;
             }
         }
 
-function currentDateTimestampUTC() {
-    var dateObj = new Date();
-    var newUTC = Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-    var utcDate = new Date(newUTC);
+        function currentDateTimestampUTC() {
+            var dateObj = new Date();
+            var newUTC = Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+            var utcDate = new Date(newUTC);
 
-    return (utcDate.getTime()) / 1000;
-}
+            return (utcDate.getTime()) / 1000;
+        }
 
-function currentDateTimeTimestampUTC() {
-    var utcDate = new Date();
+        function currentDateTimeTimestampUTC() {
+            var utcDate = new Date();
 
-    return ((utcDate.getTime()) / 1000);
-}
+            return ((utcDate.getTime()) / 1000);
+        }
 
-        window.open_calendar_apple = function (){
+        window.open_calendar_apple = function () {
             let url = generate_ical_url();
 
             window.open(url);
@@ -729,20 +778,20 @@ function currentDateTimeTimestampUTC() {
 
         };
 
-        window.open_calendar_google = function (){
+        window.open_calendar_google = function () {
             let url = generate_ical_url();
 
-            url = 'https://calendar.google.com/calendar/r?cid='+encodeURIComponent(url);
+            url = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(url);
             window.open(url);
             gtag_event('click', 'engagement', 'subscribe-google-calendar');
         };
 
-        window.open_calendar_outlook = function (){
+        window.open_calendar_outlook = function () {
 
 
             const date = new Date();
             const year = date.getFullYear();
-            let calendarName = 'Furry Migration '+year;
+            let calendarName = 'Furry Migration ' + year;
 
             let webcalUrl = generate_ical_url();
 
@@ -757,14 +806,14 @@ function currentDateTimeTimestampUTC() {
 
             gtag_event('click', 'engagement', 'subscribe-outlook-calendar');
         };
+
         function generate_ical_url() {
 
             let url = "";
 
             if (jQuery('#schedule-search-text').val().trim() != '') {
                 url = "?room=all";
-            }
-            else {
+            } else {
 
                 // Get the selected text
                 var selectedTag = jQuery("#schedule-select-tags").find('option:selected').text();
@@ -793,10 +842,10 @@ function currentDateTimeTimestampUTC() {
             return 'webcal://' + window.location.host + '/wp-content/plugins/OnlineSched/icalby.php' + url;
         }
 
-});
+    });
 
     // From article https://stackoverflow.com/questions/1397329/how-to-remove-the-hash-from-window-location-url-with-javascript-without-page-r
-    function removeHash () {
+    function removeHash() {
         var scrollV, scrollH, loc = window.location;
         if ("pushState" in history)
             history.pushState("", document.title, loc.pathname + loc.search);
@@ -814,26 +863,26 @@ function currentDateTimeTimestampUTC() {
     }
 
 
-    window.confirmCalendarAppleSubscription = function(link){
+    window.confirmCalendarAppleSubscription = function (link) {
         return confirmCalendarSubscription(link, "Apple");
     };
 
 
-    window.confirmCalendarGoogleSubscription = function(link){
+    window.confirmCalendarGoogleSubscription = function (link) {
         return confirmCalendarSubscription(link, "Google");
     };
 
-    window.confirmCalendarSubscription= function(link, service){
+    window.confirmCalendarSubscription = function (link, service) {
 
 
-        if (confirm("This will subscribe you to your "+service+" calendar. This will keep updating until you delete it. Do you want to continue?")) {
+        if (confirm("This will subscribe you to your " + service + " calendar. This will keep updating until you delete it. Do you want to continue?")) {
             gtag('event', 'click', {
                 'event_category': 'engagement',
-                'event_label': 'subscribe-'+service+'-calendar-single'
+                'event_label': 'subscribe-' + service + '-calendar-single'
             });
 
             // Allow navigation after tracking
-            setTimeout(function() {
+            setTimeout(function () {
                 window.location.href = link.href;
             }, 300); // Small delay to allow tracking
 
@@ -842,4 +891,6 @@ function currentDateTimeTimestampUTC() {
         return false; // Cancel action if they click "Cancel"
 
     };
+
+
 }
