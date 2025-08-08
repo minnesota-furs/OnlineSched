@@ -468,3 +468,13 @@ dl.schedule-meta:after {
         color: #ffd700;
     }
 }
+
+// Remove focus outline and box-shadow for .schedule-favorite-toggle when not focused via keyboard
+.schedule-favorite-toggle:focus {
+  outline: none;
+  box-shadow: none;
+}
+.schedule-favorite-toggle:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}

@@ -93,6 +93,8 @@ export function scheduleFavorites() {
         }
     }
 
+    window.updateFavoritesCookie = updateFavoritesCookie;
+
 // Restore favorites from cookie
      function restoreFavoritesFromCookie() {
         const favCookie = getCookie('schedule_favorites');
@@ -119,6 +121,7 @@ export function scheduleFavorites() {
             }
         }
     }
+window.restoreFavoritesFromCookie = restoreFavoritesFromCookie;
 
 // Favorite (star) toggle button logic
      function setupFavoriteToggleHandler() {
@@ -164,7 +167,7 @@ export function scheduleFavorites() {
 
 init_favorites();
     function init_favorites() {
-        restoreFavoritesFromCookie();
+        window.restoreFavoritesFromCookie();
         // Fetch login state and then restore favorites
         jQuery.ajax({
             url: '/wp-content/plugins/OnlineSched/includes/login_state.php',
@@ -179,7 +182,7 @@ init_favorites();
                     if (data.favorites) {
                         document.cookie = 'schedule_favorites=' + JSON.stringify(data.favorites) + ';path=/;max-age=' + (60*60*24*30);
                     }
-                    restoreFavoritesFromCookie();
+                    window.restoreFavoritesFromCookie();
                 } else {
                     if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
                 }
