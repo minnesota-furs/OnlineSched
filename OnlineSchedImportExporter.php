@@ -31,8 +31,40 @@ function event_schedule_csv_export_handler()
 
 function event_schedule_csv_uploader_page()
 {
-	remove_filter('parse_query', 'OnlineSched_posts_filter');
-	?>
+    remove_filter('parse_query', 'OnlineSched_posts_filter');
+    ?>
+    <style>
+    /* Style for upload-error to match WordPress admin error notice */
+    .upload-error {
+        background: #fff;
+        border-left: 4px solid #dc3232;
+        margin: 20px 0 20px 0;
+        padding: 12px 12px 12px 16px;
+        box-shadow: 0 1px 1px 0 rgba(0,0,0,.04);
+        color: #b32d2e;
+        font-size: 14px;
+        line-height: 1.5;
+        border-radius: 2px;
+    }
+    .upload-error p {
+        margin: 0;
+    }
+    /* Style for schedule-updated to match WordPress updated notice but custom color */
+    .schedule-updated {
+        background: #f6ffed;
+        border-left: 4px solid #46b450;
+        margin: 20px 0 20px 0;
+        padding: 12px 12px 12px 16px;
+        box-shadow: 0 1px 1px 0 rgba(0,0,0,.04);
+        color: #1a531b;
+        font-size: 14px;
+        line-height: 1.5;
+        border-radius: 2px;
+    }
+    .schedule-updated p {
+        margin: 0;
+    }
+    </style>
     <div class="wrap">
         <h2>Upload Event Schedule CSV</h2>
         <form method="post" enctype="multipart/form-data">
@@ -69,7 +101,9 @@ function event_schedule_csv_uploader_page()
     </div>
 	<?php
 	if (isset($_FILES['event_schedule_csv'])) {
+
 		handle_event_schedule_csv_upload($_FILES['event_schedule_csv']);
+
 	}
 
 
@@ -99,7 +133,7 @@ function delete_all_event_schedule_posts()
 		wp_delete_post($event->ID, true);
 	}
 
-	echo '<div class="updated"><p>All Event Schedule posts have been deleted.</p></div>';
+	echo '<div class="schedule-updated"><p>All Event Schedule posts have been deleted.</p></div>';
 }
 
 function delete_unused_tax($taxonomy, $name)
@@ -116,7 +150,7 @@ function delete_unused_tax($taxonomy, $name)
 		}
 	}
 
-	echo "<div class=\"updated\"><p>All unused {$name} have been deleted.</p></div>";
+	echo "<div class=\"schedule-updated\"><p>All unused {$name} have been deleted.</p></div>";
 }
 
 
@@ -130,7 +164,7 @@ function handle_event_schedule_csv_upload($file)
 	$wpdb->query('START TRANSACTION');
 
 	set_time_limit(1200); // 10 minutes
-	ini_set('memory_limit', '4096M');
+	ini_set('memory_limit', '6096M');
 
     // handle the stop button as ignore like a 8 year old just continue to work
 	ignore_user_abort(true);
@@ -146,6 +180,11 @@ function handle_event_schedule_csv_upload($file)
 
 		$room_cache = online_sched_grab_all_tags('event_schedule_room_type');
 		$panelist_cache = online_sched_grab_all_tags('event_schedule_panelist_type', 'name');
+		// Normalize panelist_cache keys for case/whitespace
+		$normalized_panelist_cache = array();
+		foreach ($panelist_cache as $name => $data) {
+			$normalized_panelist_cache[strtolower(trim($name))] = $data;
+		}
 		$tag_cache = online_sched_grab_all_tags('event_schedule_tags_type');
 
 		// disable sitemaps
@@ -168,7 +207,7 @@ function handle_event_schedule_csv_upload($file)
 		$required_headers = array_map('strtolower', array_change_key_case($required_headers, CASE_LOWER));
 
 		if (array_slice($headers, 0, count($required_headers)) !== $required_headers) {
-			echo '<div class="error"><p>CSV file format is incorrect. Expected headers: ID, Name, Date, Time, Description, Room_Type, Speakers, Length, Tags).</p></div>';
+			echo '<div class="upload-error"><p>CSV file format is incorrect. Expected headers: ID, Name, Date, Time, Description, Room_Type, Speakers, Length, Tags).</p></div>';
 			return;
 		}
 
@@ -193,10 +232,11 @@ function handle_event_schedule_csv_upload($file)
 		$row = 1;
 		while (($data = fgetcsv($handle, 4000, ',')) !== FALSE) {
 			$row++;
-			if (count($data) < count($required_headers)) {
-				echo "<div class='error'><p>Row $row has a mismatched number of fields.</p></div>";
-				continue;
-			}
+			$input_line = $row + 1; // Account for header line and 0-based index
+            if (count($data) < count($required_headers)) {
+                echo "<div class='upload-error'><p>Row $row (input line $input_line) has a mismatched number of fields.</p></div>";
+                continue;
+            }
 
 			$external_event_id = schedule_convert_to_utf8_and_santize($data[0]);
 			$name = schedule_convert_to_utf8_and_santize($data[1]);
@@ -213,7 +253,7 @@ function handle_event_schedule_csv_upload($file)
 			}
 
 			if (empty($name)) {
-				echo "<div class='error'><p>Row $row has no name In String In case of filter {$data[1]}, ID {$external_event_id}, description: {$description}.</p></div>";
+				echo "<div class='upload-error'><p>Row $row (input line $input_line) has no name In String In case of filter {$data[1]}, ID {$external_event_id}, description: {$description}.</p></div>";
 				continue;
 			}
 
@@ -249,7 +289,7 @@ function handle_event_schedule_csv_upload($file)
 				}
 
 				if (!$full_date) {
-					echo "<div class='error'><p>Row $row has an invalid DateTime format. Expected format: Y-m-d H:i:s or n/j/Y H:i:s. {$date} {$time}</p></div>";
+					echo "<div class='upload-error'><p>Row $row (input line $input_line) has an invalid DateTime format. Expected format: Y-m-d H:i:s or n/j/Y H:i:s. {$date} {$time}</p></div>";
 					continue;
 				}
 
@@ -290,7 +330,7 @@ function handle_event_schedule_csv_upload($file)
 					$room_type_term = wp_insert_term($room_type, 'event_schedule_room_type', array('slug' => $room_type_slug));
 
 					if (is_wp_error($room_type_term)) {
-						echo "<div class=\"error\"><p>couldn't create a room fatal error {$room_type}</p></div>";
+						echo "<div class=\"upload-error\"><p>couldn't create a room fatal error {$room_type}</p></div>";
 						return;
 					}
 
@@ -345,7 +385,7 @@ function handle_event_schedule_csv_upload($file)
 					'slug' => $day_of_week_slug,
 				));
 				if (is_wp_error($day_term)) {
-					echo "<div class=\"error\"><p>fatal error creating day type $day_of_week slug $day_of_week_slug</p></div>";
+					echo "<div class=\"upload-error\"><p>fatal error creating day type $day_of_week slug $day_of_week_slug</p></div>";
 					return;
 				}
 				$day_tag_cache[$day_of_week_slug]['term_id'] = $day_term['term_id'];
@@ -407,21 +447,20 @@ function handle_event_schedule_csv_upload($file)
 			$speakers_list = array_map('trim', explode(',', $speakers));
 			foreach ($speakers_list as $speaker) {
 				if (!empty($speaker)) {
-					if (empty($panelist_cache[$speaker])) {
+					$normalized_speaker = strtolower(trim($speaker));
+					if (empty($normalized_panelist_cache[$normalized_speaker])) {
 						$panelist_term = wp_insert_term($speaker, 'event_schedule_panelist_type');
 						if (is_wp_error($panelist_term)) {
-							echo "<div class=\"error\"><p>fatal error on panelist update boom! Speaker $speaker</p></div>";
+                            echo "<div class=\"upload-error\"><p>fatal error on panelist update boom! Speaker $speaker - " . $panelist_term->get_error_message() . "</p></div>";
 							return;
 						}
-
-						$panelist_cache[$speaker] = array(
+						$normalized_panelist_cache[$normalized_speaker] = array(
 							'term_id' => $panelist_term['term_id'],
 							'name' => $speaker,
 							'slug' => $speaker,
 						);
 					}
-
-					$speakers_IDs[] = $panelist_cache[$speaker]['term_id'];
+					$speakers_IDs[] = $normalized_panelist_cache[$normalized_speaker]['term_id'];
 				}
 
 			}
@@ -443,7 +482,7 @@ function handle_event_schedule_csv_upload($file)
 							array('slug' => $tag_slug));
 
 						if (is_wp_error($tags_term)) {
-							echo "<div class=\"error\"><p>fatal error creating term $tag and $tag_slug</p></div>";
+							echo "<div class=\"upload-error\"><p>fatal error creating term $tag and $tag_slug</p></div>";
 							wp_die();
 						}
 						$tag_cache[$tag_slug] = array(
@@ -469,7 +508,7 @@ function handle_event_schedule_csv_upload($file)
                 } else {
                     $error_message = "no error message provided";
                 }
-                echo "<div class=\"error\"><p>fatal error creating event in row {$row} - {$error_message}</p></div>";
+                echo "<div class=\"upload-error\"><p>fatal error creating event in row {$row} (input line $input_line) - {$error_message}</p></div>";
             }
 
 
@@ -496,9 +535,9 @@ function handle_event_schedule_csv_upload($file)
 		$end_time = microtime(true);
 		$execution_time = $end_time - $start_time;
 
-		echo '<div class="updated"><p>CSV file processed successfully taking ' . intval($execution_time) . ' seconds.</p></div>';
+		echo '<div class="schedule-updated"><p>CSV file processed successfully taking ' . intval($execution_time) . ' seconds.</p></div>';
 	} else {
-		echo '<div class="error"><p>Failed to open the uploaded CSV file.</p></div>';
+		echo '<div class="upload-error"><p>Failed to open the uploaded CSV file.</p></div>';
 	}
 
 
