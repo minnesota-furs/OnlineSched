@@ -583,14 +583,9 @@ $start = microtime(true);
 									if ($hours->have_posts()) {
 										while ($hours->have_posts()) : $hours->the_post();
 
-											echo get_the_content();
+											echo apply_filters('the_content', get_the_content());
 
 										endwhile;
-
-
-                                        if (function_exists('render_hours_of_operations_box')) {
-                                            render_hours_of_operations_box();
-                                        }
 
 										if (!empty($loop)) {
 											$loop->reset_postdata();
@@ -613,13 +608,10 @@ $start = microtime(true);
 									if ($hours->have_posts()) {
 										while ($hours->have_posts()) : $hours->the_post();
 
-											echo get_the_content();
+											echo apply_filters('the_content', get_the_content());
 
-										endwhile;
+                                        endwhile;
 
-                                        if (function_exists('render_hours_of_operations_box')) {
-                                            render_hours_of_operations_box();
-                                        }
 										if (!empty($loop)) {
 											$loop->reset_postdata();
 										}
