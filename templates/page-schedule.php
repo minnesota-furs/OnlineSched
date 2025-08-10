@@ -583,6 +583,12 @@ $start = microtime(true);
 											echo get_the_content();
 
 										endwhile;
+
+
+                                        if (function_exists('render_hours_of_operations_box')) {
+                                            render_hours_of_operations_box();
+                                        }
+
 										if (!empty($loop)) {
 											$loop->reset_postdata();
 										}
@@ -607,6 +613,10 @@ $start = microtime(true);
 											echo get_the_content();
 
 										endwhile;
+                                        
+                                        if (function_exists('render_hours_of_operations_box')) {
+                                            render_hours_of_operations_box();
+                                        }
 										if (!empty($loop)) {
 											$loop->reset_postdata();
 										}
