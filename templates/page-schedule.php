@@ -423,7 +423,10 @@ $start = microtime(true);
 													$hiddenLg = ' hidden-lg';
 													$titleLg = ' col-lg-7';
 												}
-												echo '<div class="col-md-3 col-xs-10 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule" data-dismiss="modal">' . get_the_title(get_the_ID()) . '</a>' . $addAdultTag . $addSensorTag . '</div>';
+
+                                                // Done as col-xs-9 for the favorite
+
+												echo '<div class="col-md-3 col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule" data-dismiss="modal">' . get_the_title(get_the_ID()) . '</a>' . $addAdultTag . $addSensorTag . '</div>';
 												echo '<hr class="visible-sm">';
 												echo '<dl class="col-md-2 col-sm-3' . $hiddenLg . '">';
 												echo '<dt><i class="fa ' . $roomClassMarker . '" aria-hidden="true"></i></dt>';
@@ -613,7 +616,7 @@ $start = microtime(true);
 											echo get_the_content();
 
 										endwhile;
-                                        
+
                                         if (function_exists('render_hours_of_operations_box')) {
                                             render_hours_of_operations_box();
                                         }
