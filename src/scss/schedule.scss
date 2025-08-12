@@ -301,6 +301,14 @@ dl.schedule-meta:after {
         top: 0px;
     }
 
+
+/* added for favorite spacing */
+@media screen and (min-width: 1200px) {
+  dd.schedule-panelists {
+    padding-right: 10px;
+  }
+}
+
 /* Kiosk page id */
 @media screen and (min-width: 991px) {
     body.page-id-9880 .schedule-day > h2 {
@@ -452,9 +460,9 @@ dl.schedule-meta:after {
     border: none;
     box-shadow: none;
     padding: 0;
-    margin: 0 8px 0 0;
+    margin: 0 6px 0 0;
     color: #f6c700;
-    font-size: 1.2em;
+    font-size: 1em;
     vertical-align: middle;
     cursor: pointer;
 
