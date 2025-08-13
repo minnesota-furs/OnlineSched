@@ -134,11 +134,19 @@ export function new_schedule() {
             var ical = parent.find('.schedule-ical').attr('href');
             var googleCal = parent.find('.schedule-google').attr('href');
 
-
-            // Insert favorite toggle button before the title in the modal
+            //
+            // Insert favorite toggle button before the title in the modal, only if in schedule mode
+            // I know a quick hack for now
+            //
             let isFavorite = parent.attr('data-favorite') === 'true';
             let evt_id = jQuery(parent).attr('id');
-            let favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
+            let favBtn = '';
+            if (
+                window.location.href.indexOf('schedule') !== -1 &&
+                window.location.href.indexOf('kiosk-schedule') === -1
+            ) {
+                favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
+            }
             jQuery("#modal-schedule-title").html(favBtn + title);
             // Always update the modal star to match the current favorite state
             function updateModalFavoriteStar(state) {

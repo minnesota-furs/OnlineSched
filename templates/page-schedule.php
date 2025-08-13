@@ -459,7 +459,7 @@ $start = microtime(true);
 														echo '<button title="copy to clipboard" class="schedule-clipboard"><i class="fas fa-copy" aria-hidden="true"></i></button>';
 														echo '<a href="'.$ical_link.'" title="Add to Apple Calendar" class="schedule-ical" target="_blank" onclick="return confirmCalendarAppleSubscription(this);"><i class="fab fa-apple" aria-hidden="true"></i></a>';
 														$googleLink  ='https://calendar.google.com/calendar/r?cid=' . urlencode($ical_link);
-														echo '<a href="' . $googleLink . '" title="Add to Google Calendar" class="schedule-google" target="_blank"><i class="fab fa-google" aria-hidden="true" onclick="return confirmCalendarGoogleSubscription(this);"></i></a>';
+														echo '<a href="' . $googleLink . '" title="Add to Google Calendar" class="schedule-google" target="_blank" onclick="return confirmCalendarGoogleSubscription(this);"><i class="fab fa-google" aria-hidden="true"></i></a>';
 													}
 												}
 												echo '</div>';
