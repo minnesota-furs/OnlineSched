@@ -26,12 +26,12 @@ require_once('html2text/html2text.php');
  */
 
 /* Usage 
-romm=<paanels> room name, can be comma seperated
-room=all all roms
-tag=<tags> by tag, can be comma seperate
+room=<panels> room name, can be comma separated
+room=all all rooms
+tag=<tags> by tag, can be comma separated
 tag=all all tags
-
-limit = 2 limitor gets always the newest 2.
+limit = 2 limits to the newest 2.
+textlen = <number> limits description length (default 250). If textlen is 0 or negative, shows full description.
 */
 
 define('DATE_ICAL', 'Ymd\THis\Z');
@@ -220,12 +220,19 @@ foreach ($postsArr as $item) {
 
 	$addAdultTag = in_array( "restricted", array_map( 'strtolower', $tagsArray ) ) ? " [Adult]" : "";
 
-	$content = convert_html_to_text($item->post_content);
-
-	if (strlen($content) > 250) {
-	  $content = substr($content, 0, 250).'&#8230;';
+	$textlen = 250;
+	if (isset($_REQUEST['textlen'])) {
+		$textlen = intval($_REQUEST['textlen']);
+		if ($textlen < 1) {
+			$textlen = -1; // Show full description
+		}
 	}
 
+	$content = convert_html_to_text($item->post_content);
+
+	if ($textlen > 0 && strlen($content) > $textlen) {
+		$content = substr($content, 0, $textlen).'&#8230;';
+	} // If textlen is -1, show full description
 
 	$iCal->add('cal-fm-'.$postId,
 		   $dst->format("m/d/Y H:i"),

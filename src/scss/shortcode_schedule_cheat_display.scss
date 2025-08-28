@@ -1,0 +1,61 @@
+/* Pretty scss for cheat code short code */
+.ical-cheat-sheet {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.ical-cheat-sheet h3 {
+  margin-top: 2rem;
+  font-size: 1.25rem;
+  color: #2c3e50;
+}
+.cheat-list {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 1.5rem;
+}
+.cheat-list li {
+  padding: 0.5em 0;
+  border-bottom: 1px solid #eaeaea;
+  display: flex;
+  align-items: center;
+  font-size: 1.05em;
+}
+.cheat-title {
+  font-weight: 600;
+  color: #34495e;
+  margin-right: 0.5em;
+}
+.cheat-slug {
+  font-family: monospace;
+  color: #888;
+  background: #eef2f6;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.95em;
+}
+.cheat-list-rooms .cheat-title {
+  color: #007bff;
+}
+.cheat-list-tags .cheat-title {
+  color: #e67e22;
+}
+.ical-cheat-sheet code {
+  background: #eef2f6;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.98em;
+}
+.ical-cheat-sheet table {
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+}
+.ical-cheat-sheet table th, .ical-cheat-sheet table td {
+  padding: 0.5em 1em;
+}
+.ical-cheat-sheet ul {
+  margin-bottom: 1.5rem;
+}
+
