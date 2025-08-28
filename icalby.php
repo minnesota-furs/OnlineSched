@@ -178,8 +178,9 @@ foreach ($postsArr as $item) {
 	}
 
 	## Figure out Times
-	$startTime = get_post_meta($postId, 'onlinesched_sorttime', true);
-	$endTime = $startTime + (get_post_meta($postId, 'onlinesched_timelen', true)*60);
+	$startTime = intval(get_post_meta($postId, 'onlinesched_sorttime', true));
+	$duration = intval(get_post_meta($postId, 'onlinesched_timelen', true));
+	$endTime = $startTime + ($duration * 60);
 
 	$dst = new DateTime('@'.$startTime);
 	$dst->setTimeZone(new DateTimeZone(date_default_timezone_get()));
