@@ -304,9 +304,11 @@ $start = microtime(true);
 
 
 												$panelists = OnlineSched_terms_list('event_schedule_panelist_type');
-												$duration = (get_post_meta(get_the_ID(), 'onlinesched_timelen', true));
+												$duration = intval(get_post_meta(get_the_ID(), 'onlinesched_timelen', true));
+												$sorttime = intval($sorttime);
+												$gmt_offset = floatval(get_option('gmt_offset'));
 												$sortEndtime = $sorttime + ($duration * 60);
-												$sortEndTimeGMT = $sortEndtime - (60 * 60 * get_option('gmt_offset'));
+												$sortEndTimeGMT = $sortEndtime - (60 * 60 * $gmt_offset);
 												$room = get_terms('event_schedule_room_type', array('search' => $rooms));
 
 												$googleStart = date('Ymd\THis\Z', $sorttime - (60 * 60 * get_option('gmt_offset')));
