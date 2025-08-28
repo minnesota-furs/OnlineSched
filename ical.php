@@ -103,7 +103,11 @@ if (empty($_post)) {
 
 $iCal = new iCalGen();
 $startTime = get_post_meta($id, 'onlinesched_sorttime', true);
-$endTime = $startTime + (get_post_meta($id, 'onlinesched_timelen', true)*60);
+$duration = get_post_meta($id, 'onlinesched_timelen', true);
+if (!is_numeric($duration) || $duration < 0) {
+    $duration = 0;
+}
+$endTime = $startTime + ($duration * 60);
 
 $rooms = OnlineSched_terms_list2('event_schedule_room_type', $_post->ID);
 $rooms = html_entity_decode($rooms);
