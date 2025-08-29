@@ -28,6 +28,7 @@ require_once('lib/install_theme_support.php');
 require_once('lib/schedule.php');
 require_once('OnlineSchedSettings.php');
 require_once('includes/shortcode_schedule_cheat_display.php');
+require_once("OnlineSchedBadgeTypes.php");
 
 // Define Actions
 add_action('init', 'OnlineSched_init');
