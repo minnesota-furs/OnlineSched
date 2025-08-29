@@ -33,6 +33,10 @@ $event_schedule_year = get_option('event_schedule_year');
 $cssClass = 'standard-schedule';
 $filterLINKS = false;
 
+global $post;
+if (!isset($post) || !is_object($post)) {
+    $post = get_post();
+}
 if ($post->post_name === "kiosk-schedule") {
     $theming = "schedule";
     $cssClass = 'kiosk-schedule';
@@ -68,6 +72,7 @@ $start = microtime(true);
                     <h3 class="modal-title">Login</h3>
                 </div>
                 <div class="modal-body">
+                    <p>You can keep track of your schedule by logging in. If you choose not to log in, any events you favorite will be saved locally on your device.</p>
                     <p>Login with your account:</p>
                     <?php
                     $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
@@ -137,6 +142,9 @@ $start = microtime(true);
                                 <button id="login-modal-btn" class="btn btn-primary">Login</button>
                                 <button id="logout-modal-btn" class="btn btn-danger" style="display:none;"
                                         onclick="openLogoutProvider('Google', event)">Logout
+                                </button>
+                                <button id="info-modal-btn" class="btn btn-primary" style="margin-left:8px;" title="How favorites, login, and calendar work">
+                                    <i class="fa fa-question-circle" aria-hidden="true"></i>
                                 </button>
                             </div>
                         <?php } ?>
@@ -459,7 +467,26 @@ $start = microtime(true);
                                                     $addScheduleTags .= " schedule-tag-" . $slug;
                                                 }
 
-                                                echo '<div id="onlineevt-' . get_the_ID() . '" class="row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-end-time="' . $sortEndTimeGMT . '">';
+                                                // New row highlight color logic
+                                                $badge_types_row_colors = get_option('onlinesched_badge_types_row_colors', array());
+                                                $badge_types_present = array();
+                                                $row_highlight_color = '';
+                                                foreach ($tag_terms as $term) {
+                                                    if (!isset($badge_type_meta_cache[$term->term_id])) {
+                                                        $badge_type_meta_cache[$term->term_id] = get_term_meta($term->term_id, 'badge_type', true);
+                                                    }
+                                                    $badge_type = $badge_type_meta_cache[$term->term_id];
+                                                    if ($badge_type) {
+                                                        $badge_types_present[$badge_type][] = $term;
+                                                        // If this badge type has a row highlight color, use it for row highlight
+                                                        if (isset($badge_types_row_colors[$badge_type]) && $badge_types_row_colors[$badge_type] && $row_highlight_color == '') {
+                                                            $row_highlight_color = $badge_types_row_colors[$badge_type];
+                                                        }
+                                                    }
+                                                }
+
+                                                $row_style = $row_highlight_color ? ' style="background-color: ' . esc_attr($row_highlight_color) . ';"' : '';
+                                                echo '<div id="onlineevt-' . get_the_ID() . '" class="row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-end-time="' . $sortEndTimeGMT . '"' . $row_style . '>';
                                                 // remove  data-toggle="modal"
                                                 $hiddenLg = '';
                                                 $titleLg = '';
@@ -482,6 +509,9 @@ $start = microtime(true);
                                                         'cancelled' => " <span class='badge badge-cancelled'>Cancelled</span>",
                                                 ];
                                                 $badge_types_display = get_option('onlinesched_badge_types_display', array());
+                                                $badge_types_icons = get_option('onlinesched_badge_types_icons', array());
+                                                $badge_types_colors = get_option('onlinesched_badge_types_colors', array());
+$badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array());
 // Build badge_types_present using original badge type string
                                                 $badge_types_present = array();
                                                 foreach ($tag_terms as $term) {
@@ -498,18 +528,32 @@ $start = microtime(true);
                                                 foreach ($badge_types_present as $type => $terms) {
                                                     $type_lc = strtolower($type);
                                                     $show_badge = true;
-                                                    // Use the original badge type string for lookup
                                                     if (isset($badge_types_display[$type])) {
                                                         $show_badge = $badge_types_display[$type];
                                                     }
-                                                    // Only show badge if display is enabled
+                                                    $color = isset($badge_types_colors[$type]) ? $badge_types_colors[$type] : '';
+                                                    $style = ($color !== '') ? "background-color: $color;" : '';
+                                                    $fg_color = isset($badge_types_fg_colors[$type]) && $badge_types_fg_colors[$type] ? $badge_types_fg_colors[$type] : '';
+                                                    $fg_style = ($fg_color !== '') ? "color: $fg_color;" : '';
                                                     if ($show_badge) {
-                                                        if (isset($canonical_badges[$type_lc])) {
-                                                            $badgeSpans .= $canonical_badges[$type_lc];
+                                                        if (!empty($badge_types_icons[$type])) {
+                                                            $icon_class_raw = $badge_types_icons[$type];
+                                                            $icon_class = esc_attr($icon_class_raw);
+                                                            $label = esc_html(ucwords($type));
+                                                            // If the icon class contains 'fa-', use it as-is. Otherwise, prepend 'fa-classic fa-'
+                                                            if (strpos($icon_class_raw, 'fa-') !== false) {
+                                                                $badgeSpans .= " <span class='badge badge-icon badge-" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> <span class='sr-only'>" . $label . "</span></span>";
+                                                            } else {
+                                                                $badgeSpans .= " <span class='badge badge-icon badge-" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='fa-classic fa-" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> <span class='sr-only'>" . $label . "</span></span>";
+                                                            }
+                                                        } elseif (isset($canonical_badges[$type_lc])) {
+                                                            $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
+                                                            $badgeSpans .= str_replace("<span class='badge ", "<span class='badge " . $span_style, $canonical_badges[$type_lc]);
                                                         } else {
                                                             $class = 'badge-' . sanitize_title_with_dashes($type);
                                                             $label = esc_html(ucwords($type));
-                                                            $badgeSpans .= " <span class='badge $class'>$label</span>";
+                                                            $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
+                                                            $badgeSpans .= " <span class='badge $class'$span_style>$label</span>";
                                                         }
                                                     }
                                                 }
@@ -777,6 +821,36 @@ $start = microtime(true);
         <!-- /.modal-dialog -->
     </div>
     <!-- /.modal -->
+    <!-- Info Modal -->
+    <div id="info-modal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" id="info-modal-close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">How Favorites, Login, and Calendar Work</h3>
+                </div>
+                <div class="modal-body">
+                    <ul style="font-size:1.1em;">
+                        <li><strong>Favorites:</strong> You can mark events as favorites to keep track of your schedule. If you’re not logged in, your favorites are saved only on this device. If you log in, your favorites are saved to your account and sync across devices.</li>
+                        <li><strong>Login:</strong> Logging in lets you save your schedule and favorites to your account, so you can access them from any device.<br />
+                        The login information is only used to identify you. We do not use that information any more than that.</li>
+                        <li><strong>Calendar:</strong> You can add events or your entire schedule to your calendar (Google, Apple, Outlook). Calendar feeds update periodically, but may not always reflect real-time changes. For the latest info, check this website.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var infoBtn = document.getElementById('info-modal-btn');
+            if (infoBtn) {
+                jQuery(infoBtn).on('click', function(e) {
+                    e.preventDefault();
+                    jQuery('#info-modal').modal('show');
+                });
+            }
+        });
+    </script>
     <script>
         function openLoginWithProvider(provider, event) {
             if (event) event.preventDefault();

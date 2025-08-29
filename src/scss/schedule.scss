@@ -5,6 +5,9 @@ $fm-green: #017940;
   color: #0d375a;
   position: relative;
   z-index: 0;
+  & .badge {
+    font-size: inherit;
+  }
 }
 
 .modal-header .close {

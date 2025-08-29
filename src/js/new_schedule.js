@@ -1,4 +1,3 @@
-
 export function new_schedule() {
     let header_top = 60;
     let header_mobile_top = 0;
@@ -123,7 +122,6 @@ export function new_schedule() {
                 panelists = parent.find('.schedule-panelists').html();
             }
 
-
             var title = jQuery(this).html();
             var description = parent.find('.schedule-description').html();
             var date = parent.parent().siblings('h2').html();
@@ -134,10 +132,15 @@ export function new_schedule() {
             var ical = parent.find('.schedule-ical').attr('href');
             var googleCal = parent.find('.schedule-google').attr('href');
 
-            //
+            // --- Get badges HTML ---
+            // The badges are in .schedule-title, after the <a> (event title)
+            var $scheduleTitle = parent.find('.schedule-title');
+            // Clone and remove the <a> (event title) from the clone, leaving only badges
+            var $badges = $scheduleTitle.clone();
+            $badges.find('a').remove();
+            var badgesHtml = $badges.html();
+
             // Insert favorite toggle button before the title in the modal, only if in schedule mode
-            // I know a quick hack for now
-            //
             let isFavorite = parent.attr('data-favorite') === 'true';
             let evt_id = jQuery(parent).attr('id');
             let favBtn = '';
@@ -147,7 +150,8 @@ export function new_schedule() {
             ) {
                 favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
             }
-            jQuery("#modal-schedule-title").html(favBtn + title);
+            // --- Build modal title: favorite button + event title + badges ---
+            jQuery("#modal-schedule-title").html(favBtn + title + badgesHtml);
             // Always update the modal star to match the current favorite state
             function updateModalFavoriteStar(state) {
                 let $modalBtn = jQuery('#modal-schedule-title .schedule-favorite-toggle');

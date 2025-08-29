@@ -363,7 +363,7 @@ function OnlineSched_init()
 				'new_item_name' => "New Tag Type Name"
 			),
 			'show_ui' => true,
-			'hierarchical' => true,
+			'hierarchical' => false, // Remove parent category field
 			'show_admin_column' => true,
 			'publicly_queryable' => false,
 			'capabilities' => array(
@@ -410,7 +410,7 @@ function OnlineSched_init()
 			),
 			'show_ui' => true,
 			'show_tagcloud' => false,
-			'hierarchical' => true,
+			'hierarchical' => false,
 			'show_admin_column' => true,
 			'publicly_queryable' => false,
 			'capabilities' => array(
@@ -433,7 +433,7 @@ function OnlineSched_init()
 			),
 			'show_ui' => true,
 			'show_tagcloud' => false,
-			'hierarchical' => true,
+			'hierarchical' => false,
 			'show_admin_column' => true,
 			'publicly_queryable' => false,
 			'capabilities' => array(
@@ -445,6 +445,20 @@ function OnlineSched_init()
 		)
 	);
 }
+
+// Remove Description field ONLY from event_schedule_tags_type taxonomy add/edit screens
+add_action('admin_head', function() {
+    $screen = get_current_screen();
+    if ($screen && $screen->taxonomy === 'event_schedule_tags_type') {
+        echo '<style>
+            .term-description-wrap, .form-field.term-description-wrap, #tag-description, label[for="tag-description"], .column-description { display: none !important; }
+        </style>';
+    }
+});
+// Optionally remove Excerpt meta box from event_schedule post type
+add_action('admin_init', function() {
+    remove_meta_box('postexcerpt', 'event_schedule', 'normal');
+});
 
 function OnlineSched_taxonomy_dropdown($id, $taxonomy)
 {
