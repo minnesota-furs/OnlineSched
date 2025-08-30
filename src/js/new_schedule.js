@@ -948,6 +948,7 @@ export function new_schedule() {
                 infoModal.style.display = 'none';
                 if (lastInfoTrigger) {
                     lastInfoTrigger.focus();
+                    lastInfoTrigger.blur();
                 }
             });
         }
@@ -959,12 +960,14 @@ export function new_schedule() {
                     loginModal.style.display = 'none';
                     if (lastLoginTrigger) {
                         lastLoginTrigger.focus();
+                        lastLoginTrigger.blur();
                     }
                 }
                 if (infoModal && infoModal.style.display !== 'none') {
                     infoModal.style.display = 'none';
                     if (lastInfoTrigger) {
                         lastInfoTrigger.focus();
+                        lastInfoTrigger.blur();
                     }
                 }
             }
