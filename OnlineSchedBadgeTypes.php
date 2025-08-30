@@ -14,6 +14,13 @@ function onlinesched_badge_types_menu() {
 }
 add_action('admin_menu', 'onlinesched_badge_types_menu', 9);
 
+// Enqueue admin CSS/JS only for badge types page
+add_action('admin_enqueue_scripts', function($hook) {
+    if (!isset($_GET['page']) || $_GET['page'] !== 'onlinesched-badge-types') return;
+    wp_enqueue_style('onlinesched-badge-types-admin', plugin_dir_url(__FILE__) . 'admin-badge-types.css', [], '1.0');
+    wp_enqueue_script('onlinesched-badge-types-admin', plugin_dir_url(__FILE__) . 'admin-badge-types.js', ['jquery'], '1.0', true);
+});
+
 function onlinesched_badge_types_page() {
 	// Handle add/edit/delete/restore
 	if (!current_user_can('manage_event_schedule_tags_type')) {
@@ -166,178 +173,6 @@ function onlinesched_badge_types_page() {
 		}
 	}
 	?>
-	<style>
-	.schedule-updated {
-		background: #f6ffed;
-		border-left: 4px solid #46b450;
-		margin: 20px 0 20px 0;
-		padding: 12px 12px 12px 16px;
-		box-shadow: 0 1px 1px 0 rgba(0,0,0,.04);
-		color: #1a531b;
-		font-size: 14px;
-		line-height: 1.5;
-		border-radius: 2px;
-		position: relative;
-	}
-	.schedule-updated .close-message {
-		position: absolute;
-		top: 8px;
-		right: 12px;
-		background: none;
-		border: none;
-		font-size: 18px;
-		color: #1a531b;
-		cursor: pointer;
-	}
-	.upload-error {
-		background: #fff;
-		border-left: 4px solid #dc3232;
-		margin: 20px 0 20px 0;
-		padding: 12px 12px 12px 16px;
-		box-shadow: 0 1px 1px 0 rgba(0,0,0,.04);
-		color: #b32d2e;
-		font-size: 14px;
-		line-height: 1.5;
-		border-radius: 2px;
-		position: relative;
-	}
-	.upload-error .close-message {
-		position: absolute;
-		top: 8px;
-		right: 12px;
-		background: none;
-		border: none;
-		font-size: 18px;
-		color: #b32d2e;
-		cursor: pointer;
-	}
-	.badge-types-table {
-		width: 100%;
-		border-collapse: collapse;
-		margin-bottom: 2em;
-	}
-	.badge-types-table th, .badge-types-table td {
-		padding: 10px 8px;
-		border-bottom: 1px solid #e5e5e5;
-		vertical-align: middle;
-	}
-	.badge-types-table tr:nth-child(even) {
-		background: #f9f9f9;
-	}
-	.badge-types-table tr.editing {
-		background: #e6f7ff !important;
-	}
-	.badge-action-btn {
-		margin-right: 6px;
-		padding: 4px 10px;
-		font-size: 14px;
-		border-radius: 3px;
-		border: none;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-	.badge-action-btn.edit {
-		background: #e6f7ff;
-		color: #1890ff;
-		border: 1px solid #1890ff;
-	}
-	.badge-action-btn.delete {
-		background: #fff1f0;
-		color: #dc3232;
-		border: 1px solid #dc3232;
-	}
-	.badge-action-btn.edit:hover {
-		background: #bae7ff;
-	}
-	.badge-action-btn.delete:hover {
-		background: #ffccc7;
-	}
-	.badge-edit-form {
-		display: none;
-		background: #e6f7ff;
-		padding: 12px;
-		border-radius: 4px;
-		margin-top: 8px;
-	}
-	.badge-edit-form.active {
-		display: block;
-	}
-	.badge-types-table .actions {
-		min-width: 120px;
-	}
-	.badge-add-form-card {
-		margin-bottom: 2em;
-		border: 2px solid #e5e5e5;
-		background: #f7fbff;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-		padding: 18px 24px;
-		border-radius: 8px;
-		max-width: 900px;
-	}
-	.help-tip {
-		display: inline-block;
-		width: 16px;
-		height: 16px;
-		line-height: 16px;
-		text-align: center;
-		background: #e1f5fe;
-		color: #01579b;
-		border-radius: 50%;
-		margin-left: 6px;
-		cursor: help;
-		font-size: 12px;
-	}
-	.help-tip:hover {
-		background: #b3e5fc;
-	}
-	</style>
-	<script>
-	function closeMessageBox(btn) {
-		btn.parentElement.style.display = 'none';
-	}
-	function showEditForm(badge) {
-		// Hide all edit forms
-		document.querySelectorAll('.badge-edit-form').forEach(function(form) {
-			form.classList.remove('active');
-		});
-		// Remove editing class from all rows
-		document.querySelectorAll('.badge-types-table tr').forEach(function(row) {
-			row.classList.remove('editing');
-		});
-		// Show the edit form for this badge
-		var form = document.getElementById('badge-edit-form-' + badge);
-		if (form) {
-			form.classList.add('active');
-			// Highlight the row
-			var row = document.getElementById('badge-row-' + badge);
-			if (row) row.classList.add('editing');
-		}
-	}
-	function confirmDelete(badge) {
-		if (confirm('Are you sure you want to delete the badge type "' + badge + '"? This cannot be undone.')) {
-			document.getElementById('badge-delete-form-' + badge).submit();
-		}
-	}
-	document.addEventListener('DOMContentLoaded', function() {
-    var addBtn = document.getElementById('show-add-badge-type-btn');
-    var addFormCard = document.getElementById('badge-add-form-card');
-    var cancelBtn = document.getElementById('cancel-add-badge-type-btn');
-    if (addBtn && addFormCard) {
-        addBtn.addEventListener('click', function() {
-            addFormCard.style.display = 'block';
-            addBtn.style.display = 'none';
-            var nameField = document.getElementById('badge_type_name');
-            if (nameField) nameField.focus();
-        });
-    }
-    if (cancelBtn && addFormCard && addBtn) {
-        cancelBtn.addEventListener('click', function() {
-            addFormCard.style.display = 'none';
-            addBtn.style.display = '';
-        });
-    }
-});
-	</script>
 	<div class="wrap">
 		<h2>Badge Types</h2>
 		<form method="post" style="margin-bottom:1em;">
