@@ -830,11 +830,11 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
     </div>
     <!-- /.modal -->
     <!-- Info Modal -->
-    <div id="info-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div id="info-modal" class="modal info-modal" tabindex="-1" role="dialog" style="display:none;">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" id="info-modal-close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close" id="info-modal-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     <h3 class="modal-title">How Favorites, Login, Calendar, and Sharing Work</h3>
                 </div>
                 <div class="modal-body">
@@ -848,125 +848,6 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var infoBtn = document.getElementById('info-modal-btn');
-            if (infoBtn) {
-                jQuery(infoBtn).on('click', function(e) {
-                    e.preventDefault();
-                    jQuery('#info-modal').modal('show');
-                });
-            }
-        });
-    </script>
-    <script>
-        function openLoginWithProvider(provider, event) {
-            if (event) event.preventDefault();
-            var rand = (window.crypto && window.crypto.getRandomValues) ?
-                Array.from(window.crypto.getRandomValues(new Uint32Array(2)), x => x.toString(16)).join('') :
-                Math.random().toString(36).substring(2) + Date.now();
-            var url = '/wp-content/plugins/OnlineSched/includes/login.php?provider=' + encodeURIComponent(provider) + '&cachebreak=' + rand;
-            var w = 500, h = 600;
-            var left = (screen.width / 2) - (w / 2), top = (screen.height / 2) - (h / 2);
-            var win = window.open(url, 'onlinesched_login', 'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left + ',resizable,scrollbars');
-            if (!win) {
-                alert('Popup blocked! Please allow popups for this site to log in.');
-            }
-            return false;
-        }
-
-        function openLogoutProvider(provider, event) {
-            if (event) event.preventDefault();
-            var rand = (window.crypto && window.crypto.getRandomValues) ?
-                Array.from(window.crypto.getRandomValues(new Uint32Array(2)), x => x.toString(16)).join('') :
-                Math.random().toString(36).substring(2) + Date.now();
-            var url = '/wp-content/plugins/OnlineSched/includes/login.php?logout=' + encodeURIComponent(provider) + '&cachebreak=' + rand;
-            var w = 500, h = 400;
-            var left = (screen.width / 2) - (w / 2), top = (screen.height / 2) - (h / 2);
-            var win = window.open(url, 'onlinesched_logout', 'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left + ',resizable,scrollbars');
-            if (!win) {
-                alert('Popup blocked! Please allow popups for this site to log out.');
-                // Clear login state if popup blocked
-                if (window.ONLINESCHED_USER) {
-                    window.ONLINESCHED_USER.loggedIn = false;
-                    window.ONLINESCHED_USER.provider = '';
-                    window.ONLINESCHED_USER.identifier = '';
-                }
-                if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
-                window.location.reload();
-            } else {
-                // Poll for window close, then reload
-                var pollTimer = window.setInterval(function () {
-                    if (win.closed) {
-                        window.clearInterval(pollTimer);
-                        // Clear login state after logout popup closes
-                        if (window.ONLINESCHED_USER) {
-                            window.ONLINESCHED_USER.loggedIn = false;
-                            window.ONLINESCHED_USER.provider = '';
-                            window.ONLINESCHED_USER.identifier = '';
-                        }
-                        if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
-                        window.location.reload();
-                    }
-                }, 500);
-            }
-            return false;
-        }
-
-        // Show/hide login/logout buttons based on login state
-        function updateLoginLogoutUI() {
-            var loggedIn = window.ONLINESCHED_USER && window.ONLINESCHED_USER.loggedIn;
-            var loginBtn = document.getElementById('login-modal-btn');
-            var logoutBtn = document.getElementById('logout-modal-btn');
-            if (loginBtn) loginBtn.style.display = loggedIn ? 'none' : '';
-            if (logoutBtn) logoutBtn.style.display = loggedIn ? '' : 'none';
-        }
-
-        // Fetch login state via AJAX and update UI
-        window.ONLINESCHED_USER = {loggedIn: false, provider: '', identifier: ''};
-
-        // Hide login/logout buttons until state is loaded
-        function hideLoginButtons() {
-            var loginBtn = document.getElementById('login-modal-btn');
-            var logoutBtn = document.getElementById('logout-modal-btn');
-            if (loginBtn) loginBtn.style.display = 'none';
-            if (logoutBtn) logoutBtn.style.display = 'none';
-        }
-
-        hideLoginButtons();
-
-        function fetchLoginStateAndInit() {
-            fetch('/wp-content/plugins/OnlineSched/includes/login_state.php', {credentials: 'same-origin'})
-                .then(function (resp) {
-                    return resp.json();
-                })
-                .then(function (data) {
-                    window.ONLINESCHED_USER = data;
-                    if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
-                    // If logged in, fetch favorites from DB and sync cookie/UI
-                    if (window.ONLINESCHED_USER && window.ONLINESCHED_USER.loggedIn && window.ONLINESCHED_USER.provider && window.ONLINESCHED_USER.identifier) {
-                        fetch('/wp-content/plugins/OnlineSched/includes/get_favorites.php?provider=' + encodeURIComponent(window.ONLINESCHED_USER.provider) + '&identifier=' + encodeURIComponent(window.ONLINESCHED_USER.identifier), {credentials: 'same-origin'})
-                            .then(function (resp) {
-                                return resp.json();
-                            })
-                            .then(function (favData) {
-                                if (favData.favorites) {
-                                    // Set cookie as raw JSON string, not encodeURIComponent
-                                    document.cookie = 'schedule_favorites=' + favData.favorites + ';path=/;max-age=' + (60 * 60 * 24 * 30);
-                                }
-                                // Always call restoreFavoritesFromCookie after updating the cookie
-                                if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
-                                if (window.scheduleFavorites) window.scheduleFavorites();
-                            });
-                    } else {
-                        if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
-                        if (window.scheduleFavorites) window.scheduleFavorites();
-                    }
-                });
-        }
-
-        document.addEventListener('DOMContentLoaded', fetchLoginStateAndInit);
-    </script>
 
 <?php
 // Only use custom provider/cookie/session for login state

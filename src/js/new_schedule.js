@@ -905,4 +905,62 @@ export function new_schedule() {
     };
 
 
+        // --- VANILLA JS MODAL LOGIC FOR LOGIN & HELP ---
+        var loginBtn = document.getElementById('login-modal-btn');
+        var loginModal = document.getElementById('login-modal');
+        var loginCloseBtn = document.getElementById('login-modal-close');
+        var lastLoginTrigger = null;
+
+        if (loginBtn && loginModal && loginCloseBtn) {
+            loginBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginModal.style.display = 'block';
+                lastLoginTrigger = loginBtn;
+                loginCloseBtn.focus();
+            });
+            loginCloseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginModal.style.display = 'none';
+                if (lastLoginTrigger) lastLoginTrigger.focus();
+            });
+        }
+
+        // --- HELP MODAL ---
+        var infoBtn = document.getElementById('info-modal-btn');
+        var infoModal = document.getElementById('info-modal');
+        var infoCloseBtn = document.getElementById('info-modal-close');
+        var lastInfoTrigger = null;
+
+        if (infoBtn && infoModal && infoCloseBtn) {
+            infoBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                infoModal.style.display = 'block';
+                lastInfoTrigger = infoBtn;
+                infoCloseBtn.focus();
+            });
+            infoCloseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                infoModal.style.display = 'none';
+                if (lastInfoTrigger) lastInfoTrigger.focus();
+            });
+        }
+
+        // --- ESCAPE KEY HANDLING FOR BOTH MODALS ---
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                if (loginModal && loginModal.style.display !== 'none') {
+                    loginModal.style.display = 'none';
+                    if (lastLoginTrigger) lastLoginTrigger.focus();
+                }
+                if (infoModal && infoModal.style.display !== 'none') {
+
+                    infoModal.style.display = 'none';
+                    if (lastInfoTrigger) lastInfoTrigger.focus();
+                }
+            }
+        });
+
+
 }
