@@ -76,9 +76,10 @@ try {
 			// Try to get identifier from session or cookiee
 			$provider_db = strtolower($_GET['logout']);
 			$identifier_db = isset($_COOKIE['onlinesched_identifier']) ? $_COOKIE['onlinesched_identifier'] : '';
-			if ($identifier_db) {
-				$wpdb->delete($table_name, array('provider' => $provider_db, 'identifier' => $identifier_db));
-			}
+		// don't delete the entry in db for logout
+		//		if ($identifier_db) {
+		//		$wpdb->delete($table_name, array('provider' => $provider_db, 'identifier' => $identifier_db));
+		//	}
 
 			// --- Clear session and identifier cookie ---
 			if (isset($_SESSION['provider'])) unset($_SESSION['provider']);
