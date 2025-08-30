@@ -49,7 +49,17 @@ return [
                 'secret' => 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
             ],
             'scope' => 'email',
-        ]
+        ],
+        'Steam' => [
+            'enabled' => true,
+            'no_keys' => true, // Steam does not require keys
+            'scope' => '', // Steam does not use scopes
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-steam',
+                'color' => '171A21',
+            ],
+        ],
         // Add more providers here as needed
         // 'Yahoo' => [...],
         // 'Facebook' => [...],
@@ -57,4 +67,3 @@ return [
         // 'Instagram' => [...],
     ],
 ];
-

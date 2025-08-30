@@ -56,7 +56,9 @@ function OnlineSched_options_page()
 			if (isset($social_config['providers']) && is_array($social_config['providers'])) {
 				foreach ($social_config['providers'] as $provider => $providerData) {
 					echo '<tr><th colspan="2" style="padding-top:20px;"><strong>' . esc_html($provider) . '</strong></th></tr>';
-					if (isset($providerData['keys']) && is_array($providerData['keys'])) {
+					if (!empty($providerData['no_keys'])) {
+						echo '<tr><td colspan="2" style="color: #666; padding-bottom: 10px;">No settings are needed for this provider.</td></tr>';
+					} else if (isset($providerData['keys']) && is_array($providerData['keys'])) {
 						foreach ($providerData['keys'] as $key => $val) {
 							$option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
 							echo '<tr valign="top">';

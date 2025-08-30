@@ -17,6 +17,10 @@ $social_config = require __DIR__ . '/social_providers_config.php';
 // --- Load provider keys from WordPress options ---
 if (isset($social_config['providers']) && is_array($social_config['providers'])) {
     foreach ($social_config['providers'] as $provider => &$providerData) {
+        if (!empty($providerData['no_keys'])) {
+            // For providers with no_keys, allow usage even if no key is set
+            continue;
+        }
         if (isset($providerData['keys']) && is_array($providerData['keys'])) {
             foreach ($providerData['keys'] as $key => $val) {
                 $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
@@ -67,6 +71,8 @@ try {
 			$adapter = $hybridauth->getAdapter($_GET['logout']);
 			$adapter->disconnect();
 
+			global $wpdb;
+			$table_name = $wpdb->prefix . 'onlinesched_favorites';
 			// Try to get identifier from session or cookiee
 			$provider_db = strtolower($_GET['logout']);
 			$identifier_db = isset($_COOKIE['onlinesched_identifier']) ? $_COOKIE['onlinesched_identifier'] : '';

@@ -79,7 +79,10 @@ $start = microtime(true);
                     if (isset($social_config['providers']) && is_array($social_config['providers'])) {
                         foreach ($social_config['providers'] as $provider => $providerData) {
                             $showProvider = false;
-                            if (isset($providerData['keys']) && is_array($providerData['keys'])) {
+                            if (!empty($providerData['no_keys'])) {
+                                // For providers with no_keys, show if enabled
+                                $showProvider = !empty($providerData['enabled']);
+                            } else if (isset($providerData['keys']) && is_array($providerData['keys'])) {
                                 foreach ($providerData['keys'] as $key => $val) {
                                     $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
                                     $option_val = get_option($option_name);
