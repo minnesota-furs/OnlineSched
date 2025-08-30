@@ -63,7 +63,7 @@ $start = microtime(true);
 ?>
 
     <!-- Login Modal -->
-    <div id="login-modal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+    <div id="login-modal" class="modal login-modal" tabindex="-1" role="dialog" style="display:none;">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -74,6 +74,7 @@ $start = microtime(true);
                 <div class="modal-body">
                     <p>You can keep track of your schedule by logging in. If you choose not to log in, any events you favorite will be saved locally on your device.</p>
                     <p>Login with your account:</p>
+                    <div class="login-provider-list">
                     <?php
                     $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
                     if (isset($social_config['providers']) && is_array($social_config['providers'])) {
@@ -113,11 +114,12 @@ $start = microtime(true);
                                             $icon = '<i class="fas fa-user" style="margin-right:8px;"></i>';
                                     }
                                 }
-                                echo '<button onclick="openLoginWithProvider(\'' . esc_js($provider) . '\', event)" class="btn btn-default">' . $icon . 'Login with ' . esc_html($provider) . '</button>';
+                                echo '<div class="login-provider-item"><button onclick="openLoginWithProvider(\'' . esc_js($provider) . '\', event)" class="btn btn-default">' . $icon . 'Login with ' . esc_html($provider) . '</button></div>';
                             }
                         }
                     }
                     ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -142,9 +144,12 @@ $start = microtime(true);
                         }
                         if (!$liveStreaming && $theming != "schedule") { ?>
                             <div style="text-align:right;width:100%;clear:both;margin-bottom:10px;">
-                                <button id="login-modal-btn" class="btn btn-primary">Login</button>
+                                <button id="login-modal-btn" class="btn btn-primary">
+                                    <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login
+                                </button>
                                 <button id="logout-modal-btn" class="btn btn-danger" style="display:none;"
-                                        onclick="openLogoutProvider('Google', event)">Logout
+                                        onclick="openLogoutProvider(window.ONLINESCHED_USER.provider, event)">
+                                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
                                 </button>
                                 <button id="info-modal-btn" class="btn btn-primary" style="margin-left:8px;" title="How favorites, login, and calendar work">
                                     <i class="fa fa-question-circle" aria-hidden="true"></i>
@@ -833,12 +838,13 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
                     <h3 class="modal-title">How Favorites, Login, and Calendar Work</h3>
                 </div>
                 <div class="modal-body">
-                    <ul style="font-size:1.1em;">
-                        <li><strong>Favorites:</strong> You can mark events as favorites to keep track of your schedule. If you’re not logged in, your favorites are saved only on this device. If you log in, your favorites are saved to your account and sync across devices.</li>
-                        <li><strong>Login:</strong> Logging in lets you save your schedule and favorites to your account, so you can access them from any device.<br />
-                        The login information is only used to identify you. We do not use that information any more than that.</li>
-                        <li><strong>Calendar:</strong> You can add events or your entire schedule to your calendar (Google, Apple, Outlook). Calendar feeds update periodically, but may not always reflect real-time changes. For the latest info, check this website.</li>
-                    </ul>
+                    <div style="font-size:1.1em;">
+                        <p><strong>Favorites:</strong> You can mark events as favorites to keep track of your schedule. If you’re not logged in, your favorites are saved only on this device. If you log in, your favorites are saved to your account and sync across devices.</p>
+                        <p><strong>Login:</strong> Logging in lets you save your schedule and favorites to your account, so you can access them from any device.<br />
+                            The login information is only used to identify you. We do not use that information any more than that.</p>
+                        <p><strong>Calendar:</strong> You can add events or your entire schedule to your calendar (Google, Apple, Outlook). You can select an individual calendar feed item by hitting the Google or Apple Icon (Which works for Apple). Or the filtered list is avaiable on the bottom of the page. If you don't select a filter list all the calendar items will be added from the links on the bottom of the page.  Calendar feeds update periodically, but may not always reflect real-time changes. For the latest info, check this website.</p>
+
+                    </div>
                 </div>
             </div>
         </div>
