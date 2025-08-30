@@ -575,3 +575,21 @@ body.page-id-9880 .schedule-day > h2 {
     padding: 8px 14px;
   }
 }
+
+/* Add nav-tab hover color to login/logout/help buttons */
+#login-modal-btn,
+#logout-modal-btn,
+#info-modal-btn {
+  transition: background 0.2s, box-shadow 0.2s;
+}
+#login-modal-btn:hover,
+#login-modal-btn:focus,
+#logout-modal-btn:hover,
+#logout-modal-btn:focus,
+#info-modal-btn:hover,
+#info-modal-btn:focus {
+  background-color: $fm-green;
+  color: #fff;
+  box-shadow: 0 0 0 2px #01794033;
+  outline: none;
+}
