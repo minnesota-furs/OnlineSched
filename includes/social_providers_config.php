@@ -35,7 +35,7 @@ return [
 				'id' => '',
 			    'secret' => '',
 		    ],
-			'scope' => 'email',
+		    'scope' => 'identify email',
 		    'use-favicon' => [
 			    'enabled' => true,
 			    'favicon' => 'fa-discord',
