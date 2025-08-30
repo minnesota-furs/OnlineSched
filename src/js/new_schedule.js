@@ -917,11 +917,16 @@ export function new_schedule() {
                 loginModal.style.display = 'block';
                 lastLoginTrigger = loginBtn;
                 loginCloseBtn.focus();
+                loginCloseBtn.blur();
             });
             loginCloseBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 loginModal.style.display = 'none';
-                if (lastLoginTrigger) lastLoginTrigger.focus();
+
+                if (lastLoginTrigger) {
+                    lastLoginTrigger.focus();
+                    lastLoginTrigger.blur();
+                }
             });
         }
 
@@ -934,16 +939,16 @@ export function new_schedule() {
         if (infoBtn && infoModal && infoCloseBtn) {
             infoBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-
                 infoModal.style.display = 'block';
                 lastInfoTrigger = infoBtn;
                 infoCloseBtn.focus();
             });
             infoCloseBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-
                 infoModal.style.display = 'none';
-                if (lastInfoTrigger) lastInfoTrigger.focus();
+                if (lastInfoTrigger) {
+                    lastInfoTrigger.focus();
+                }
             });
         }
 
@@ -952,12 +957,15 @@ export function new_schedule() {
             if (e.key === 'Escape' || e.keyCode === 27) {
                 if (loginModal && loginModal.style.display !== 'none') {
                     loginModal.style.display = 'none';
-                    if (lastLoginTrigger) lastLoginTrigger.focus();
+                    if (lastLoginTrigger) {
+                        lastLoginTrigger.focus();
+                    }
                 }
                 if (infoModal && infoModal.style.display !== 'none') {
-
                     infoModal.style.display = 'none';
-                    if (lastInfoTrigger) lastInfoTrigger.focus();
+                    if (lastInfoTrigger) {
+                        lastInfoTrigger.focus();
+                    }
                 }
             }
         });
