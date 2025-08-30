@@ -152,13 +152,15 @@ export function new_schedule() {
             }
             // --- Build modal title: favorite button + event title + badges ---
             jQuery("#modal-schedule-title").html(favBtn + title + badgesHtml);
+
             // Always update the modal star to match the current favorite state
             function updateModalFavoriteStar(state) {
                 let $modalBtn = jQuery('#modal-schedule-title .schedule-favorite-toggle');
                 $modalBtn.toggleClass('active', state).attr('aria-pressed', state ? 'true' : 'false');
                 $modalBtn.find('i').toggleClass('fas', state).toggleClass('far', !state);
             }
-            jQuery("#modal-schedule-title .schedule-favorite-toggle").off('click').on('click', function(e) {
+
+            jQuery("#modal-schedule-title .schedule-favorite-toggle").off('click').on('click', function (e) {
                 e.preventDefault();
                 // Toggle favorite state for the event in the main schedule list
                 const $mainItem = jQuery('#' + evt_id);
@@ -368,7 +370,7 @@ export function new_schedule() {
 
         // --- FAVORITES FILTER BUTTON LOGIC ---
         let favoritesFilterActive = false;
-        jQuery('#schedule-favorites-toggle').on('click', function() {
+        jQuery('#schedule-favorites-toggle').on('click', function () {
             favoritesFilterActive = !favoritesFilterActive;
             jQuery(this).toggleClass('active', favoritesFilterActive);
             jQuery(this).attr('aria-pressed', favoritesFilterActive ? 'true' : 'false');
@@ -905,73 +907,73 @@ export function new_schedule() {
     };
 
 
-        // --- VANILLA JS MODAL LOGIC FOR LOGIN & HELP ---
-        var loginBtn = document.getElementById('login-modal-btn');
-        var loginModal = document.getElementById('login-modal');
-        var loginCloseBtn = document.getElementById('login-modal-close');
-        var lastLoginTrigger = null;
+    // --- VANILLA JS MODAL LOGIC FOR LOGIN & HELP ---
+    var loginBtn = document.getElementById('login-modal-btn');
+    var loginModal = document.getElementById('login-modal');
+    var loginCloseBtn = document.getElementById('login-modal-close');
+    var lastLoginTrigger = null;
 
-        if (loginBtn && loginModal && loginCloseBtn) {
-            loginBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                loginModal.style.display = 'block';
-                lastLoginTrigger = loginBtn;
-                loginCloseBtn.focus();
-                loginCloseBtn.blur();
-            });
-            loginCloseBtn.addEventListener('click', function(e) {
-                e.preventDefault();
+    if (loginBtn && loginModal && loginCloseBtn) {
+        loginBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            loginModal.style.display = 'block';
+            lastLoginTrigger = loginBtn;
+            loginCloseBtn.focus();
+            loginCloseBtn.blur();
+        });
+        loginCloseBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            loginModal.style.display = 'none';
+
+            if (lastLoginTrigger) {
+                lastLoginTrigger.focus();
+                lastLoginTrigger.blur();
+            }
+        });
+    }
+
+    // --- HELP MODAL ---
+    var infoBtn = document.getElementById('info-modal-btn');
+    var infoModal = document.getElementById('info-modal');
+    var infoCloseBtn = document.getElementById('info-modal-close');
+    var lastInfoTrigger = null;
+
+    if (infoBtn && infoModal && infoCloseBtn) {
+        infoBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            infoModal.style.display = 'block';
+            lastInfoTrigger = infoBtn;
+            infoCloseBtn.focus();
+        });
+        infoCloseBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            infoModal.style.display = 'none';
+            if (lastInfoTrigger) {
+                lastInfoTrigger.focus();
+                lastInfoTrigger.blur();
+            }
+        });
+    }
+
+    // --- ESCAPE KEY HANDLING FOR BOTH MODALS ---
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            if (loginModal && loginModal.style.display !== 'none') {
                 loginModal.style.display = 'none';
-
                 if (lastLoginTrigger) {
                     lastLoginTrigger.focus();
                     lastLoginTrigger.blur();
                 }
-            });
-        }
-
-        // --- HELP MODAL ---
-        var infoBtn = document.getElementById('info-modal-btn');
-        var infoModal = document.getElementById('info-modal');
-        var infoCloseBtn = document.getElementById('info-modal-close');
-        var lastInfoTrigger = null;
-
-        if (infoBtn && infoModal && infoCloseBtn) {
-            infoBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                infoModal.style.display = 'block';
-                lastInfoTrigger = infoBtn;
-                infoCloseBtn.focus();
-            });
-            infoCloseBtn.addEventListener('click', function(e) {
-                e.preventDefault();
+            }
+            if (infoModal && infoModal.style.display !== 'none') {
                 infoModal.style.display = 'none';
                 if (lastInfoTrigger) {
                     lastInfoTrigger.focus();
                     lastInfoTrigger.blur();
                 }
-            });
-        }
-
-        // --- ESCAPE KEY HANDLING FOR BOTH MODALS ---
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' || e.keyCode === 27) {
-                if (loginModal && loginModal.style.display !== 'none') {
-                    loginModal.style.display = 'none';
-                    if (lastLoginTrigger) {
-                        lastLoginTrigger.focus();
-                        lastLoginTrigger.blur();
-                    }
-                }
-                if (infoModal && infoModal.style.display !== 'none') {
-                    infoModal.style.display = 'none';
-                    if (lastInfoTrigger) {
-                        lastInfoTrigger.focus();
-                        lastInfoTrigger.blur();
-                    }
-                }
             }
-        });
+        }
+    });
 
 
 }
