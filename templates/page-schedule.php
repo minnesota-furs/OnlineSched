@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
  * @author         BL, BM, AL
  * @copyright      2016-current Furry Migration
  * @license        BSD 2-Clause
- * @version        Release: 3.1
+ * @version        Release: 4.0
  * @filesource     wp-content/plugins/OnlineSched/grid.php
  */
 

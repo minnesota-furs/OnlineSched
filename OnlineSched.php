@@ -3,7 +3,7 @@
 Plugin Name: OnlineSched
 Plugin URI: 
 Description: Online Event Scheduling
-Version: 0.5
+Version: 0.8
 License: BSD 2-Clause
 
 Todo List:
