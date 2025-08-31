@@ -56,28 +56,28 @@ function onlinesched_essentials_page() {
 	}
 	</style>
 	<div class="wrap">
-		<h2>Essentials Tag Settings</h2>
+		<h2>Essential Tab Tag Settings</h2>
 		<p style="margin-bottom:16px; color:#444; background:#f7fbff; border-left:4px solid #1890ff; padding:12px 18px; border-radius:4px; max-width:700px;">
-			<strong>Instructions:</strong> Select which tags should be considered <strong>Essentials</strong> for the schedule filter.<br>
-			In previous years, the following tags were typically marked as Essentials:
+			<strong>Instructions:</strong> Select which tags should be considered <strong>Essential</strong> for the schedule filter.<br>
+			In previous years, the following tags were typically marked as Essential:
 			<ul style="margin-top:8px; margin-bottom:8px;">
 				<li><strong>Guest Of Honor</strong></li>
 				<li><strong>Special Guest</strong></li>
 				<li><strong>VIP</strong></li>
 				<li><strong>Essentials</strong></li>
 			</ul>
-			You may select any tags below to customize the Essentials filter for this year.
+			You may select any tags below to customize the Essential Tab filter for this year.
 		</p>
 		<?php if (!empty($message)) {
 			 echo '<div class="schedule-updated"><button class="close-message" onclick="this.parentNode.style.display=\'none\';">&times;</button><p>' . esc_html($message) . '</p></div>';
 		} ?>
 		<form method="post">
 			<table class="form-table">
-				<tr><th>Tab Name for Essentials:</th><td>
+				<tr><th>Tab Name for Essential Tab:</th><td>
 					<input type="text" name="essentials_tab_name" value="<?php echo esc_attr($essentials_tab_name); ?>" style="width:220px;" placeholder="Essentials" />
 					<p class="description">This will be the name of the tab on the schedule page. Example: "Essentials", "Must See", "Featured", etc.</p>
 				</td></tr>
-				<tr><th>Select tags to be considered Essentials:</th><td>
+				<tr><th>Select tags for Essential Tab:</th><td>
 				<?php foreach ($tags as $tag) : ?>
 					<label style="display:block;margin-bottom:8px;">
 						<input type="checkbox" name="essentials_tags[]" value="<?php echo esc_attr($tag->slug); ?>" <?php checked(in_array($tag->slug, $essentials_tags)); ?>>
@@ -86,7 +86,7 @@ function onlinesched_essentials_page() {
 				<?php endforeach; ?>
 				</td></tr>
 			</table>
-			<?php submit_button('Save Essentials Settings'); ?>
+			<?php submit_button('Save Essential Tab Settings'); ?>
 		</form>
 	</div>
 	<?php

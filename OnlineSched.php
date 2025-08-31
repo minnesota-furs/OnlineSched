@@ -649,8 +649,8 @@ function onlinesched_register_submenus() {
     );
     add_submenu_page(
         'edit.php?post_type=event_schedule',
-        'Essentials Settings',
-        'Essentials Settings',
+        'Essential Tab Settings',
+        'Essential Tab Settings',
         'manage_event_schedule_tags_type',
         'onlinesched-essentials',
         'onlinesched_essentials_page'
