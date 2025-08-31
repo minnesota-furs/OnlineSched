@@ -327,43 +327,33 @@ export function new_schedule() {
 
         function showHideEvents() {
             jQuery('#programming').addClass('active');
-
-//    jQuery('.schedule-room-tabletop,.schedule-item.schedule-room-tabletop-special-a,.schedule-room-tabletop-special-b,.schedule-item.schedule-room-video-gaming,.schedule-item.schedule-room-tabletop-a,.schedule-item.schedule-room-tabletop-b,.schedule-item.schedule-room-tabletop-c,.schedule-item.schedule-room-tabletop-d,.schedule-item.schedule-room-tabletop-e,.schedule-item.schedule-room-board-gaming').hide();
-            if (eventschedule_showEvents) {
-                /*			jQuery('#schedule-select-rooms option').show();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop A"] +"]").hide();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop B"] +"]").hide();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop C"] +"]").hide();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop D"] +"]").hide();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop E"] +"]").hide();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop Special A"] +"]").hide();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop Special B"] +"]").hide();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Video Gaming"] +"]").hide();
-                */
+            if (window.eventschedule_showEvents) {
+                // Show all items
+                jQuery('.schedule-item').show();
                 jQuery('#schedule-select-rooms').parent().show();
                 jQuery('.schedule-reset').removeClass('col-sm-offset-2');
                 jQuery('#schedule-add-to-calendar').show();
             } else {
-                jQuery('.schedule-item').not('.schedule-tag-essentials, .schedule-tag-vip, .schedule-tag-guest-of-honor, .schedule-tag-special-guest').hide();
-
-//        jQuery('.schedule-item').not('.schedule-tag-essentials, .schedule-tag-vip, .schedule-tag-guest-of-honor, .schedule-tag-vip');
-                // old way of gaming
-                // jQuery('.schedule-item').not('.schedule-room-tabletop,.schedule-room-tabletop-special-a,.schedule-room-tabletop-special-b,.schedule-room-video-gaming,.schedule-room-tabletop-a,.schedule-room-tabletop-b,.schedule-room-tabletop-c,.schedule-room-tabletop-d,.schedule-room-tabletop-e,.schedule-item.schedule-room-board-gaming').hide();
-                /*jQuery('#schedule-select-rooms option').hide()
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop A"] +"]").show();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop B"] +"]").show();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop C"] +"]").show();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop D"] +"]").show();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop E"] +"]").show();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop Special A"] +"]").show();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Tabletop Special B"] +"]").show();
-                jQuery("#schedule-select-rooms option[value="+eventschedule_scheduleRooms["Video Gaming"] +"]").show();
-                jQuery("#schedule-select-rooms option[value=all]").show();
-                */
+                // Essentials filter: show only items with a tag in window.essentialsTags
+                jQuery('.schedule-item').each(function () {
+                    let show = false;
+                    if (window.essentialsTags && window.essentialsTags.length > 0) {
+                        for (let i = 0; i < window.essentialsTags.length; i++) {
+                            if (jQuery(this).hasClass('schedule-tag-' + window.essentialsTags[i])) {
+                                show = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (show) {
+                        jQuery(this).show();
+                    } else {
+                        jQuery(this).hide();
+                    }
+                });
                 jQuery('#schedule-select-rooms').parent().hide();
                 jQuery('.schedule-reset').addClass('col-sm-offset-2');
                 jQuery('#schedule-add-to-calendar').hide();
-
             }
 
         }

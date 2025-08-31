@@ -2,23 +2,6 @@
 
 include("lib/YoastPauser.php");
 
-function event_schedule_csv_uploader_menu()
-{
-	add_submenu_page(
-		'edit.php?post_type=event_schedule',  // Parent slug
-		'CSV Uploader',                       // Page title
-		'CSV Uploader',                       // Menu title
-		'manage_event_schedule_room_type',                     // Capability
-		'event-schedule-csv-uploader',        // Menu slug
-		'event_schedule_csv_uploader_page'    // Function to display the page
-	);
-
-	// Handle export before any page output
-	add_action('load-event_schedule_page_event-schedule-csv-uploader', 'event_schedule_csv_export_handler');
-
-}
-
-add_action('admin_menu', 'event_schedule_csv_uploader_menu');
 
 function event_schedule_csv_export_handler()
 {

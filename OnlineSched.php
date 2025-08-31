@@ -29,6 +29,8 @@ require_once('lib/schedule.php');
 require_once('OnlineSchedSettings.php');
 require_once('includes/shortcode_schedule_cheat_display.php');
 require_once("OnlineSchedBadgeTypes.php");
+require_once('OnlineSchedEssentials.php');
+require_once('OnlineSchedSocialLogin.php');
 
 // Define Actions
 add_action('init', 'OnlineSched_init');
@@ -37,7 +39,7 @@ add_action('save_post', 'OnlineSched_add_timeslot_fields', 10, 2);
 add_action('manage_event_schedule_posts_custom_column', 'OnlineSched_columns_content', 10, 2);
 add_action('admin_head', 'OnlineSched_add_help_page');
 add_action('edited_event_schedule_day_type', 'custom_edit_day_type', 2, 10);
-add_action('admin_menu', 'OnlineSched_register_options_page');
+add_action('admin_menu', 'onlinesched_register_submenus', 10);
 
 // Define Filter
 add_filter('manage_event_schedule_posts_columns', 'OnlineSched_columns_head');
@@ -46,8 +48,6 @@ add_filter('post_row_actions', 'OnlineSched_remove_row_actions', 10, 2);
 // Define Register
 register_activation_hook(__FILE__, 'OnlineSched_plugin_activate');
 register_activation_hook(__FILE__, 'onlinesched_create_favorites_table');
-//register_deactivation_hook(__FILE__, 'OnlineSched_plugin_deactivation'); // XXX - Implement
-
 //
 // Changing Taxonomy - If change update all the dates
 //
@@ -109,7 +109,7 @@ function OnlineSched_plugin_activate()
 {
 
 	// Our custom roles
-	$role_sched_editor =& get_role('onlinesched_editor');
+	$role_sched_editor = get_role('onlinesched_editor');
 	if ($role_sched_editor == NULL) {
 		add_role('onlinesched_editor', 'OnlineSched Editor', array(
 
@@ -149,7 +149,7 @@ function OnlineSched_plugin_activate()
 	}
 
 
-	$role_sched_admin =& get_role('onlinesched_admin');
+	$role_sched_admin = get_role('onlinesched_admin');
 
 	if ($role_sched_admin == NULL) {
 		add_role('onlinesched_admin', 'OnlineSched Admin', array(
@@ -191,7 +191,7 @@ function OnlineSched_plugin_activate()
 
 
 	// Native Wordpress roles
-	$role_administrator =& get_role('administrator');
+	$role_administrator = get_role('administrator');
 	if ($role_administrator != NULL) {
 
 		// Basic Events
@@ -243,6 +243,22 @@ function onlinesched_create_favorites_table() {
         KEY provider_identifier (provider, identifier)
     ) $charset_collate;";
     dbDelta($sql);
+}
+
+function OnlineSched_social_login_activate() {
+    $social_config = require dirname(__FILE__) . '/OnlineSched/includes/social_providers_config.php';
+    if (isset($social_config['providers']) && is_array($social_config['providers'])) {
+        foreach ($social_config['providers'] as $provider => $providerData) {
+            if (isset($providerData['keys']) && is_array($providerData['keys'])) {
+                foreach ($providerData['keys'] as $key => $val) {
+                    $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
+                    if (get_option($option_name) === false) {
+                        add_option($option_name, '');
+                    }
+                }
+            }
+        }
+    }
 }
 
 function OnlineSched_columns_head($defaults)
@@ -621,3 +637,40 @@ function warn_before_deleting_event_schedule() {
 	}
 }
 add_action('admin_footer', 'warn_before_deleting_event_schedule');
+
+function onlinesched_register_submenus() {
+    add_submenu_page(
+        'edit.php?post_type=event_schedule',
+        'Badge Types',
+        'Badge Types',
+        'manage_event_schedule_tags_type',
+        'onlinesched-badge-types',
+        'onlinesched_badge_types_page'
+    );
+    add_submenu_page(
+        'edit.php?post_type=event_schedule',
+        'Essentials Settings',
+        'Essentials Settings',
+        'manage_event_schedule_tags_type',
+        'onlinesched-essentials',
+        'onlinesched_essentials_page'
+    );
+    add_submenu_page(
+        'edit.php?post_type=event_schedule',
+        'CSV Uploader',
+        'CSV Uploader',
+        'manage_event_schedule_room_type',
+        'event-schedule-csv-uploader',
+        'event_schedule_csv_uploader_page'
+    );
+    OnlineSched_register_options_page(); // Event Settings
+    OnlineSched_register_social_login_page(); // Social Login
+    add_submenu_page(
+        'edit.php?post_type=event_schedule',
+        'Hints & Help',
+        'Hints & Help',
+        'manage_event_schedule_room_type',
+        'event-schedule-help',
+        'event_schedule_help_page'
+    );
+}

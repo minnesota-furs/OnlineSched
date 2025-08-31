@@ -29,6 +29,7 @@ $theming_filename = $theming = "";
 $badge_type_meta_cache = array();
 $gmt_offset = floatval(get_option('gmt_offset'));
 $event_schedule_year = get_option('event_schedule_year');
+$essentials_tab_name = get_option('onlinesched_essentials_tab_name', 'Essentials');
 
 $cssClass = 'standard-schedule';
 $filterLINKS = false;
@@ -166,7 +167,7 @@ $start = microtime(true);
                                                 class="visible-xs">Events</span></a>
                                 </li>
                                 <li role="presentation"><a href="#programming" aria-controls="programming" role="tab"
-                                                           data-toggle="tab" onclick="setFilterEvents(false);">Essentials</a>
+                                                           data-toggle="tab" onclick="setFilterEvents(false);"><?php echo esc_html($essentials_tab_name); ?></a>
                                 </li>
                                 <?php if ($theming != "schedule") { ?>
                                     <li role="presentation"><a href="#hours" aria-controls="hours" role="tab"
@@ -894,3 +895,5 @@ function decode_array_keys($array)
 
     return $decoded_array;
 }
+$essentials_tags = get_option('onlinesched_essentials_tags', array());
+echo '<script>window.essentialsTags = ' . json_encode($essentials_tags) . ';</script>';

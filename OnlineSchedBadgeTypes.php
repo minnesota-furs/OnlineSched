@@ -2,17 +2,6 @@
 // OnlineSchedBadgeTypes.php
 // Admin page for managing badge types
 
-function onlinesched_badge_types_menu() {
-	add_submenu_page(
-		'edit.php?post_type=event_schedule',
-		'Badge Types',
-		'Badge Types',
-		'manage_event_schedule_tags_type',
-		'onlinesched-badge-types',
-		'onlinesched_badge_types_page'
-	);
-}
-add_action('admin_menu', 'onlinesched_badge_types_menu', 9);
 
 // Enqueue admin CSS/JS only for badge types page
 add_action('admin_enqueue_scripts', function($hook) {

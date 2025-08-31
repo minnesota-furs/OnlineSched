@@ -1,20 +1,5 @@
 <?php
 
-function event_schedule_help_menu()
-{
-	add_submenu_page(
-		'edit.php?post_type=event_schedule',  // Parent slug
-		'Hints & Help',                       // Page title
-		'Hints & Help',                       // Menu title
-		'manage_event_schedule_room_type',                     // Capability
-		'event-schedule-help',        // Menu slug
-		'event_schedule_help_page'    // Function to display the page
-	);
-
-}
-
-add_action('admin_menu', 'event_schedule_help_menu');
-
 function event_schedule_help_page()
 {
 	remove_filter('parse_query', 'OnlineSched_posts_filter');
