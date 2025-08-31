@@ -756,9 +756,27 @@ export function new_schedule() {
             let googleUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(url);
             googleUrl = rewriteGoogleCalendarUrlForAndroid(googleUrl);
 
-            console.log('working on andoird',googleUrl);
-            window.open(googleUrl);
-            gtag_event('click', 'engagement', 'subscribe-google-calendar');
+            // Extract and decode the cid parameter
+            let rawLink = '';
+            try {
+                let urlObj = new URL(googleUrl);
+                let cid = urlObj.searchParams.get('cid');
+                if (cid) {
+                    rawLink = decodeURIComponent(cid);
+                }
+            } catch (e) {
+                rawLink = url;
+            }
+            // For download, use https if webcal
+            let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
+
+            if (isAndroidDevice()) {
+                showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl);
+                return false;
+            } else {
+                window.open(googleUrl, '_blank');
+                return false;
+            }
         };
 
         window.open_calendar_outlook = function () {
@@ -844,28 +862,30 @@ export function new_schedule() {
 
 
     window.confirmCalendarGoogleSubscription = function (link) {
-        link.href = rewriteGoogleCalendarUrlForAndroid(link.href);
-        return confirmCalendarSubscription(link, "Google");
-    };
+        var googleUrl = link.href;
+        googleUrl = rewriteGoogleCalendarUrlForAndroid(googleUrl);
 
-    window.confirmCalendarSubscription = function (link, service) {
-
-
-        if (confirm("This will subscribe you to your " + service + " calendar. This will keep updating until you delete it. Do you want to continue?")) {
-            gtag('event', 'click', {
-                'event_category': 'engagement',
-                'event_label': 'subscribe-' + service + '-calendar-single'
-            });
-
-            // Allow navigation after tracking
-            setTimeout(function () {
-                window.location.href = link.href;
-            }, 300); // Small delay to allow tracking
-
-            return false; // Prevent default behavior to handle navigation manually
+        // Extract and decode the cid parameter
+        let rawLink = '';
+        try {
+            let urlObj = new URL(googleUrl);
+            let cid = urlObj.searchParams.get('cid');
+            if (cid) {
+                rawLink = decodeURIComponent(cid);
+            }
+        } catch (e) {
+            rawLink = googleUrl;
         }
-        return false; // Cancel action if they click "Cancel"
+        // For download, use https if webcal
+        let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
 
+        if (isAndroidDevice()) {
+            showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl);
+            return false;
+        } else {
+            window.open(googleUrl, '_blank');
+            return false;
+        }
     };
 
 
@@ -943,7 +963,6 @@ export function new_schedule() {
 // Utility: rewrite Google Calendar URL for Android (webcal:// to http://)
 function rewriteGoogleCalendarUrlForAndroid(url) {
     var isAndroid = /android/i.test(navigator.userAgent);
-
     if (!isAndroid) return url;
     try {
         var urlObj = new URL(url);
@@ -961,4 +980,40 @@ function rewriteGoogleCalendarUrlForAndroid(url) {
     }
     console.log('android url', url);
     return url;
+}
+
+function showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl) {
+    jQuery('#android-google-calendar-modal').modal('show');
+    jQuery('#android-gcal-try-link').off('click').on('click', function () {
+        window.open(googleUrl, '_blank');
+        jQuery('#android-google-calendar-modal').modal('hide');
+    });
+    jQuery('#android-gcal-download').off('click').on('click', function () {
+        var a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'schedule.ics';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+    jQuery('#android-gcal-copy').off('click').on('click', function () {
+        var linkToCopy = rawLink;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(linkToCopy).then(function () {
+                jQuery('#android-gcal-copy-confirm').show().delay(1500).fadeOut();
+            });
+        } else {
+            var temp = document.createElement('input');
+            temp.value = linkToCopy;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            jQuery('#android-gcal-copy-confirm').show().delay(1500).fadeOut();
+        }
+    });
+}
+
+function isAndroidDevice() {
+    return /android/i.test(navigator.userAgent);
 }

@@ -850,6 +850,43 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
         </div>
     </div>
 
+    <!-- Android Google Calendar Modal -->
+    <div id="android-google-calendar-modal" class="modal fade" tabindex="-1" role="dialog" style="display:none;">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" id="android-google-calendar-modal-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Google Calendar on Android</h3>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Google Calendar on Android does not support direct calendar subscriptions via webcal/ics links.</strong></p>
+                    <p>You have Four options:</p>
+                    <ol>
+                        <li><strong>Try the official Google Calendar link:</strong> This may not work on Android, but you can try. It's been spotty for 15+ years.</li>
+                        <li><strong>Download the calendar file (.ics):</strong> You can manually import this file into Google Calendar by double clicking it. Those will not sync from the web.</li>
+                        <li><strong>Copy the calendar subscription link:</strong> You can add this link manually in Google Calendar settings.</li>
+                        <li><strong>Subscribe on a computer:</strong> Google recommends this, <a href=" <a href="https://support.google.com/calendar/answer/37118?hl=en&co=GENIE.Platform%3DAndroid&oco=1">Seriously</a>. If you are on the computer and you hit the icon and it will subscribe to Google calendar.</li>
+                    </ol>
+                    <div style="margin-top:1em;">
+                        <button class="btn btn-primary btn-block" id="android-gcal-try-link"><i class="fab fa-google"></i> Try Google Calendar (may not work)</button>
+                        <button class="btn btn-default btn-block" id="android-gcal-download"><i class="fa fa-download"></i> Download calendar file (.ics)</button>
+                        <button class="btn btn-default btn-block" id="android-gcal-copy"><i class="fa fa-copy"></i> Copy calendar link</button>
+                    </div>
+                    <div id="android-gcal-copy-confirm" style="display:none; color:green; margin-top:10px;"><i class="fa fa-check"></i> Link copied!</div>
+                    <div style="margin-top:1em; font-size:0.95em; color:#666;">
+                        <strong>Manual Add Instructions:</strong><br>
+                        <ol>
+                            <li>Open Google Calendar in a desktop browser.</li>
+                            <li>Go to <b>Settings &gt; Add calendar &gt; From URL</b>.</li>
+                            <li>Paste the copied link and add the calendar.</li>
+                            <li>On Android, the calendar will sync after a while (may take up to 24 hours).</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <?php
 // Only use custom provider/cookie/session for login state
 $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';

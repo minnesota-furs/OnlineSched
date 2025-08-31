@@ -63,6 +63,8 @@
 		Add to Google Calendar
 	</a>
 
+	<a href="http://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all">http://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all</a>
+
     <div style="margin-top:2em; font-size:0.95em; color:#666;">
         <strong>Notes:</strong><br>
         - Google Calendar on Android may not support <b>webcal://</b> links directly.<br>
