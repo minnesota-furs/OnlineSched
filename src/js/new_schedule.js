@@ -105,10 +105,17 @@ export function new_schedule() {
             jQuery('.nav-tabs a').on('shown.bs.tab', function (e) {
                 // Get the href attribute of the active tab
                 var hash = jQuery(e.target).attr('href');
-
                 // Update the browser's hash
                 if (hash) {
                     history.pushState(null, null, hash);
+                }
+                // If switching to Programming or Essentials tab, reset all filters
+                if (hash === '#programming') {
+                    resetDropDowns();
+                    window.favoritesFilterActive = false;
+                    jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
+                    scheduleSort();
+                    resetSelectTags();
                 }
             });
         });
@@ -223,6 +230,7 @@ export function new_schedule() {
 
 // Set events
         window.eventschedule_showEvents = true;
+        window.favoritesFilterActive = false;
 
         window.setFilterEvents = function (args) {
             scrollTopMenu();
@@ -282,9 +290,6 @@ export function new_schedule() {
                     roomAttrs.push(attrs[i].name + '=' + attrs[i].value);
                 }
             }
-            if (roomAttrs.length) {
-                console.log('Item', this.id, 'room attrs:', roomAttrs.join(', '));
-            }
         });
 
         for (var slug in eventschedule_scheduleRooms) {
@@ -293,18 +298,37 @@ export function new_schedule() {
             }
         }
 
+        // Ensure resetSelectTags is called after every filter change, including favorites toggle
         jQuery("#schedule-select-days, #schedule-select-tags, #schedule-select-rooms").change(function () {
             scheduleSort();
+            resetSelectTags();
         });
         jQuery("#schedule-search-text").on('input', function () {
             scheduleSort();
+            resetSelectTags();
         });
-
         jQuery("#schedule-reset").click(function () {
             resetDropDowns();
             // Reset favorites filter
-            favoritesFilterActive = false;
+            window.favoritesFilterActive = false;
             jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
+            scheduleSort();
+            resetSelectTags();
+        });
+        jQuery('#schedule-favorites-toggle').on('click', function () {
+            window.favoritesFilterActive = !window.favoritesFilterActive;
+            jQuery(this).toggleClass('active', window.favoritesFilterActive);
+            jQuery(this).attr('aria-pressed', window.favoritesFilterActive ? 'true' : 'false');
+            // Toggle star icon between hollow and solid
+            var $icon = jQuery(this).find('i');
+            if (window.favoritesFilterActive) {
+                $icon.removeClass('far').addClass('fas'); // solid star
+            } else {
+                $icon.removeClass('fas').addClass('far'); // hollow star
+            }
+            if (window.favoritesFilterActive) {
+                jQuery('#schedule-select-days').val('all');
+            }
             scheduleSort();
             resetSelectTags();
         });
@@ -337,63 +361,10 @@ export function new_schedule() {
             jQuery('#schedule-search-text').val("");
         }
 
-        function showHideEvents() {
-            jQuery('#programming').addClass('active');
-            if (window.eventschedule_showEvents) {
-                // Show all items
-                jQuery('.schedule-item').show();
-                jQuery('#schedule-select-rooms').parent().show();
-                jQuery('.schedule-reset').removeClass('col-sm-offset-2');
-                jQuery('#schedule-add-to-calendar').show();
-            } else {
-                // Essentials filter: show only items with a tag in window.essentialsTags
-                jQuery('.schedule-item').each(function () {
-                    let show = false;
-                    if (window.essentialsTags && window.essentialsTags.length > 0) {
-                        for (let i = 0; i < window.essentialsTags.length; i++) {
-                            if (jQuery(this).hasClass('schedule-tag-' + window.essentialsTags[i])) {
-                                show = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (show) {
-                        jQuery(this).show();
-                    } else {
-                        jQuery(this).hide();
-                    }
-                });
-                jQuery('#schedule-select-rooms').parent().hide();
-                jQuery('.schedule-reset').addClass('col-sm-offset-2');
-                jQuery('#schedule-add-to-calendar').hide();
-            }
-
-        }
-
-        // --- FAVORITES FILTER BUTTON LOGIC ---
-        let favoritesFilterActive = false;
-        jQuery('#schedule-favorites-toggle').on('click', function () {
-            favoritesFilterActive = !favoritesFilterActive;
-            jQuery(this).toggleClass('active', favoritesFilterActive);
-            jQuery(this).attr('aria-pressed', favoritesFilterActive ? 'true' : 'false');
-            // Toggle star icon between hollow and solid
-            var $icon = jQuery(this).find('i');
-            if (favoritesFilterActive) {
-                $icon.removeClass('far').addClass('fas'); // solid star
-            } else {
-                $icon.removeClass('fas').addClass('far'); // hollow star
-            }
-            if (favoritesFilterActive) {
-                jQuery('#schedule-select-days').val('all');
-            }
-            scheduleSort();
-        });
-
         function scheduleSort() {
             if (jQuery('#schedule').length === 0) {
                 return;
             }
-
             var disableReset = true;
 
             // Get filter values
@@ -407,7 +378,11 @@ export function new_schedule() {
             if (selectedRoom !== "all") selectedRoom = String(selectedRoom);
 
             // Determine if favorites filter is active
-            var favoritesFilterActive = jQuery('#schedule-favorites-toggle').hasClass('active');
+            var favoritesFilterActive = window.favoritesFilterActive;
+
+            // Determine if essentials tab is active
+            var essentialsFilterActive = (window.eventschedule_showEvents === false);
+            var essentialsTags = window.essentialsTags || [];
 
             // Show/hide days based on selectedDay
             if (selectedDay == "all" || selectedDay == "Current") {
@@ -423,8 +398,6 @@ export function new_schedule() {
                 if (!$item[0] || !$item[0].attributes) return false;
                 for (let attr of $item[0].attributes) {
                     if (attr.name.startsWith(prefix)) {
-                        // Debug log
-                        console.log('Checking', $item.attr('id'), attr.name, attr.value, 'against', value);
                         if (String(attr.value) === String(value)) {
                             return true;
                         }
@@ -445,6 +418,22 @@ export function new_schedule() {
                     show = false;
                 }
 
+                // Essentials filter: only show items with an essentials tag
+                if (essentialsFilterActive) {
+                    let hasEssentialsTag = false;
+                    for (let i = 0; i < essentialsTags.length; i++) {
+                        if ($item.hasClass('schedule-tag-' + essentialsTags[i])) {
+                            hasEssentialsTag = true;
+                            break;
+                        }
+                    }
+                    if (!hasEssentialsTag) {
+                        show = false;
+                    } else {
+                        disableReset = false;
+                    }
+                }
+
                 // Filter by tag
                 if (selectedTag !== "all") {
                     if (!hasMatchingAttribute($item, 'data-schedule-tag', selectedTag)) {
@@ -457,7 +446,6 @@ export function new_schedule() {
                 // Filter by room
                 if (selectedRoom !== "all") {
                     if (!hasMatchingAttribute($item, 'data-schedule-room', selectedRoom)) {
-                        console.log("hiding select room", selectedRoom,  $item);
                         show = false;
                     } else {
                         disableReset = false;
@@ -504,28 +492,10 @@ export function new_schedule() {
                     $item.show();
                     anyVisible = true;
                 } else {
-                    console.log("hiding!");
                     $item.hide();
                 }
             });
-/*
-alert('fun');
-            // Show all hours and days, then hide those with no visible children
-            jQuery('.schedule-hour').show();
-            jQuery('.schedule-day').show();
-            jQuery('.schedule-hour').each(function () {
-                var visibleLength = jQuery(this).children('.schedule-item:visible').length;
-                if (visibleLength == 0) {
-                    jQuery(this).hide();
-                }
-            });
-            jQuery('.schedule-day').each(function () {
-                var visibleLength = jQuery(this).children('.schedule-hour:visible').length;
-                if (visibleLength == 0) {
-                    jQuery(this).hide();
-                }
-            });
-*/
+
             jQuery("#schedule-reset").prop("disabled", disableReset);
 
             reset_schedule(true);
@@ -557,9 +527,6 @@ alert('fun');
         }
 
         function reset_schedule(resetTags) {
-            if (resetTags) {
-                // showHideEvents();
-            }
             resetHoursDays();
             if (resetTags) {
                 resetSelectTags();
@@ -571,29 +538,22 @@ alert('fun');
         }
 
         function resetSelectTags() {
-            var scheduleReset = new Object();
-            jQuery(".schedule-tags").each(function (index) {
-                // check if
-                var parent = jQuery(this).parent().parent();
-                if (parent.is(":visible")) {
-                    //code
-                    // Current tags
-
-                    var tags = jQuery.map(jQuery(this).html().split(","), jQuery.trim);
-                    let len = 0;
-                    for (index = 0, len = tags.length; index < len; ++index) {
-                        var tag = tags[index];
-                        tag = tag.replace(/<\/?[^>]+(>|$)/g, "");
-                        if (!scheduleReset.hasOwnProperty(tag)) {
-                            scheduleReset[tag] = tag;
-                        }
+            // Only use visible schedule items to build tag list
+            var scheduleReset = {};
+            jQuery('.schedule-item:visible .schedule-tags').each(function () {
+                var tags = jQuery.map(jQuery(this).html().split(","), jQuery.trim);
+                tags.forEach(function(tag) {
+                    tag = tag.replace(/<\/?[^>]+(>|$)/g, "");
+                    if (tag && !scheduleReset.hasOwnProperty(tag)) {
+                        scheduleReset[tag] = tag;
                     }
-                }
+                });
             });
 
             // get selected option
             var selectedTagValue = jQuery("#schedule-select-tags option:selected").val();
 
+            // Remove all except 'all'
             jQuery("#schedule-select-tags option").each(function () {
                 if (jQuery(this).val() !== "all") {
                     jQuery(this).remove();
@@ -602,7 +562,7 @@ alert('fun');
 
             for (var key in scheduleReset) {
                 jQuery("#schedule-select-tags").append(jQuery('<option>', {
-                    value: eventschedule_scheduleTags[key],
+                    value: window.eventschedule_scheduleTags[key],
                     html: key
                 }));
             }
@@ -613,53 +573,6 @@ alert('fun');
             }
 
             sort_options_by_id("#schedule-select-tags");
-
-            // Version for schedule rooms
-            // could functionized this now
-
-            var scheduleResetRooms = new Object();
-            jQuery(".schedule-room").each(function (index) {
-                // check if
-                var parent = jQuery(this).parent().parent();
-                if (parent.is(":visible")) {
-                    //code
-                    // Current tags
-
-                    var tags = jQuery.map(jQuery(this).html().split(","), jQuery.trim);
-                    let len = 0;
-                    for (index = 0, len = tags.length; index < len; ++index) {
-                        var tag = tags[index];
-                        if (!scheduleResetRooms.hasOwnProperty(tag)) {
-                            scheduleResetRooms[tag] = tag;
-                        }
-                    }
-
-
-                }
-            });
-
-            // get selected option
-            var selectedRoomsValue = jQuery("#schedule-select-rooms option:selected").val();
-
-            jQuery("#schedule-select-rooms").find("option").not(":first").remove();
-
-            // Use slugs for value, display name for label
-            for (let slug in eventschedule_scheduleRooms) {
-                if (slug !== '') {
-                    jQuery("#schedule-select-rooms").append(jQuery('<option>', {
-                        value: slug,
-                        html: eventschedule_scheduleRooms[slug]
-                    }));
-                }
-            }
-
-            // reset selected option
-            if (selectedRoomsValue !== 'all') {
-                jQuery("#schedule-select-rooms").val(selectedRoomsValue);
-            }
-
-            sort_options_by_id("#schedule-select-rooms");
-
             setOddEven();
         }
 
