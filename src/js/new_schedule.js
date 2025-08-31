@@ -751,6 +751,40 @@ export function new_schedule() {
 
         };
 
+        window.confirmCalendarGoogleSubscription = function (link) {
+            // If Android, show modal instead of confirmation dialog
+            if (isAndroidDevice()) {
+                // Extract and decode the cid parameter from the link
+                let googleUrl = rewriteGoogleCalendarUrlForAndroid(link.href);
+                let rawLink = '';
+                try {
+                    let urlObj = new URL(googleUrl);
+                    let cid = urlObj.searchParams.get('cid');
+                    if (cid) {
+                        rawLink = decodeURIComponent(cid);
+                    }
+                } catch (e) {
+                    rawLink = googleUrl;
+                }
+                let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
+                showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl);
+                return false;
+            } else {
+                link.href = rewriteGoogleCalendarUrlForAndroid(link.href);
+                return confirmCalendarSubscription(link, "Google");
+            }
+        };
+
+        window.confirmCalendarSubscription = function (link, service) {
+            if (confirm("This will subscribe you to your " + service + " calendar. This will keep updating until you delete it. Do you want to continue?")) {
+                gtag_event('click', 'engagement', 'subscribe-' + service + '-calendar-single');
+                setTimeout(function () {
+                    window.location.href = link.href;
+                }, 300); // Small delay to allow tracking
+            }
+            return false;
+        };
+
         window.open_calendar_google = function () {
             let url = generate_ical_url();
             let googleUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(url);
@@ -769,6 +803,8 @@ export function new_schedule() {
             }
             // For download, use https if webcal
             let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
+
+            gtag_event('click', 'engagement', 'subscribe-google-calendar');
 
             if (isAndroidDevice()) {
                 showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl);
@@ -862,32 +898,38 @@ export function new_schedule() {
 
 
     window.confirmCalendarGoogleSubscription = function (link) {
-        var googleUrl = link.href;
-        googleUrl = rewriteGoogleCalendarUrlForAndroid(googleUrl);
-
-        // Extract and decode the cid parameter
-        let rawLink = '';
-        try {
-            let urlObj = new URL(googleUrl);
-            let cid = urlObj.searchParams.get('cid');
-            if (cid) {
-                rawLink = decodeURIComponent(cid);
-            }
-        } catch (e) {
-            rawLink = googleUrl;
-        }
-        // For download, use https if webcal
-        let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
-
+        // If Android, show modal instead of confirmation dialog
         if (isAndroidDevice()) {
+            // Extract and decode the cid parameter from the link
+            let googleUrl = rewriteGoogleCalendarUrlForAndroid(link.href);
+            let rawLink = '';
+            try {
+                let urlObj = new URL(googleUrl);
+                let cid = urlObj.searchParams.get('cid');
+                if (cid) {
+                    rawLink = decodeURIComponent(cid);
+                }
+            } catch (e) {
+                rawLink = googleUrl;
+            }
+            let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
             showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl);
             return false;
         } else {
-            window.open(googleUrl, '_blank');
-            return false;
+            link.href = rewriteGoogleCalendarUrlForAndroid(link.href);
+            return confirmCalendarSubscription(link, "Google");
         }
     };
 
+    window.confirmCalendarSubscription = function (link, service) {
+        if (confirm("This will subscribe you to your " + service + " calendar. This will keep updating until you delete it. Do you want to continue?")) {
+            gtag_event('click', 'engagement', 'subscribe-' + service + '-calendar-single');
+            setTimeout(function () {
+                window.location.href = link.href;
+            }, 300); // Small delay to allow tracking
+        }
+        return false;
+    };
 
     // --- VANILLA JS MODAL LOGIC FOR LOGIN & HELP ---
     var loginBtn = document.getElementById('login-modal-btn');

@@ -1,5 +1,6 @@
 import 'scss/schedule.scss';
 import 'scss/shortcode_schedule_cheat_display.scss';
+import 'scss/android-google-model.scss';
 
 import { onlineScheduleGrid } from "js/onlineScheduleGrid.js";
 import { new_schedule} from "js/new_schedule.js";
