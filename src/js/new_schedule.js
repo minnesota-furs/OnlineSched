@@ -843,6 +843,7 @@ alert('fun');
             let googleUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(url);
             googleUrl = rewriteGoogleCalendarUrlForAndroid(googleUrl);
 
+            console.log('working on andoird',googleUrl);
             window.open(googleUrl);
             gtag_event('click', 'engagement', 'subscribe-google-calendar');
         };
@@ -1029,7 +1030,6 @@ alert('fun');
 // Utility: rewrite Google Calendar URL for Android (webcal:// to http://)
 function rewriteGoogleCalendarUrlForAndroid(url) {
     var isAndroid = /android/i.test(navigator.userAgent);
-    console.log(url);
 
     if (!isAndroid) return url;
     try {
@@ -1046,5 +1046,6 @@ function rewriteGoogleCalendarUrlForAndroid(url) {
     } catch (e) {
         // fallback: do nothing if URL parsing fails
     }
+    console.log('android url', url);
     return url;
 }
