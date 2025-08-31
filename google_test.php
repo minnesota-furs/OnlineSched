@@ -49,6 +49,13 @@
         <a href="https://calendar.google.com/calendar/r?cid=http%3A%2F%2Fwww.furrymigration.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" class="calendar-link" id="link-http">HTTP (http://...)</a>
         <button class="copy-btn" onclick="copyLink('link-http')">Copy</button>
     </div>
+
+	<div class="link-row">
+		<a href="https://calendar.google.com/calendar/r?cid=https://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all" class="calendar-link" id="link-http">HTTPS (https://...) unencrypted</a>
+		<button class="copy-btn" onclick="copyLink('link-http')">Copy</button>
+	</div>
+
+
     <div style="margin-top:2em; font-size:0.95em; color:#666;">
         <strong>Notes:</strong><br>
         - Google Calendar on Android may not support <b>webcal://</b> links directly.<br>
