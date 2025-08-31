@@ -51,8 +51,12 @@
     </div>
 
 	<div class="link-row">
-		<a href="https://calendar.google.com/calendar/r?cid=https://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all" class="calendar-link" id="link-http">HTTPS (https://...) unencrypted</a>
-		<button class="copy-btn" onclick="copyLink('link-http')">Copy</button>
+		<a href="https://calendar.google.com/calendar/r?cid=https://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all" class="calendar-link" id="ulink-https">HTTPS (https://...) unencoded</a>
+		<button class="copy-btn" onclick="copyLink('ulink-https')">Copy</button>
+	</div>
+	<div class="link-row">
+		<a href="https://calendar.google.com/calendar/r?cid=http://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all" class="calendar-link" id="ulink-http">HTTP (http://...) unencoded</a>
+		<button class="copy-btn" onclick="copyLink('ulink-http')">Copy</button>
 	</div>
 
 
