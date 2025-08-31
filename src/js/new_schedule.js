@@ -840,9 +840,10 @@ alert('fun');
 
         window.open_calendar_google = function () {
             let url = generate_ical_url();
+            let googleUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(url);
+            googleUrl = rewriteGoogleCalendarUrlForAndroid(googleUrl);
 
-            url = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(url);
-            window.open(url);
+            window.open(googleUrl);
             gtag_event('click', 'engagement', 'subscribe-google-calendar');
         };
 
@@ -929,6 +930,7 @@ alert('fun');
 
 
     window.confirmCalendarGoogleSubscription = function (link) {
+        link.href = rewriteGoogleCalendarUrlForAndroid(link.href);
         return confirmCalendarSubscription(link, "Google");
     };
 
@@ -1022,4 +1024,26 @@ alert('fun');
     });
 
 
+}
+
+// Utility: rewrite Google Calendar URL for Android (webcal:// to https://)
+function rewriteGoogleCalendarUrlForAndroid(url) {
+    var isAndroid = /android/i.test(navigator.userAgent);
+    
+    if (!isAndroid) return url;
+    try {
+        var urlObj = new URL(url);
+        var cid = urlObj.searchParams.get('cid');
+        if (cid) {
+            var decodedCid = decodeURIComponent(cid);
+            if (decodedCid.startsWith('webcal://')) {
+                var newCid = decodedCid.replace(/^webcal:\/\//i, 'https://');
+                urlObj.searchParams.set('cid', encodeURIComponent(newCid));
+                return urlObj.toString();
+            }
+        }
+    } catch (e) {
+        // fallback: do nothing if URL parsing fails
+    }
+    return url;
 }
