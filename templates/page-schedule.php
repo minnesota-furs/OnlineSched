@@ -451,7 +451,7 @@ $start = microtime(true);
                                                 }
                                                 $lowerRooms = str_replace(' ', '-', strtolower($rooms));
 
-                                                // Event was canncelled :(
+                                                // Event was cancelled :(
                                                 $eventCancelled = array_reduce($tagsArray, function ($carry, $item) {
                                                     $lowercaseItem = strtolower($item);
                                                     return $carry || $lowercaseItem === 'cancelled' || $lowercaseItem === 'canceled';
@@ -496,7 +496,7 @@ $start = microtime(true);
 
                                                 $row_style = $row_highlight_color ? ' style="background-color: ' . esc_attr($row_highlight_color) . ';"' : '';
                                                 echo '<div id="onlineevt-' . get_the_ID() . '" class="row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-end-time="' . $sortEndTimeGMT . '"' . $row_style . '>';
-                                                // remove  data-toggle="modal"
+
                                                 $hiddenLg = '';
                                                 $titleLg = '';
 

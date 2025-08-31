@@ -258,26 +258,38 @@ export function new_schedule() {
                 jQuery("#schedule-select-tags").append("<option value='" + eventschedule_scheduleTags[key] + "'>" + key + "</option>");
         }
 
-        window.eventschedule_scheduleRooms = new Object();
-        eventschedule_count = 0;
-        jQuery(".schedule-room").each(function (index) {
-            // Current tags
+        window.eventschedule_scheduleRooms = {};
+        jQuery(".schedule-room").each(function () {
             var rooms = jQuery.map(jQuery(this).html().split(","), jQuery.trim);
-            let len = 0;
-            for (index = 0, len = rooms.length; index < len; ++index) {
-                var room = rooms[index];
-                if (!eventschedule_scheduleRooms.hasOwnProperty(room)) {
-                    eventschedule_scheduleRooms[room] = eventschedule_count++;
+            var parentItem = jQuery(this).parent().parent();
+            rooms.forEach(function(room) {
+                // Normalize room name to slug
+                var slug = room.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+                if (!eventschedule_scheduleRooms.hasOwnProperty(slug)) {
+                    eventschedule_scheduleRooms[slug] = room; // Store original name for display
                 }
-
-                jQuery(this).parent().parent().attr("data-schedule-room" + eventschedule_scheduleRooms[room], eventschedule_scheduleRooms[room]);
-            }
-
+                // Set attribute using slug (for each room)
+                parentItem.attr("data-schedule-room-" + slug, slug);
+            });
         });
 
-        for (var key in eventschedule_scheduleRooms) {
-            if (key != '' && eventschedule_scheduleRooms[key] != '') {
-                jQuery("#schedule-select-rooms").append("<option value='" + eventschedule_scheduleRooms[key] + "'>" + key + "</option>");
+        // Debug: log all schedule-item room attributes
+        jQuery('.schedule-item').each(function() {
+            var attrs = this.attributes;
+            var roomAttrs = [];
+            for (let i = 0; i < attrs.length; i++) {
+                if (attrs[i].name.startsWith('data-schedule-room')) {
+                    roomAttrs.push(attrs[i].name + '=' + attrs[i].value);
+                }
+            }
+            if (roomAttrs.length) {
+                console.log('Item', this.id, 'room attrs:', roomAttrs.join(', '));
+            }
+        });
+
+        for (var slug in eventschedule_scheduleRooms) {
+            if (slug !== '') {
+                jQuery("#schedule-select-rooms").append("<option value='" + slug + "'>" + eventschedule_scheduleRooms[slug] + "</option>");
             }
         }
 
@@ -379,102 +391,142 @@ export function new_schedule() {
 
         function scheduleSort() {
             if (jQuery('#schedule').length === 0) {
-                // Element with ID "schedule" doesn't exist exit out of function.
                 return;
             }
 
             var disableReset = true;
 
-            //code
+            // Get filter values
             var selectedDay = jQuery("#schedule-select-days").val();
+            var selectedTag = jQuery("#schedule-select-tags").val();
+            var selectedRoom = jQuery("#schedule-select-rooms").val();
+            var searchText = jQuery("#schedule-search-text").val().toLowerCase();
 
+            // Ensure selectedTag and selectedRoom are strings for comparison
+            if (selectedTag !== "all") selectedTag = String(selectedTag);
+            if (selectedRoom !== "all") selectedRoom = String(selectedRoom);
+
+            // Determine if favorites filter is active
+            var favoritesFilterActive = jQuery('#schedule-favorites-toggle').hasClass('active');
+
+            // Show/hide days based on selectedDay
             if (selectedDay == "all" || selectedDay == "Current") {
-                //code
                 jQuery(".schedule-day").show();
-            } /* else if (selectedDay == "Current") {
-                var currentGMTDay = currentDateTimestampUTC();
-                jQuery(".schedule-day").hide();
-                jQuery(".schedule-day").each(function (index) {
-                    var itemUTC = jQuery(this).attr("data-schedule-num-day");
-                    if (itemUTC >= currentGMTDay) {
-                        jQuery(this).show();
-                    }
-                });
-            }  */ else {
+            } else {
                 jQuery(".schedule-day").hide();
                 jQuery('.schedule-day[data-schedule-day="' + selectedDay + '"]').show();
                 disableReset = false;
             }
 
-            var searchData = "";
-
-            var selectedTag = jQuery("#schedule-select-tags").val();
-
-            if (selectedTag !== "all") {
-                searchData += "[data-schedule-tag" + selectedTag + "='" + selectedTag + "']";
-            }
-
-            var selectedRoom = jQuery("#schedule-select-rooms").val();
-            if (selectedRoom !== "all") {
-                searchData += "[data-schedule-room" + selectedRoom + "='" + selectedRoom + "']";
-            }
-
-
-            if (searchData == "") {
-                jQuery('.schedule-item').show();
-            } else {
-                jQuery('.schedule-item').hide();
-                jQuery('.schedule-item' + searchData).show();
-                disableReset = false;
-            }
-
-            if (selectedDay == "Current") {
-                // lets do the work
-                var currentDateUTC = currentDateTimeTimestampUTC();
-                jQuery('.schedule-item').each(function (index) {
-                    var itemDate = jQuery(this).data('end-time');
-                    if (itemDate <= currentDateUTC) {
-                        jQuery(this).hide();
+            // Helper for attribute matching
+            function hasMatchingAttribute($item, prefix, value) {
+                if (!$item[0] || !$item[0].attributes) return false;
+                for (let attr of $item[0].attributes) {
+                    if (attr.name.startsWith(prefix)) {
+                        // Debug log
+                        console.log('Checking', $item.attr('id'), attr.name, attr.value, 'against', value);
+                        if (String(attr.value) === String(value)) {
+                            return true;
+                        }
                     }
-                });
+                }
+                return false;
             }
 
+            // --- Main filtering loop ---
+            var anyVisible = false;
+            jQuery('.schedule-item').each(function () {
+                var $item = jQuery(this);
+                var show = true;
 
-            jQuery('.schedule-hour').show(); // Otherwise can't search text
-            // last check dynamic search
-            var searchText = jQuery("#schedule-search-text").val().toLowerCase();
-            if (searchText != "") {
+                // Filter by day: only show items whose parent day is visible
+                var $day = $item.closest('.schedule-day');
+                if (!$day.is(':visible')) {
+                    show = false;
+                }
 
-                jQuery('.schedule-item:visible').each(function () {
-                    var hide = true;
-                    jQuery(this).find(".schedule-title a, .schedule-panelists, .schedule-tags, .schedule-room").each(function () {
+                // Filter by tag
+                if (selectedTag !== "all") {
+                    if (!hasMatchingAttribute($item, 'data-schedule-tag', selectedTag)) {
+                        show = false;
+                    } else {
+                        disableReset = false;
+                    }
+                }
+
+                // Filter by room
+                if (selectedRoom !== "all") {
+                    if (!hasMatchingAttribute($item, 'data-schedule-room', selectedRoom)) {
+                        console.log("hiding select room", selectedRoom,  $item);
+                        show = false;
+                    } else {
+                        disableReset = false;
+                    }
+                }
+
+                // Filter by "Current" day (hide past events)
+                if (selectedDay == "Current") {
+                    var currentDateUTC = currentDateTimeTimestampUTC();
+                    var itemDate = $item.data('end-time');
+                    if (itemDate <= currentDateUTC) {
+                        show = false;
+                    } else {
+                        disableReset = false;
+                    }
+                }
+
+                // Filter by search text
+                if (searchText != "") {
+                    var found = false;
+                    $item.find(".schedule-title a, .schedule-panelists, .schedule-tags, .schedule-room").each(function () {
                         if (jQuery(this).text().toLowerCase().indexOf(searchText) != -1) {
-                            hide = false;
+                            found = true;
                         }
                     });
-                    if (hide) {
-                        //code
-                        jQuery(this).hide();
+                    if (!found) {
+                        show = false;
+                    } else {
+                        disableReset = false;
                     }
+                }
 
-                });
-
-                disableReset = false;
-            }
-
-            // --- FAVORITES FILTER: Only show favorites if active ---
-            if (favoritesFilterActive) {
-                jQuery('.schedule-item:visible').each(function () {
-                    if (jQuery(this).attr('data-favorite') !== 'true') {
-                        jQuery(this).hide();
+                // Filter by favorites
+                if (favoritesFilterActive) {
+                    if ($item.attr('data-favorite') !== 'true') {
+                        show = false;
+                    } else {
+                        disableReset = false;
                     }
-                });
-                disableReset = false;
-            }
+                }
 
-
+                // Show/hide item
+                if (show) {
+                    $item.show();
+                    anyVisible = true;
+                } else {
+                    console.log("hiding!");
+                    $item.hide();
+                }
+            });
+/*
+alert('fun');
+            // Show all hours and days, then hide those with no visible children
+            jQuery('.schedule-hour').show();
+            jQuery('.schedule-day').show();
+            jQuery('.schedule-hour').each(function () {
+                var visibleLength = jQuery(this).children('.schedule-item:visible').length;
+                if (visibleLength == 0) {
+                    jQuery(this).hide();
+                }
+            });
+            jQuery('.schedule-day').each(function () {
+                var visibleLength = jQuery(this).children('.schedule-hour:visible').length;
+                if (visibleLength == 0) {
+                    jQuery(this).hide();
+                }
+            });
+*/
             jQuery("#schedule-reset").prop("disabled", disableReset);
-            // action when all are hidden
 
             reset_schedule(true);
             messageAtBottomForCalendar();
@@ -486,7 +538,7 @@ export function new_schedule() {
             jQuery('.schedule-hour').each(function () {
                 jQuery(this).show(); // You have to show them to calculate...
                 var visibleLength = jQuery(this).children(':visible').length;
-
+                // IT counts itself as one
                 if (visibleLength < 2) {
                     jQuery(this).hide();
                 }
@@ -497,6 +549,7 @@ export function new_schedule() {
                 jQuery(this).show(); // You have to show them to calculate...
                 var visibleLength = jQuery(this).children(':visible').length;
 
+                // IT counts itself as one
                 if (visibleLength < 2) {
                     jQuery(this).hide();
                 }
@@ -504,7 +557,9 @@ export function new_schedule() {
         }
 
         function reset_schedule(resetTags) {
-            showHideEvents();
+            if (resetTags) {
+                // showHideEvents();
+            }
             resetHoursDays();
             if (resetTags) {
                 resetSelectTags();
@@ -588,11 +643,12 @@ export function new_schedule() {
 
             jQuery("#schedule-select-rooms").find("option").not(":first").remove();
 
-            for (let key in scheduleResetRooms) {
-                if (key !== '' && (eventschedule_scheduleRooms[key] !== '' || eventschedule_scheduleRooms[key] === 0)) {
+            // Use slugs for value, display name for label
+            for (let slug in eventschedule_scheduleRooms) {
+                if (slug !== '') {
                     jQuery("#schedule-select-rooms").append(jQuery('<option>', {
-                        value: eventschedule_scheduleRooms[key],
-                        html: key
+                        value: slug,
+                        html: eventschedule_scheduleRooms[slug]
                     }));
                 }
             }
@@ -602,7 +658,7 @@ export function new_schedule() {
                 jQuery("#schedule-select-rooms").val(selectedRoomsValue);
             }
 
-            sort_options_by_id("#schedule-select-Rooms");
+            sort_options_by_id("#schedule-select-rooms");
 
             setOddEven();
         }
