@@ -1026,10 +1026,11 @@ alert('fun');
 
 }
 
-// Utility: rewrite Google Calendar URL for Android (webcal:// to https://)
+// Utility: rewrite Google Calendar URL for Android (webcal:// to http://)
 function rewriteGoogleCalendarUrlForAndroid(url) {
     var isAndroid = /android/i.test(navigator.userAgent);
-    
+    console.log(url);
+
     if (!isAndroid) return url;
     try {
         var urlObj = new URL(url);
@@ -1037,7 +1038,7 @@ function rewriteGoogleCalendarUrlForAndroid(url) {
         if (cid) {
             var decodedCid = decodeURIComponent(cid);
             if (decodedCid.startsWith('webcal://')) {
-                var newCid = decodedCid.replace(/^webcal:\/\//i, 'https://');
+                var newCid = decodedCid.replace(/^webcal:\/\//i, 'http://');
                 urlObj.searchParams.set('cid', encodeURIComponent(newCid));
                 return urlObj.toString();
             }
