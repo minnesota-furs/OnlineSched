@@ -282,6 +282,11 @@ dl.schedule-meta:after {
   .canceled dl:nth-child(5) {
     display: block !important;
   }
+
+  .schedule-search {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
 }
 
 
@@ -593,4 +598,3 @@ body.page-id-9880 .schedule-day > h2 {
   box-shadow: 0 0 0 2px #01794033;
   outline: none;
 }
-
