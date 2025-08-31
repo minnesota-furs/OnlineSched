@@ -59,6 +59,9 @@
 		<button class="copy-btn" onclick="copyLink('ulink-http')">Copy</button>
 	</div>
 
+	<a href="https://calendar.google.com/calendar/r?cid=https%3A%2F%2Fwww.furrymigration.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" target="_blank">
+		Add to Google Calendar
+	</a>
 
     <div style="margin-top:2em; font-size:0.95em; color:#666;">
         <strong>Notes:</strong><br>
