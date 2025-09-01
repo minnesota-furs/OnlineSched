@@ -24,19 +24,6 @@ export function new_schedule() {
         }, 'slow');
     };
 
-    function gtag_event(eventType = 'click', category = 'schedule', label = 'schedule', value = 1) {
-        if (typeof gtag === 'function') {
-            gtag('event', eventType, {
-                'event_category': category,
-                'event_label': label,
-                'value': value
-            });
-        }
-    }
-
-    // Make gtag_event globally accessible for all handlers
-    window.gtag_event = gtag_event;
-
     jQuery(document).ready(function () {
         // added for copy url
         jQuery("#modal-copy-url").on("click", function (e) {
@@ -47,8 +34,6 @@ export function new_schedule() {
             navigator.clipboard.writeText(url);
 
             animate_clipboard(this);
-
-            gtag_event('copy_link_modal', 'engagement', url);
         });
 
         jQuery(".schedule-clipboard").on("click", function (e) {
@@ -61,8 +46,6 @@ export function new_schedule() {
             navigator.clipboard.writeText(url);
 
             animate_clipboard(this);
-
-            gtag_event('copy_link', 'engagement', url);
         });
 
         function animate_clipboard(clipObject) {
@@ -201,7 +184,7 @@ export function new_schedule() {
             modal_popup_fill("#modal-schedule-tags", tags);
             modal_popup_fill("#modal-schedule-panelists", panelists);
             jQuery("#modal-schedule-ical").attr('href', ical);
-            jQuery("#modal-schedule-google").attr('href', gcalUrl); // Always set correct link
+            jQuery("#modal-schedule-google").attr('href', googleCal); // Set correct subscription link for non-Android
             let evt_hash = jQuery(parent).attr('id').substring(6);
             window.location.hash = evt_hash;
             jQuery("#modal-schedule").modal("show");
@@ -676,8 +659,6 @@ export function new_schedule() {
 
         let eventschedule_hash = window.location.hash;
 
-        gtag_event('hash', 'engagement', eventschedule_hash);
-
         eventschedule_hash = eventschedule_hash.substring(0, 5);
 
         if (eventschedule_hash === "#hour") {
@@ -774,143 +755,6 @@ export function new_schedule() {
             var utcDate = new Date();
 
             return ((utcDate.getTime()) / 1000);
-        }
-
-        window.open_calendar_apple = function () {
-            let url = generate_ical_url();
-
-            window.open(url);
-            gtag_event('click', 'engagement', 'subscribe-apple-calendar');
-
-        };
-
-        window.confirmCalendarGoogleSubscription = function (link) {
-            if (isAndroidDevice()) {
-                let googleUrl = rewriteGoogleCalendarUrlForAndroid(link.href);
-                let rawLink = '';
-                try {
-                    let urlObj = new URL(googleUrl);
-                    let cid = urlObj.searchParams.get('cid');
-                    if (cid) {
-                        rawLink = decodeURIComponent(cid);
-                    }
-                } catch (e) {
-                    rawLink = googleUrl;
-                }
-                let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
-                let $event = jQuery(link).closest('.schedule-item');
-                let eventDetails = $event.length ? getEventDetailsFromElement($event) : null;
-                let eventDetailsForModal = null;
-                if (eventDetails) {
-                    eventDetailsForModal = {
-                        title: eventDetails.title,
-                        details: eventDetails.gcalDetails,
-                        location: eventDetails.gcalLocation,
-                        dates: eventDetails.gcalDates
-                    };
-                }
-                showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl, eventDetailsForModal);
-                return false;
-            } else {
-                link.href = rewriteGoogleCalendarUrlForAndroid(link.href);
-                return confirmCalendarSubscription(link, "Google");
-            }
-        };
-
-        window.confirmCalendarSubscription = function (link, service) {
-            if (confirm("This will subscribe you to your " + service + " calendar. This will keep updating until you delete it. Do you want to continue?")) {
-                gtag_event('click', 'engagement', 'subscribe-' + service + '-calendar-single');
-                setTimeout(function () {
-                    window.location.href = link.href;
-                }, 300); // Small delay to allow tracking
-            }
-            return false;
-        };
-
-        window.open_calendar_google = function () {
-            let url = generate_ical_url();
-            let googleUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(url);
-            googleUrl = rewriteGoogleCalendarUrlForAndroid(googleUrl);
-
-            // Extract and decode the cid parameter
-            let rawLink = '';
-            try {
-                let urlObj = new URL(googleUrl);
-                let cid = urlObj.searchParams.get('cid');
-                if (cid) {
-                    rawLink = decodeURIComponent(cid);
-                }
-            } catch (e) {
-                rawLink = url;
-            }
-            // For download, use https if webcal
-            let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
-
-            gtag_event('click', 'engagement', 'subscribe-google-calendar');
-
-            if (isAndroidDevice()) {
-                showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl);
-                return false;
-            } else {
-                window.open(googleUrl, '_blank');
-                return false;
-            }
-        };
-
-        window.open_calendar_outlook = function () {
-
-
-            const date = new Date();
-            const year = date.getFullYear();
-            let calendarName = 'Furry Migration ' + year;
-
-            let webcalUrl = generate_ical_url();
-
-
-            // Construct the Outlook URL
-            let outlookUrl = 'https://outlook.office.com/owa/?path=/calendar/action/compose&rru=addsubscription';
-            outlookUrl += '&url=' + encodeURIComponent(webcalUrl);
-            outlookUrl += '&name=' + encodeURIComponent(calendarName);
-
-            // Open the URL in a new window
-            window.open(outlookUrl, '_blank');
-
-            gtag_event('click', 'engagement', 'subscribe-outlook-calendar');
-        };
-
-        function generate_ical_url() {
-
-            let url = "";
-
-            if (jQuery('#schedule-search-text').val().trim() != '') {
-                url = "?room=all";
-            } else {
-
-                // Get the selected text
-                var selectedTag = jQuery("#schedule-select-tags").find('option:selected').text();
-
-                // Look up the corresponding value in scheduleMasterRooms
-                var tagSlug = scheduleMasterTags[selectedTag];
-                if (tagSlug) {
-                    url = "&tag=" + tagSlug;
-                }
-
-                // Get the selected text
-                var selectedRoom = jQuery("#schedule-select-rooms").find('option:selected').text();
-
-                // Look up the corresponding value in scheduleMasterRooms
-                var roomSlug = scheduleMasterRooms[selectedRoom];
-                if (roomSlug) {
-                    url += "&room=" + roomSlug;
-                }
-
-                if (url === '') {
-                    url = "?room=all";
-                } else {
-                    url = '?' + url.slice(1);
-                }
-            }
-            return 'webcal://' + window.location.host + '/wp-content/plugins/OnlineSched/icalby.php' + url;
         }
 
     });
@@ -1073,125 +917,4 @@ function rewriteGoogleCalendarUrlForAndroid(url) {
     }
     console.log('android url', url);
     return url;
-}
-
-function showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl, eventDetails) {
-    jQuery('#android-google-calendar-modal').modal('show');
-    // Hide and reset One Time Google Event section and button
-    var $onetimeSection = jQuery('#android-google-calendar-modal .android-gcal-onetime-section');
-    var $onetimeLink = jQuery('#android-google-calendar-modal .android-gcal-onetime-link');
-    var $onetimeBtn = jQuery('#android-google-calendar-modal .android-gcal-onetime-btn');
-    $onetimeSection.hide();
-    $onetimeBtn.hide();
-    $onetimeLink.text("");
-    // If eventDetails present, show and fill One Time Google Event section and button
-    var gcalUrl = null;
-    if (eventDetails) {
-        gcalUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
-            '&text=' + encodeURIComponent(eventDetails.title) +
-            '&details=' + encodeURIComponent(eventDetails.details) +
-            '&location=' + encodeURIComponent(eventDetails.location) +
-            '&dates=' + eventDetails.dates;
-        $onetimeSection.show();
-        $onetimeLink.text(gcalUrl);
-        $onetimeBtn.show();
-        $onetimeBtn.attr('data-gcal-url', gcalUrl); // Store for click handler
-        $onetimeBtn.off('click').on('click', function(e) {
-            e.preventDefault();
-            gtag_event('click', 'engagement', 'android-onetime-google-event');
-            window.open(gcalUrl, '_blank');
-            jQuery('#android-google-calendar-modal').modal('hide');
-        });
-    } else {
-        $onetimeBtn.off('click');
-    }
-    // Button handlers
-    jQuery('#android-gcal-try-link').off('click').on('click', function () {
-        gtag_event('click', 'engagement', 'android-try-google-calendar');
-        window.open(googleUrl, '_blank');
-        jQuery('#android-google-calendar-modal').modal('hide');
-    });
-    jQuery('#android-gcal-download').off('click').on('click', function () {
-        gtag_event('click', 'engagement', 'android-download-ics');
-        var a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = 'schedule.ics';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    });
-    jQuery('#android-gcal-copy').off('click').on('click', function () {
-        gtag_event('click', 'engagement', 'android-copy-calendar-link');
-        var linkToCopy = rawLink;
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(linkToCopy).then(function () {
-                jQuery('#android-gcal-copy-confirm').show().delay(1500).fadeOut();
-            });
-        } else {
-            var temp = document.createElement('input');
-            temp.value = linkToCopy;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-            jQuery('#android-gcal-copy-confirm').show().delay(1500).fadeOut();
-        }
-    });
-}
-
-function isAndroidDevice() {
-    return /android/i.test(navigator.userAgent);
-}
-
-// Utility function to extract event details from a schedule-item element
-function getEventDetailsFromElement($event) {
-    let title = $event.find('.schedule-title a').text();
-    let description = $event.find('.schedule-description').html() || $event.find('.schedule-description').text();
-    let room = $event.find('.schedule-room').text();
-    let tags = $event.find('.schedule-tags').text();
-    let panelists = $event.find('.schedule-panelists').text();
-    let endTimestamp = parseInt($event.attr('data-end-time'));
-    let durationText = $event.find('.schedule-time').text();
-    let durationMinutes = 0;
-    let durationMatch = durationText.match(/(\d+)\s*hr(?:s)?(?:\s*(\d+)\s*min)?/i);
-    if (durationMatch) {
-        durationMinutes += parseInt(durationMatch[1]) * 60;
-        if (durationMatch[2]) durationMinutes += parseInt(durationMatch[2]);
-    } else {
-        let minMatch = durationText.match(/(\d+)\s*min/i);
-        if (minMatch) durationMinutes += parseInt(minMatch[1]);
-    }
-    let startTimestamp = endTimestamp - durationMinutes * 60;
-    function formatGCalDate(ts) {
-        var d = new Date(ts * 1000);
-        return d.getUTCFullYear().toString().padStart(4, '0') +
-            (d.getUTCMonth() + 1).toString().padStart(2, '0') +
-            d.getUTCDate().toString().padStart(2, '0') +
-            'T' +
-            d.getUTCHours().toString().padStart(2, '0') +
-            d.getUTCMinutes().toString().padStart(2, '0') +
-            d.getUTCSeconds().toString().padStart(2, '0') +
-            'Z';
-    }
-    let gcalStart = formatGCalDate(startTimestamp);
-    let gcalEnd = formatGCalDate(endTimestamp);
-    let gcalDates = gcalStart + "/" + gcalEnd;
-    let gcalDetails = description ? description.replace(/<[^>]+>/g, '') : '';
-    if (panelists) gcalDetails += '\nPanelists: ' + panelists.replace(/<[^>]+>/g, '');
-    if (tags) gcalDetails += '\nTags: ' + tags.replace(/<[^>]+>/g, '');
-    let gcalLocation = room ? room.replace(/<[^>]+>/g, '') : '';
-    return {
-        title,
-        description,
-        room,
-        tags,
-        panelists,
-        endTimestamp,
-        startTimestamp,
-        gcalStart,
-        gcalEnd,
-        gcalDates,
-        gcalDetails,
-        gcalLocation
-    };
 }

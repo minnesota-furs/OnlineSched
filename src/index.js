@@ -6,6 +6,7 @@ import { onlineScheduleGrid } from "js/onlineScheduleGrid.js";
 import { new_schedule} from "js/new_schedule.js";
 import {scheduleFavorites} from "./js/scheduleFavorites";
 import {loginHelpers} from "./js/loginHelpers";
+import { scheduleCalendar } from "./js/scheduleCalendar";
 
 // Initialize everything on document ready
 
@@ -14,4 +15,5 @@ jQuery(document).ready(function () {
     new_schedule();
     scheduleFavorites();
     loginHelpers();
+    scheduleCalendar();
 });
