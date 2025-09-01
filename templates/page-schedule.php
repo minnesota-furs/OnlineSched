@@ -885,7 +885,9 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
                             <span class="android-gcal-option-icon"><i class="fa fa-download" aria-hidden="true"></i></span>
                             <strong>Download the calendar file (.ics):</strong> You can manually import this file into Google Calendar by double clicking it. Those will not sync from the web.
                             <div class="android-gcal-buttons">
-                                <button class="btn btn-default btn-block" id="android-gcal-download"><i class="fa fa-download"></i> Download calendar file (.ics)</button>
+                                <a class="btn btn-default btn-block" id="android-gcal-download" href="#" download>
+                                    <i class="fa fa-download"></i> Download calendar file (.ics)
+                                </a>
                             </div>
                         </li>
                         <li>

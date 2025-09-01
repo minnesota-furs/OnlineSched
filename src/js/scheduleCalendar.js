@@ -122,10 +122,14 @@ export function scheduleCalendar() {
             window.open(googleUrl, '_blank');
             $modal.modal('hide');
         });
-        $modal.find('#android-gcal-download').off('click').on('click', function () {
+        // Set the download link href and download attribute for accessibility and direct download
+        var $downloadLink = $modal.find('#android-gcal-download');
+        var httpsDownloadUrl = downloadUrl.replace(/^webcal:\/\//i, 'https://');
+        $downloadLink.attr('href', httpsDownloadUrl);
+        $downloadLink.attr('download', 'schedule.ics');
+        $downloadLink.off('click').on('click', function (e) {
             window.gtag_event && window.gtag_event('click', 'engagement', 'android-download-ics');
-            // Always use https for downloadUrl
-            var httpsDownloadUrl = downloadUrl.replace(/^webcal:\/\//i, 'https://');
+            e.preventDefault();
             var a = document.createElement('a');
             a.href = httpsDownloadUrl;
             a.download = 'schedule.ics';
