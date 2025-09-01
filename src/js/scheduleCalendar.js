@@ -124,7 +124,7 @@ export function scheduleCalendar() {
         });
         // Set the download link href and download attribute for accessibility and direct download
         var $downloadLink = $modal.find('#android-gcal-download');
-        var httpsDownloadUrl = downloadUrl.replace(/^webcal:\/\//i, 'https://');
+        var httpsDownloadUrl = downloadUrl.replace(/^webcal:\/\//i, 'https://').replace(/^http:\/\//i, 'https://');
         $downloadLink.attr('href', httpsDownloadUrl);
         $downloadLink.attr('download', 'schedule.ics');
         $downloadLink.off('click').on('click', function (e) {
