@@ -309,13 +309,6 @@ export function new_schedule() {
                 }
             }
         });
-
-        for (var slug in eventschedule_scheduleRooms) {
-            if (slug !== '') {
-                jQuery("#schedule-select-rooms").append("<option value='" + slug + "'>" + eventschedule_scheduleRooms[slug] + "</option>");
-            }
-        }
-
         // On page load, ensure reset button is disabled if all filters are at default
         function updateResetButtonState() {
             var isDefault = (
@@ -329,6 +322,7 @@ export function new_schedule() {
         }
         // Call on page load
         updateResetButtonState();
+        resetSelectRooms(); // Ensure room dropdown is populated on initial load
 
         // Ensure resetSelectTags and resetSelectRooms are called after every filter change, including favorites toggle
         jQuery("#schedule-select-days, #schedule-select-tags, #schedule-select-rooms").change(function () {
