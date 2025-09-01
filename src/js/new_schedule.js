@@ -1,3 +1,5 @@
+/* Schedule code to do filtering and the magic */
+
 export function new_schedule() {
     let header_top = 60;
     let header_mobile_top = 0;
