@@ -56,6 +56,18 @@
 #android-google-calendar-modal .modal-body strong {
   color: #017940;
 }
+#android-google-calendar-modal.android-gcal-options-four .android-gcal-options-number::after {
+  content: "four";
+}
+#android-google-calendar-modal.android-gcal-options-five .android-gcal-options-number::after {
+  content: "five";
+}
+#android-google-calendar-modal.android-gcal-options-four .android-gcal-onetime-section {
+  display: none !important;
+}
+#android-google-calendar-modal.android-gcal-options-five .android-gcal-onetime-section {
+  display: block !important;
+}
 @media (max-width: 600px) {
   #android-google-calendar-modal .modal-dialog {
     max-width: 98vw;

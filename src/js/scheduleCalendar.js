@@ -83,13 +83,20 @@ export function scheduleCalendar() {
 
     // --- Android Google Calendar Modal logic ---
     function showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl, eventDetails) {
-        jQuery('#android-google-calendar-modal').modal('show');
-        var $onetimeSection = jQuery('#android-google-calendar-modal .android-gcal-onetime-section');
-        var $onetimeLink = jQuery('#android-google-calendar-modal .android-gcal-onetime-link');
-        var $onetimeBtn = jQuery('#android-google-calendar-modal .android-gcal-onetime-btn');
+        // Determine if we should show four or five options
+        var $modal = jQuery('#android-google-calendar-modal');
+        if (eventDetails) {
+            $modal.removeClass('android-gcal-options-four').addClass('android-gcal-options-five');
+        } else {
+            $modal.removeClass('android-gcal-options-five').addClass('android-gcal-options-four');
+        }
+        $modal.modal('show');
+        var $onetimeSection = $modal.find('.android-gcal-onetime-section');
+        var $onetimeLink = $modal.find('.android-gcal-onetime-link');
+        var $onetimeBtn = $modal.find('.android-gcal-onetime-btn');
         $onetimeSection.hide();
         $onetimeBtn.hide();
-        $onetimeLink.text("");
+        $onetimeLink && $onetimeLink.text("");
         var gcalUrl = null;
         if (eventDetails) {
             gcalUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
@@ -98,24 +105,24 @@ export function scheduleCalendar() {
                 '&location=' + encodeURIComponent(eventDetails.location) +
                 '&dates=' + eventDetails.dates;
             $onetimeSection.show();
-            $onetimeLink.text(gcalUrl);
+            $onetimeLink && $onetimeLink.text(gcalUrl);
             $onetimeBtn.show();
             $onetimeBtn.attr('data-gcal-url', gcalUrl);
             $onetimeBtn.off('click').on('click', function(e) {
                 e.preventDefault();
                 window.gtag_event && window.gtag_event('click', 'engagement', 'android-onetime-google-event');
                 window.open(gcalUrl, '_blank');
-                jQuery('#android-google-calendar-modal').modal('hide');
+                $modal.modal('hide');
             });
         } else {
             $onetimeBtn.off('click');
         }
-        jQuery('#android-gcal-try-link').off('click').on('click', function () {
+        $modal.find('#android-gcal-try-link').off('click').on('click', function () {
             window.gtag_event && window.gtag_event('click', 'engagement', 'android-try-google-calendar');
             window.open(googleUrl, '_blank');
-            jQuery('#android-google-calendar-modal').modal('hide');
+            $modal.modal('hide');
         });
-        jQuery('#android-gcal-download').off('click').on('click', function () {
+        $modal.find('#android-gcal-download').off('click').on('click', function () {
             window.gtag_event && window.gtag_event('click', 'engagement', 'android-download-ics');
             // Always use https for downloadUrl
             var httpsDownloadUrl = downloadUrl.replace(/^webcal:\/\//i, 'https://');
@@ -126,12 +133,12 @@ export function scheduleCalendar() {
             a.click();
             document.body.removeChild(a);
         });
-        jQuery('#android-gcal-copy').off('click').on('click', function () {
+        $modal.find('#android-gcal-copy').off('click').on('click', function () {
             window.gtag_event && window.gtag_event('click', 'engagement', 'android-copy-calendar-link');
             var linkToCopy = rawLink;
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(linkToCopy).then(function () {
-                    jQuery('#android-gcal-copy-confirm').show().delay(1500).fadeOut();
+                    $modal.find('#android-gcal-copy-confirm').show().delay(1500).fadeOut();
                 });
             } else {
                 var temp = document.createElement('input');
@@ -140,7 +147,17 @@ export function scheduleCalendar() {
                 temp.select();
                 document.execCommand('copy');
                 document.body.removeChild(temp);
-                jQuery('#android-gcal-copy-confirm').show().delay(1500).fadeOut();
+                $modal.find('#android-gcal-copy-confirm').show().delay(1500).fadeOut();
+            }
+        });
+        // Modal close logic
+        $modal.find('#android-google-calendar-modal-close').off('click').on('click', function(e) {
+            e.preventDefault();
+            $modal.modal('hide');
+        });
+        $modal.off('click').on('click', function(e) {
+            if (e.target === this) {
+                $modal.modal('hide');
             }
         });
     }
