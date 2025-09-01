@@ -330,15 +330,17 @@ export function new_schedule() {
         // Call on page load
         updateResetButtonState();
 
-        // Ensure resetSelectTags is called after every filter change, including favorites toggle
+        // Ensure resetSelectTags and resetSelectRooms are called after every filter change, including favorites toggle
         jQuery("#schedule-select-days, #schedule-select-tags, #schedule-select-rooms").change(function () {
             scheduleSort();
             resetSelectTags();
+            resetSelectRooms();
             updateResetButtonState();
         });
         jQuery("#schedule-search-text").on('input', function () {
             scheduleSort();
             resetSelectTags();
+            resetSelectRooms();
             updateResetButtonState();
         });
         jQuery("#schedule-reset").click(function () {
@@ -348,6 +350,7 @@ export function new_schedule() {
             jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
             scheduleSort();
             resetSelectTags();
+            resetSelectRooms();
             jQuery('#schedule-reset').prop('disabled', true); // Always disable after reset
         });
         jQuery('#schedule-favorites-toggle').on('click', function () {
@@ -366,6 +369,7 @@ export function new_schedule() {
             }
             scheduleSort();
             resetSelectTags();
+            resetSelectRooms();
             this.blur(); // Remove focus after click
             updateResetButtonState();
         });
@@ -584,8 +588,8 @@ export function new_schedule() {
             resetHoursDays();
             if (resetTags) {
                 resetSelectTags();
+                resetSelectRooms();
             }
-
             sort_options_by_id("#schedule-select-tags");
             sort_rooms_options_by_id("#schedule-select-rooms");
             setOddEven();
@@ -627,6 +631,47 @@ export function new_schedule() {
             }
 
             sort_options_by_id("#schedule-select-tags");
+            setOddEven();
+        }
+
+        function resetSelectRooms() {
+            // Only use visible schedule items to build room list
+            var scheduleRooms = {};
+            jQuery('.schedule-item:visible').each(function () {
+                var $item = jQuery(this);
+                // Find all data-schedule-room-* attributes
+                if ($item[0] && $item[0].attributes) {
+                    for (let attr of $item[0].attributes) {
+                        if (attr.name.startsWith('data-schedule-room')) {
+                            var slug = attr.value;
+                            // Get display name from global room map if available
+                            var name = window.eventschedule_scheduleRooms && window.eventschedule_scheduleRooms[slug] ? window.eventschedule_scheduleRooms[slug] : slug;
+                            if (slug && !scheduleRooms.hasOwnProperty(slug)) {
+                                scheduleRooms[slug] = name;
+                            }
+                        }
+                    }
+                }
+            });
+            // get selected option
+            var selectedRoomValue = jQuery("#schedule-select-rooms option:selected").val();
+            // Remove all except 'all'
+            jQuery("#schedule-select-rooms option").each(function () {
+                if (jQuery(this).val() !== "all") {
+                    jQuery(this).remove();
+                }
+            });
+            for (var slug in scheduleRooms) {
+                jQuery("#schedule-select-rooms").append(jQuery('<option>', {
+                    value: slug,
+                    html: scheduleRooms[slug]
+                }));
+            }
+            // reset selected option
+            if (selectedRoomValue !== 'all') {
+                jQuery("#schedule-select-rooms").val(selectedRoomValue);
+            }
+            sort_rooms_options_by_id("#schedule-select-rooms");
             setOddEven();
         }
 
