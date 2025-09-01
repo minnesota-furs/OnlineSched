@@ -860,14 +860,19 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
                 </div>
                 <div class="modal-body">
                     <p><strong>Google Calendar on Android does not support direct calendar subscriptions via webcal/ics links.</strong></p>
-                    <p>You have Four options:</p>
-                    <ol>
+                    <p>You have <span class="android-gcal-options-count">Five</span> options:</p>
+                    <ol class="android-gcal-options-list">
+                        <li class="android-gcal-onetime-section" style="display:none;">
+                            <strong>One Time Google Event:</strong>
+                            <span class="android-gcal-onetime-desc">Create a single event in your Google Calendar for this session. This does not subscribe you to future updates, changes, or cancellations.</span>
+                        </li>
                         <li><strong>Try the official Google Calendar link:</strong> This may not work on Android, but you can try. It's been spotty for 15+ years.</li>
                         <li><strong>Download the calendar file (.ics):</strong> You can manually import this file into Google Calendar by double clicking it. Those will not sync from the web.</li>
                         <li><strong>Copy the calendar subscription link:</strong> You can add this link manually in Google Calendar settings.</li>
-                        <li><strong>Subscribe on a computer:</strong> Google recommends this, <a href=" <a href="https://support.google.com/calendar/answer/37118?hl=en&co=GENIE.Platform%3DAndroid&oco=1">Seriously</a>. If you are on the computer and you hit the icon and it will subscribe to Google calendar.</li>
+                        <li><strong>Subscribe on a computer:</strong> Google recommends this, <a href="https://support.google.com/calendar/answer/37118?hl=en&co=GENIE.Platform%3DAndroid&oco=1">Seriously</a>. If you are on the computer and you hit the icon and it will subscribe to Google calendar.</li>
                     </ol>
-                    <div style="margin-top:1em;">
+                    <div class="android-gcal-buttons">
+                        <button class="btn btn-default btn-block android-gcal-onetime-btn" style="display:none;"><i class="fab fa-google"></i> <i class="fa fa-calendar"></i> One-Time Google Event</button>
                         <button class="btn btn-primary btn-block" id="android-gcal-try-link"><i class="fab fa-google"></i> Try Google Calendar (may not work)</button>
                         <button class="btn btn-default btn-block" id="android-gcal-download"><i class="fa fa-download"></i> Download calendar file (.ics)</button>
                         <button class="btn btn-default btn-block" id="android-gcal-copy"><i class="fa fa-copy"></i> Copy calendar link</button>
@@ -881,12 +886,29 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
                             <li>Paste the copied link and add the calendar.</li>
                             <li>On Android, the calendar will sync after a while (may take up to 24 hours).</li>
                         </ol>
+                        <div style="margin-top:1em; color:#b00; font-size:0.98em;">
+                            <strong>We're sorry this isn't a fully automated system here.</strong><br>
+                            We are looking into a better automated solution. Again, this is one of those things that works for some people on Android but not for everyone. Thank you for your patience!
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
+<script>
+jQuery(document).ready(function() {
+    jQuery('#android-google-calendar-modal-close').on('click', function(e) {
+        e.preventDefault();
+        jQuery('#android-google-calendar-modal').modal('hide');
+    });
+    // Also allow clicking outside modal to close
+    jQuery('#android-google-calendar-modal').on('click', function(e) {
+        if (e.target === this) {
+            jQuery(this).modal('hide');
+        }
+    });
+});
+</script>
 <?php
 // Only use custom provider/cookie/session for login state
 $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
