@@ -314,14 +314,30 @@ export function new_schedule() {
             }
         }
 
+        // On page load, ensure reset button is disabled if all filters are at default
+        function updateResetButtonState() {
+            var isDefault = (
+                jQuery('#schedule-search-text').val().trim() === '' &&
+                jQuery('#schedule-select-tags').val() === 'all' &&
+                jQuery('#schedule-select-rooms').val() === 'all' &&
+                jQuery('#schedule-select-days').val() === 'Current' &&
+                !window.favoritesFilterActive
+            );
+            jQuery('#schedule-reset').prop('disabled', isDefault);
+        }
+        // Call on page load
+        updateResetButtonState();
+
         // Ensure resetSelectTags is called after every filter change, including favorites toggle
         jQuery("#schedule-select-days, #schedule-select-tags, #schedule-select-rooms").change(function () {
             scheduleSort();
             resetSelectTags();
+            updateResetButtonState();
         });
         jQuery("#schedule-search-text").on('input', function () {
             scheduleSort();
             resetSelectTags();
+            updateResetButtonState();
         });
         jQuery("#schedule-reset").click(function () {
             resetDropDowns();
@@ -330,6 +346,7 @@ export function new_schedule() {
             jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
             scheduleSort();
             resetSelectTags();
+            jQuery('#schedule-reset').prop('disabled', true); // Always disable after reset
         });
         jQuery('#schedule-favorites-toggle').on('click', function () {
             window.favoritesFilterActive = !window.favoritesFilterActive;
@@ -347,6 +364,8 @@ export function new_schedule() {
             }
             scheduleSort();
             resetSelectTags();
+            this.blur(); // Remove focus after click
+            updateResetButtonState();
         });
 
         function setOddEven() {
@@ -377,6 +396,19 @@ export function new_schedule() {
             jQuery('#schedule-search-text').val("");
         }
 
+        // Helper for attribute matching
+        function hasMatchingAttribute($item, prefix, value) {
+            if (!$item[0] || !$item[0].attributes) return false;
+            for (let attr of $item[0].attributes) {
+                if (attr.name.startsWith(prefix)) {
+                    if (String(attr.value) === String(value)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         function scheduleSort() {
             if (jQuery('#schedule').length === 0) {
                 return;
@@ -400,37 +432,33 @@ export function new_schedule() {
             var essentialsFilterActive = (window.eventschedule_showEvents === false);
             var essentialsTags = window.essentialsTags || [];
 
-            // Show/hide days based on selectedDay
-            if (selectedDay == "all" || selectedDay == "Current") {
-                jQuery(".schedule-day").show();
+            // --- Day filtering logic ---
+            if (selectedDay === "all" || selectedDay === "Current") {
+                jQuery('.schedule-day').show();
             } else {
-                jQuery(".schedule-day").hide();
-                jQuery('.schedule-day[data-schedule-day="' + selectedDay + '"]').show();
-                disableReset = false;
-            }
-
-            // Helper for attribute matching
-            function hasMatchingAttribute($item, prefix, value) {
-                if (!$item[0] || !$item[0].attributes) return false;
-                for (let attr of $item[0].attributes) {
-                    if (attr.name.startsWith(prefix)) {
-                        if (String(attr.value) === String(value)) {
-                            return true;
-                        }
+                jQuery('.schedule-day').each(function () {
+                    var dayLabel = jQuery(this).attr('data-schedule-day');
+                    if (dayLabel === selectedDay) {
+                        jQuery(this).show();
+                    } else {
+                        jQuery(this).hide();
                     }
-                }
-                return false;
+                });
             }
 
             // --- Main filtering loop ---
             var anyVisible = false;
+            var currentDateUTC = null;
+            if (selectedDay === "Current") {
+                currentDateUTC = currentDateTimeTimestampUTC();
+            }
             jQuery('.schedule-item').each(function () {
                 var $item = jQuery(this);
                 var show = true;
 
-                // Filter by day: only show items whose parent day is visible
+                // Filter by day: only show items whose parent day is visible (unless Current)
                 var $day = $item.closest('.schedule-day');
-                if (!$day.is(':visible')) {
+                if (selectedDay !== "Current" && !$day.is(':visible')) {
                     show = false;
                 }
 
@@ -469,10 +497,9 @@ export function new_schedule() {
                 }
 
                 // Filter by "Current" day (hide past events)
-                if (selectedDay == "Current") {
-                    var currentDateUTC = currentDateTimeTimestampUTC();
+                if (selectedDay === "Current") {
                     var itemDate = $item.data('end-time');
-                    if (itemDate <= currentDateUTC) {
+                    if (!itemDate || itemDate <= currentDateUTC) {
                         show = false;
                     } else {
                         disableReset = false;
@@ -512,6 +539,15 @@ export function new_schedule() {
                 }
             });
 
+            // Determine if any filter/search is active
+            var isDefault = (
+                searchText.trim() === '' &&
+                selectedTag === 'all' &&
+                selectedRoom === 'all' &&
+                selectedDay === 'Current' &&
+                !favoritesFilterActive
+            );
+            disableReset = isDefault;
             jQuery("#schedule-reset").prop("disabled", disableReset);
 
             reset_schedule(true);
