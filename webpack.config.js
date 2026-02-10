@@ -1,6 +1,5 @@
 const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const globImporter = require('node-sass-glob-importer');
 
 const autoprefixer = require('autoprefixer')
 // const HtmlWebpackPlugin = require('html-webpack-plugin')
@@ -59,9 +58,7 @@ module.exports = {
                     {
                         loader: 'sass-loader',
                         options: {
-                            sassOptions: {
-                                importer: globImporter()
-                            }
+                            api: "modern",
                         }
                     },
                     {
