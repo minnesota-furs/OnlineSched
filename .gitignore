@@ -8,4 +8,5 @@ node_modules/
 \#*\#
 public/
 -pubic/static
-
+tests/test-results/
+tests/playwright-report/
