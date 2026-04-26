@@ -66,10 +66,10 @@ test.describe('03 — Filters', () => {
   });
 
   test('Reset button is disabled when no filters active', async ({ page }) => {
-    // beforeEach selects 'all' which enables reset; re-navigate to get true default state
-    await page.goto('/schedule/');
+    // beforeEach selects 'all' which enables reset; re-navigate to get true default state.
+    // Use domcontentloaded so we don't wait for all 3rd-party scripts under Docker load.
+    await page.goto('/schedule/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
-    await page.waitForTimeout(300);
     await expect(page.locator(S.resetButton)).toBeDisabled();
   });
 
@@ -96,6 +96,41 @@ test.describe('03 — Filters', () => {
     // All seed events are in the future, so at least some should be visible
     const count = await page.locator(`${S.scheduleItem}:visible`).count();
     expect(count).toBeGreaterThan(0);
+  });
+
+  test('multi-filter combo: tag + room simultaneously', async ({ page }) => {
+    // Select a specific tag
+    const tagOption = await page.locator(`${S.selectTags} option:not([value="all"])`).first().getAttribute('value');
+    if (!tagOption) return test.skip();
+    await page.selectOption(S.selectTags, tagOption);
+    await page.waitForTimeout(300);
+    const afterTag = await page.locator(`${S.scheduleItem}:visible`).count();
+
+    // Now also select a specific room — should narrow results further or keep same
+    const roomOption = await page.locator(`${S.selectRooms} option:not([value="all"])`).first().getAttribute('value');
+    if (!roomOption) return test.skip();
+    await page.selectOption(S.selectRooms, roomOption);
+    await page.waitForTimeout(400);
+    const afterBoth = await page.locator(`${S.scheduleItem}:visible`).count();
+
+    expect(afterBoth).toBeLessThanOrEqual(afterTag);
+  });
+
+  test('cancelled event displays Cancelled tag class and hides calendar buttons', async ({ page }) => {
+    // Search for the known cancelled seed event
+    await page.fill(S.searchInput, 'Napping in the Raccoon Lounge');
+    await page.waitForTimeout(400);
+    const items = page.locator(`${S.scheduleItem}:visible`);
+    const count = await items.count();
+    if (count === 0) return test.skip(true, 'Cancelled seed event not found');
+
+    const item = items.first();
+    // Cancelled items get the schedule-tag-cancelled class (from $addScheduleTags in the PHP template)
+    await expect(item).toHaveClass(/schedule-tag-cancelled/);
+
+    // Cancelled events should NOT have calendar/clipboard buttons
+    const calButtons = await item.locator('.schedule-clipboard, .schedule-ical, .schedule-google').count();
+    expect(calButtons).toBe(0);
   });
 });
 

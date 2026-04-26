@@ -8,45 +8,67 @@ test.describe('06 — Calendar', () => {
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
     await page.selectOption(S.selectDays, 'all');
     await page.waitForTimeout(300);
-    // Open first event modal
-    await page.locator(S.scheduleTitle).first().click();
-    await page.waitForTimeout(400);
-    await expect(page.locator(S.scheduleModal)).toBeVisible();
   });
 
-  test('Apple Calendar link contains webcal:// and ical.php', async ({ page }) => {
-    const href = await page.locator(S.modalIcal).getAttribute('href');
-    expect(href).toContain('webcal://');
-    expect(href).toContain('ical.php');
+  test.describe('Modal Calendar Links', () => {
+    test.beforeEach(async ({ page }) => {
+      // Open first event modal
+      await page.locator(S.scheduleTitle).first().click();
+      await page.waitForTimeout(400);
+      await expect(page.locator(S.scheduleModal)).toBeVisible();
+    });
+
+    test('Apple Calendar link contains webcal:// and ical.php', async ({ page }) => {
+      const href = await page.locator(S.modalIcal).getAttribute('href');
+      expect(href).toContain('webcal://');
+      expect(href).toContain('ical.php');
+    });
+
+    test('Apple Calendar link contains event post ID', async ({ page }) => {
+      const itemId = await page.locator(S.scheduleItem).first().getAttribute('id');
+      const postId = itemId?.replace('onlineevt-', '');
+      const href = await page.locator(S.modalIcal).getAttribute('href');
+      expect(href).toContain(`cal-id=${postId}`);
+    });
+
+    test('Google Calendar link contains calendar.google.com', async ({ page }) => {
+      const href = await page.locator(S.modalGoogle).getAttribute('href');
+      expect(href).toContain('calendar.google.com');
+    });
   });
 
-  test('Google Calendar link contains calendar.google.com', async ({ page }) => {
-    const href = await page.locator(S.modalGoogle).getAttribute('href');
-    expect(href).toContain('calendar.google.com');
+  test.describe('Clipboard Copy', () => {
+    test('clipboard copy spawns float-up effect element', async ({ page }) => {
+      await page.locator(S.clipboard).first().click();
+      await page.waitForTimeout(300);
+      const effect = page.locator(S.clipboardEffect);
+      await expect(effect).toHaveCount(1);
+    });
+
+    test('clipboard effect element auto-removes after animation', async ({ page }) => {
+      await page.locator(S.clipboard).first().click();
+      // Wait for animation duration (1.5s + buffer)
+      await page.waitForTimeout(2000);
+      const count = await page.locator(S.clipboardEffect).count();
+      expect(count).toBe(0);
+    });
+
+    test('prefers-reduced-motion skips clipboard animation', async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.locator(S.clipboard).first().click();
+      await page.waitForTimeout(300);
+      // With reduced motion, the animation is skipped — no .clipboard-effect element created
+      const count = await page.locator(S.clipboardEffect).count();
+      expect(count).toBe(0);
+    });
   });
 
-  test('clipboard copy spawns float-up effect element', async ({ page }) => {
-    // Close modal first, then test clipboard on the schedule item directly
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(200);
-
-    await page.locator(S.clipboard).first().click();
-    await page.waitForTimeout(300);
-
-    const effect = page.locator(S.clipboardEffect);
-    await expect(effect).toHaveCount(1);
-  });
-
-  test('clipboard effect element auto-removes after animation', async ({ page }) => {
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(200);
-
-    await page.locator(S.clipboard).first().click();
-    // Wait for animation duration (1.5s + buffer)
-    await page.waitForTimeout(2000);
-
-    const count = await page.locator(S.clipboardEffect).count();
-    expect(count).toBe(0);
+  test.describe('Add to Calendar Section', () => {
+    test('"Add to Calendar" section exists on /schedule/ page', async ({ page }) => {
+      const section = page.locator(S.addToCalendarSection);
+      const count = await section.count();
+      expect(count).toBe(1);
+    });
   });
 });
 

@@ -6,11 +6,16 @@ const autoprefixer = require('autoprefixer')
 
 module.exports = {
 
-    entry: './src/index.js',
+    entry: {
+        main: './src/index.js',
+        'admin-badge-types': './src/scss/admin-badge-types.scss'
+    },
 
     output: {
         path: path.resolve(__dirname, 'build'),
-        filename: 'bundle.js'
+        filename: (pathData) => {
+            return pathData.chunk.name === 'main' ? 'bundle.js' : '[name].bundle.js';
+        }
     },
 
     devtool: 'source-map',

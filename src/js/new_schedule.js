@@ -1,4 +1,5 @@
 /* Schedule code to do filtering and the magic */
+import { rewriteGoogleCalendarUrlForAndroid } from './scheduleCalendar.js';
 
 export function new_schedule() {
     let header_top = 60;
@@ -734,78 +735,113 @@ export function new_schedule() {
           }
         });  */
 
-        let eventschedule_hash = window.location.hash;
+        function handleHashRouting() {
+            let hash = window.location.hash;
+            if (!hash) {
+                jQuery("#schedule").show();
+                reset_schedule(true);
+                scheduleSort();
+                return;
+            }
 
-        eventschedule_hash = eventschedule_hash.substring(0, 5);
+            if (hash.startsWith("#hour")) {
+                jQuery("#schedule").show();
+                jQuery('#hours-tab').click();
+                scrollTopMenu();
+            } else if (hash.startsWith('#tag-')) {
+                let option_val = hash.substring(5);
+                option_val = option_val.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
-        if (eventschedule_hash === "#hour") {
-            jQuery("#schedule").show();
-            jQuery('#hours-tab').click();
-            scrollTopMenu();
-        } else if (eventschedule_hash === '#tag-') {
-            let option_val = window.location.hash;
-            option_val = option_val.substring(5);
+                jQuery("#schedule").show();
+                reset_schedule(true);
 
-            option_val = option_val.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(); // Filter out spaces and special chars to make it easier on everyone.
+                if (isNaN(option_val)) {
+                    jQuery("#schedule-select-tags option").each(function () {
+                        var optionText = jQuery(this).text().replace(/<\/?[^>]+(>|$)/g, ""); // Remove HTML tags
+                        optionText = optionText.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
-            jQuery("#schedule").show();
-            reset_schedule(true);
+                        if (optionText === option_val) {
+                            jQuery(this).prop('selected', true);
+                            return false;
+                        }
+                    });
+                } else {
+                    jQuery("#schedule-select-tags").val(option_val).trigger('change');
+                }
+                scheduleSort();
+            } else if (hash.startsWith("#evt-")) {
+                jQuery("#schedule").show();
+                reset_schedule(true);
+                scheduleSort();
 
-            if (isNaN(option_val)) {
-                jQuery("#schedule-select-tags option").each(function () {
-                    var optionText = jQuery(this).text().replace(/<\/?[^>]+(>|$)/g, ""); // Remove HTML tags
-                    optionText = optionText.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(); // remove also all non character make it easier to tag
-
-                    if (optionText === option_val) {
-                        jQuery(this).prop('selected', true);
-                        return false; // Exit loop once a match is found
-                    } else {
-                        console.log('error did not match ' + optionText + ' x ' + option_val);
+                let evt_id = "#online" + hash.substring(1);
+                let event = jQuery(evt_id);
+                if (event.length) {
+                    if (event.css('display') === 'none') {
+                        jQuery('#schedule-select-days').val('all');
+                        scheduleSort();
                     }
-                });
-            } else {
-                jQuery("#schedule-select-tags").val(option_val).trigger('change');
+
+                    var width = jQuery('body').innerWidth();
+                    var offsetDiv = header_top * 2;
+                    if (width <= tablet_width) {
+                        offsetDiv = header_mobile_top;
+                    }
+
+                    var offset = event.offset().top - offsetDiv;
+                    if (offset < 0) offset = 0;
+
+                    jQuery('html, body').animate({
+                        scrollTop: offset
+                    }, 'slow');
+
+                    setTimeout(() => {
+                        jQuery(evt_id + ' .schedule-title a').click();
+                    }, 300);
+                }
             }
-
-            scheduleSort();
-        } else if (eventschedule_hash === "#evt-") {
-
-            jQuery("#schedule").show();
-            reset_schedule(true);
-            scheduleSort();
-
-            let hash = "#online" + window.location.hash.substring(1);
-            let event = jQuery(hash);
-            if (event !== undefined) {
-                if (jQuery(event).css('display') == 'none') {
-                    jQuery('#schedule-select-days').val('all');
-                    scheduleSort();
-                }
-
-                var width = jQuery('body').innerWidth();
-                var offsetDiv = header_top * 2;
-                if (width <= tablet_width) {
-                    offsetDiv = header_mobile_top;
-                }
-
-                var offset = jQuery(event).offset().top - offsetDiv;
-                if (offset < 0) {
-                    offset = 0;
-                }
-
-                jQuery('html, body').animate({
-                    scrollTop: offset
-                }, 'slow');
-
-                jQuery(hash + ' .schedule-title a').click();
-            }
-
-        } else {
-            jQuery("#schedule").show();
-
-            reset_schedule(true);
-            scheduleSort();
+            // Dispatch custom event for tests/external listeners
+            document.dispatchEvent(new CustomEvent('os:hash-routing:complete', { detail: { hash: hash } }));
         }
+
+        // Clickable rooms: clicking a room name in the list sets the room filter
+        jQuery(document).on('click', '.schedule-room.schedule-filter-link', function (e) {
+            e.preventDefault();
+            var roomText = jQuery(this).text().trim();
+            if (!roomText) return;
+            var slug = roomText.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+            var $option = jQuery('#schedule-select-rooms option[value="' + slug + '"]');
+            if ($option.length) {
+                jQuery('#schedule-select-rooms').val(slug).trigger('change');
+                scrollTopMenu();
+            }
+        });
+
+        // Clickable tags: clicking a tag name in the list sets the tag filter
+        jQuery(document).on('click', '.schedule-tags.schedule-filter-link', function (e) {
+            var target = jQuery(e.target);
+            // If they clicked a specific tag word, use that; otherwise use the full text
+            var tagText = target.text().trim().replace(/<\/?[^>]+(>|$)/g, '');
+            if (!tagText) return;
+            // Find matching option by display text
+            var matched = false;
+            jQuery('#schedule-select-tags option').each(function () {
+                if (jQuery(this).text().trim().toLowerCase() === tagText.toLowerCase()) {
+                    jQuery('#schedule-select-tags').val(jQuery(this).val()).trigger('change');
+                    matched = true;
+                    return false;
+                }
+            });
+            if (matched) {
+                scrollTopMenu();
+            }
+        });
+
+        // Initial routing on load
+        handleHashRouting();
+
+        // Listen for hash changes
+        window.addEventListener('hashchange', handleHashRouting);
 
 
         function messageAtBottomForCalendar() {
@@ -972,26 +1008,4 @@ export function new_schedule() {
     });
 
 
-}
-
-// Utility: rewrite Google Calendar URL for Android (webcal:// to http://)
-function rewriteGoogleCalendarUrlForAndroid(url) {
-    var isAndroid = /android/i.test(navigator.userAgent);
-    if (!isAndroid) return url;
-    try {
-        var urlObj = new URL(url);
-        var cid = urlObj.searchParams.get('cid');
-        if (cid) {
-            var decodedCid = decodeURIComponent(cid);
-            if (decodedCid.startsWith('webcal://')) {
-                var newCid = decodedCid.replace(/^webcal:\/\//i, 'http://');
-                urlObj.searchParams.set('cid', encodeURIComponent(newCid));
-                return urlObj.toString();
-            }
-        }
-    } catch (e) {
-        // fallback: do nothing if URL parsing fails
-    }
-    console.log('android url', url);
-    return url;
 }

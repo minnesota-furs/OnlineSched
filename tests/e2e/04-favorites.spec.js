@@ -67,7 +67,7 @@ test.describe('04 — Favorites', () => {
     const cookie = await page.evaluate(() => document.cookie);
     expect(cookie).toContain('schedule_favorites');
 
-    await page.reload();
+    await page.reload({ waitUntil: 'domcontentloaded' }); // avoid waiting for all 3rd-party scripts under load
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
     await page.selectOption(S.selectDays, 'all');
     await page.waitForTimeout(400);

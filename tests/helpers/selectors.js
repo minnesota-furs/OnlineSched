@@ -73,5 +73,26 @@ module.exports = {
   // Responsive
   hiddenXs:             '.hidden-xs',
   visibleXs:            '.visible-xs',
+
+  // Kiosk mode
+  kioskClass:           '.kiosk-schedule',
+  standardClass:        '.standard-schedule',
+  addToCalendarSection: '#schedule-add-to-calendar',
+  scheduleDescription:  '.schedule-description',
+  scheduleIcalLink:     '.schedule-ical',
+  scheduleGoogleLink:   '.schedule-google',
+  tabMap:               '#map',
+
+  // Badges
+  badge:                '.badge',
+  badgeDanger:          '.badge-danger',
+  badgeSensory:         '.badge-sensory',
+  badgeVip:             '.badge-vip',
+  badgeEssentials:      '.badge-essentials',
+  badgeCancelled:       '.badge-cancelled',
+  badgeStreaming:        '.badge-streaming',
+  badgeGoh:             '.badge-goh',
+  badgeSpecialGuest:    '.badge-specialguest',
+  badgeIcon:            '.badge-icon',
 };
 

@@ -1,25 +1,26 @@
+// Utility: rewrite Google Calendar URL for Android (webcal:// to http://)
+export function rewriteGoogleCalendarUrlForAndroid(url) {
+    var isAndroid = /android/i.test(navigator.userAgent);
+    if (!isAndroid) return url;
+    try {
+        var urlObj = new URL(url);
+        var cid = urlObj.searchParams.get('cid');
+        if (cid) {
+            var decodedCid = decodeURIComponent(cid);
+            if (decodedCid.startsWith('webcal://')) {
+                var newCid = decodedCid.replace(/^webcal:\/\//i, 'http://');
+                urlObj.searchParams.set('cid', encodeURIComponent(newCid));
+                return urlObj.toString();
+            }
+        }
+    } catch (e) {
+        // fallback: do nothing if URL parsing fails
+    }
+    return url;
+}
+
 export function scheduleCalendar() {
     // --- Google, Apple, Outlook Calendar logic ---
-    // Utility: rewrite Google Calendar URL for Android (webcal:// to http://)
-    function rewriteGoogleCalendarUrlForAndroid(url) {
-        var isAndroid = /android/i.test(navigator.userAgent);
-        if (!isAndroid) return url;
-        try {
-            var urlObj = new URL(url);
-            var cid = urlObj.searchParams.get('cid');
-            if (cid) {
-                var decodedCid = decodeURIComponent(cid);
-                if (decodedCid.startsWith('webcal://')) {
-                    var newCid = decodedCid.replace(/^webcal:\/\//i, 'http://');
-                    urlObj.searchParams.set('cid', encodeURIComponent(newCid));
-                    return urlObj.toString();
-                }
-            }
-        } catch (e) {
-            // fallback: do nothing if URL parsing fails
-        }
-        return url;
-    }
 
     // Utility: is Android device
     function isAndroidDevice() {

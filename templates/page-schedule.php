@@ -198,30 +198,17 @@ $start = microtime(true);
                                             <div class="col-sm-2">
                                                 <select class="form-control" id="schedule-select-tags">
                                                     <option selected value="all">All Tags</option>
-                                                    <?php /*                        <option>Fursuiting</option>
-                        <option>Music &amp; Performance</option>
-                        <option>Art</option>
-                        <option>Writing</option>
-                        <option>(etc)</option> */ ?>
                                                 </select>
                                             </div>
                                             <div class="col-sm-2">
                                                 <select class="form-control" id="schedule-select-days">
                                                     <option value="all">All Days</option>
                                                     <option selected value="Current">Now and Future</option>
-                                                    <?php /* <option>Thursday, September 8</option>
-                        <option>Friday, September 9</option>
-                        <option>Saturday, September 10</option>
-                        <option>Sunday, September 11</option> */ ?>
                                                 </select>
                                             </div>
                                             <div class="col-sm-2">
                                                 <select class="form-control" id="schedule-select-rooms">
                                                     <option selected value="all">All Rooms</option>
-                                                    <?php /* <option>Great Lakes A</option>
-                        <option>Great Lakes B</option>
-                        <option>Great Lakes C</option>
-                        <option>(etc)</option> */ ?>
                                                 </select>
                                             </div>
                                             <?php if (!$liveStreaming && $theming != "schedule") { ?>
@@ -244,12 +231,10 @@ $start = microtime(true);
                                                         id="schedule-reset"><i
                                                             class="fa fa-refresh" aria-hidden="true"></i> Reset
                                                 </button>
-                                                <!-- remove 'disabled' attribute when search/filters have been activated -->
                                             </div>
                                         </div>
                                     </div>
                                     <?php
-
 
                                     $dayofweek = 'none';
                                     $hour = 'none';
@@ -282,7 +267,25 @@ $start = microtime(true);
                                     update_meta_cache('post', wp_list_pluck($loop->posts, 'ID'));
                                     // remove the filter that does the sort just incase.
                                     remove_filter('posts_clauses', 'modify_wp_query_clauses', 10);
-                                    // hard code no result
+                                    
+                                    // Prefetch options outside the loop
+                                    $badge_types_display = get_option('onlinesched_badge_types_display', array());
+                                    $badge_types_icons = get_option('onlinesched_badge_types_icons', array());
+                                    $badge_types_colors = get_option('onlinesched_badge_types_colors', array());
+                                    $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array());
+                                    $badge_types_row_colors = get_option('onlinesched_badge_types_row_colors', array());
+
+                                    // Canonical badges fallback
+                                    $canonical_badges = [
+                                            'adult' => " <span class='badge badge-danger'>Adult</span>",
+                                            'sensory' => " <span class='badge badge-sensory'>Sensory</span>",
+                                            'vip' => " <span class='badge badge-vip'>VIP</span>",
+                                            'essentials' => " <span class='badge badge-essentials'>Essentials</span>",
+                                            'guest of honor' => " <span class='badge badge-goh'>Guest Of Honor</span>",
+                                            'special guest' => " <span class='badge badge-specialguest'>Special Guest</span>",
+                                            'streaming' => " <span class='badge badge-streaming'>Streaming</span>",
+                                            'cancelled' => " <span class='badge badge-cancelled'>Cancelled</span>",
+                                    ];
 
                                     if (!$loop->have_posts()){
                                     ?>
@@ -305,9 +308,9 @@ $start = microtime(true);
                                             while ($loop->have_posts()) : $loop->the_post();
                                                 // Reset per-event variables to defaults
                                                 $eventCancelled = false;
-                                                $tagsArray = array_map('trim', explode(",", OnlineSched_terms_list('event_schedule_tags_type', $masterTags)));
-                                                $tags = OnlineSched_terms_list('event_schedule_tags_type', $masterTags);
                                                 $rooms = OnlineSched_terms_list('event_schedule_room_type', $masterRooms);
+                                                $tags = OnlineSched_terms_list('event_schedule_tags_type', $masterTags);
+                                                $tagsArray = array_map('trim', explode(",", $tags));
                                                 $roomClassMarker = 'fa-map-marker';
                                                 $panelists = OnlineSched_terms_list('event_schedule_panelist_type');
                                                 $hideTime = '';
@@ -318,57 +321,76 @@ $start = microtime(true);
                                                     continue;
                                                 }
 
-
                                                 $sorttime = get_post_meta(get_the_ID(), 'onlinesched_sorttime', true);
-
                                                 if ($sorttime <= 0) {
                                                     continue;
                                                 }
 
-                                                $rooms = OnlineSched_terms_list('event_schedule_room_type', $masterRooms);
-                                                $tags = OnlineSched_terms_list('event_schedule_tags_type', $masterTags);
-
                                                 $tags_slugs = OnlineSched_terms_slug_array('event_schedule_tags_type');
-
-                                                // New logic using term meta for badge types
                                                 $tag_terms = wp_get_post_terms(get_the_ID(), 'event_schedule_tags_type');
                                                 $badge_types_present = [];
+                                                $row_highlight_color = '';
+                                                
                                                 foreach ($tag_terms as $term) {
-                                                    $badge_type = get_term_meta($term->term_id, 'badge_type', true);
+                                                    if (!isset($badge_type_meta_cache[$term->term_id])) {
+                                                        $meta_badge = get_term_meta($term->term_id, 'badge_type', true);
+                                                        // Fallback to tag name if meta is empty, but only if that badge type actually exists
+                                                        if (empty($meta_badge) && isset($badge_types_display[$term->name])) {
+                                                            $meta_badge = $term->name;
+                                                        }
+                                                        $badge_type_meta_cache[$term->term_id] = $meta_badge;
+                                                    }
+                                                    $badge_type = $badge_type_meta_cache[$term->term_id];
+                                                    
                                                     if ($badge_type) {
-                                                        $badge_types_present[strtolower($badge_type)][] = $term;
+                                                        // Group by exact case badge type string
+                                                        $badge_types_present[$badge_type][] = $term;
+                                                        
+                                                        if (isset($badge_types_row_colors[$badge_type]) && $badge_types_row_colors[$badge_type] && $row_highlight_color == '') {
+                                                            $row_highlight_color = $badge_types_row_colors[$badge_type];
+                                                        }
                                                     }
                                                 }
 
-                                                // Use badge_types_present for output logic
-                                                $addVIPClass = !empty($badge_types_present['vip']) ? " vip" : "";
-                                                $addGOHClass = !empty($badge_types_present['guest of honor']) ? " goh" : "";
-                                                $addSpecialGuestClass = !empty($badge_types_present['special guest']) ? " specialguest" : "";
-                                                $addCanceledClass = !empty($badge_types_present['cancelled']) ? " canceled" : "";
-                                                $addAdultTag = !empty($badge_types_present['adult']) ? " <span class='badge badge-danger'>Adult</span>" : "";
-                                                $addSensorTag = !empty($badge_types_present['sensory']) ? " <span class='badge badge-sensory'>Sensory</span>" : "";
+                                                // Build classes for the schedule item row
+                                                $addScheduleRoom = " schedule-room-" . str_replace(' ', '-', strtolower($rooms));
+                                                $addScheduleTags = "";
+                                                foreach ($tags_slugs as $slug) {
+                                                    $addScheduleTags .= " schedule-tag-" . $slug;
+                                                }
+                                                
+                                                // Keep legacy hardcoded classes for JS filters just in case
+                                                $addVIPClass = ''; $addGOHClass = ''; $addSpecialGuestClass = ''; $addCanceledClass = '';
+                                                foreach ($badge_types_present as $type => $terms) {
+                                                    $lc_type = strtolower($type);
+                                                    if ($lc_type === 'vip') $addVIPClass = ' vip';
+                                                    if ($lc_type === 'guest of honor') $addGOHClass = ' goh';
+                                                    if ($lc_type === 'special guest') $addSpecialGuestClass = ' specialguest';
+                                                    if ($lc_type === 'cancelled' || $lc_type === 'canceled') $addCanceledClass = ' canceled';
+                                                }
 
-                                                // For output, keep the same logic for tags, but highlight Essentials tag if present
+                                                // Essentials bold logic
                                                 $tagsEssentialArray = $tagsArray;
                                                 $setStrong = false;
-                                                foreach ($tag_terms as $term) {
-                                                    $badge_type = get_term_meta($term->term_id, 'badge_type', true);
-                                                    if (strtolower($badge_type) === 'essentials') {
-                                                        foreach ($tagsEssentialArray as &$tag) {
-                                                            if (strtolower($tag) === strtolower($term->name)) {
-                                                                $tag = '<strong>' . $tag . '</strong>';
-                                                                $setStrong = true;
+                                                foreach ($badge_types_present as $type => $terms) {
+                                                    if (strtolower($type) === 'essentials') {
+                                                        foreach ($terms as $term) {
+                                                            foreach ($tagsEssentialArray as &$tag) {
+                                                                if (strtolower($tag) === strtolower($term->name)) {
+                                                                    $tag = '<strong>' . $tag . '</strong>';
+                                                                    $setStrong = true;
+                                                                }
                                                             }
+                                                            unset($tag);
                                                         }
-                                                        unset($tag);
                                                     }
                                                 }
                                                 if ($setStrong) {
                                                     $tags = implode(', ', $tagsEssentialArray);
                                                 }
 
-                                                // Cancelled logic
-                                                $eventCancelled = !empty($badge_types_present['cancelled']);
+                                                // Cancelled logic overrides
+                                                $eventCancelled = ($addCanceledClass !== '');
                                                 if ($eventCancelled) {
                                                     $tagsArray = array('Cancelled');
                                                     $tags = 'Cancelled';
@@ -376,21 +398,14 @@ $start = microtime(true);
                                                     $roomClassMarker = '';
                                                     $panelists = 'None';
                                                     $hideTime = ' hide-cancelled';
-                                                } else {
-                                                    $roomClassMarker = 'fa-map-marker';
-                                                    $hideTime = '';
                                                 }
 
-                                                $panelists = OnlineSched_terms_list('event_schedule_panelist_type');
                                                 $duration = intval(get_post_meta(get_the_ID(), 'onlinesched_timelen', true));
                                                 $sorttime = intval($sorttime);
                                                 $sortEndtime = $sorttime + ($duration * 60);
                                                 $sortEndTimeGMT = $sortEndtime - (60 * 60 * $gmt_offset);
-                                                $googleStart = date('Ymd\THis\Z', $sorttime - (60 * 60 * $gmt_offset));
-                                                $googleEnd = date('Ymd\THis\Z', $sortEndtime - (60 * 60 * $gmt_offset));
 
                                                 // Pretty Hour
-
                                                 $minutes = $duration % 60;
                                                 $hours = ($duration - $minutes) / 60;
                                                 $prettyDuration = "";
@@ -398,141 +413,50 @@ $start = microtime(true);
                                                     $prettyDuration = $hours . ' hr';
                                                     $prettyDuration .= ($hours > 1) ? "s" : "";
                                                 }
-
                                                 if ($minutes > 0) {
                                                     $prettyDuration .= empty($prettyDuration) ? "" : " ";
                                                     $prettyDuration .= $minutes . " min";
                                                 }
 
-
-                                                // Only show events who have a valid UNIX Timestamp.  Otherwise, they are unscheduled.
+                                                // Output Day Header
                                                 if ($sorttime > 0) {
                                                     $newdayofweek = date('l, F j', $sorttime);
                                                     if ($dayofweek != $newdayofweek) {
-
                                                         if ($dayofweek != "none" && $dayofweek != "") {
                                                             echo "</div></div>";
                                                         }
-
-                                                        $newTimestamp = strtotime(date("Y-m-d 00:00:00", $sorttime)); // This is GMT unmodified
+                                                        $newTimestamp = strtotime(date("Y-m-d 00:00:00", $sorttime)); 
                                                         $dayofweek = $newdayofweek;
                                                         $hour = "none";
                                                         echo '<div class="schedule-day" data-schedule-num-day="' . $newTimestamp . '" data-schedule-day="' . $dayofweek . '"><h2>' . $dayofweek . '</h2>';
                                                     }
                                                 } else {
-
                                                     if ($dayofweek == "none") {
                                                         $dayofweek = "Unscheduled";
                                                         echo '<div class="schedule-day" data-schedule-day="Unscheduled"><h2>Unscheduled</h2>';
                                                     }
                                                 }
-                                                $sorttime = intval($sorttime);
 
-                                                $newhour = date('g:i A', $sorttime);
-                                                if ($sorttime == 0) {
-                                                    $newhour = "Unscheduled";
-                                                    $hourduration = $newhour;
-                                                }
-
+                                                // Output Hour Header
+                                                $newhour = ($sorttime == 0) ? "Unscheduled" : date('g:i A', $sorttime);
                                                 if ($hour != $newhour) {
                                                     if ($hour != 'none') {
                                                         echo "</div>";
                                                     }
-
                                                     $hour = $newhour;
-
                                                     echo '<div class="schedule-hour"><h3>' . esc_html($hour) . '</h3>';
-
                                                 }
 
-                                                if ($sorttime != 0) {
-                                                    // $hourduration = date('g:i A', $sorttime).' - '.date('g:i A', $sortEndtime);
-                                                    $hourduration = $prettyDuration;
-                                                }
-                                                $lowerRooms = str_replace(' ', '-', strtolower($rooms));
+                                                $hourduration = ($sorttime != 0) ? $prettyDuration : "Unscheduled";
 
-                                                // Event was cancelled :(
-                                                $eventCancelled = array_reduce($tagsArray, function ($carry, $item) {
-                                                    $lowercaseItem = strtolower($item);
-                                                    return $carry || $lowercaseItem === 'cancelled' || $lowercaseItem === 'canceled';
-                                                }, false);
-
-                                                $roomClassMarker = 'fa-map-marker';
-                                                $hideTime = '';
-
-                                                if ($eventCancelled) {
-                                                    $tagsArray = array('Cancelled');
-                                                    $tags = 'Cancelled';
-                                                    $rooms = '';
-                                                    $roomClassMarker = '';
-                                                    $panelists = 'None';
-                                                    $hideTime = ' hide-cancelled';
-                                                }
-
-                                                $addScheduleRoom = " schedule-room-" . $lowerRooms;
-
-                                                $addScheduleTags = "";
-                                                foreach ($tags_slugs as $slug) {
-                                                    $addScheduleTags .= " schedule-tag-" . $slug;
-                                                }
-
-                                                // New row highlight color logic
-                                                $badge_types_row_colors = get_option('onlinesched_badge_types_row_colors', array());
-                                                $badge_types_present = array();
-                                                $row_highlight_color = '';
-                                                foreach ($tag_terms as $term) {
-                                                    if (!isset($badge_type_meta_cache[$term->term_id])) {
-                                                        $badge_type_meta_cache[$term->term_id] = get_term_meta($term->term_id, 'badge_type', true);
-                                                    }
-                                                    $badge_type = $badge_type_meta_cache[$term->term_id];
-                                                    if ($badge_type) {
-                                                        $badge_types_present[$badge_type][] = $term;
-                                                        // If this badge type has a row highlight color, use it for row highlight
-                                                        if (isset($badge_types_row_colors[$badge_type]) && $badge_types_row_colors[$badge_type] && $row_highlight_color == '') {
-                                                            $row_highlight_color = $badge_types_row_colors[$badge_type];
-                                                        }
-                                                    }
-                                                }
-
+                                                // Build the row container
                                                 $row_style = $row_highlight_color ? ' style="background-color: ' . esc_attr($row_highlight_color) . ';"' : '';
                                                 echo '<div id="onlineevt-' . get_the_ID() . '" class="row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-end-time="' . $sortEndTimeGMT . '"' . $row_style . '>';
 
-                                                $hiddenLg = '';
-                                                $titleLg = '';
+                                                $hiddenLg = $liveStreaming ? ' hidden-lg' : '';
+                                                $titleLg = $liveStreaming ? ' col-lg-7' : '';
 
-                                                if ($liveStreaming) {
-                                                    $hiddenLg = ' hidden-lg';
-                                                    $titleLg = ' col-lg-7';
-                                                }
-
-                                                // Done as col-xs-9 for the favorite
-
-                                                $canonical_badges = [
-                                                        'adult' => " <span class='badge badge-danger'>Adult</span>",
-                                                        'sensory' => " <span class='badge badge-sensory'>Sensory</span>",
-                                                        'vip' => " <span class='badge badge-vip'>VIP</span>",
-                                                        'essentials' => " <span class='badge badge-essentials'>Essentials</span>",
-                                                        'guest of honor' => " <span class='badge badge-goh'>Guest Of Honor</span>",
-                                                        'special guest' => " <span class='badge badge-specialguest'>Special Guest</span>",
-                                                        'streaming' => " <span class='badge badge-streaming'>Streaming</span>",
-                                                        'cancelled' => " <span class='badge badge-cancelled'>Cancelled</span>",
-                                                ];
-                                                $badge_types_display = get_option('onlinesched_badge_types_display', array());
-                                                $badge_types_icons = get_option('onlinesched_badge_types_icons', array());
-                                                $badge_types_colors = get_option('onlinesched_badge_types_colors', array());
-$badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array());
-// Build badge_types_present using original badge type string
-                                                $badge_types_present = array();
-                                                foreach ($tag_terms as $term) {
-                                                    if (!isset($badge_type_meta_cache[$term->term_id])) {
-                                                        $badge_type_meta_cache[$term->term_id] = get_term_meta($term->term_id, 'badge_type', true);
-                                                    }
-                                                    $badge_type = $badge_type_meta_cache[$term->term_id];
-                                                    if ($badge_type) {
-                                                        $badge_types_present[$badge_type][] = $term;
-                                                    }
-                                                }
-
+                                                // Build badges using the exact case type
                                                 $badgeSpans = '';
                                                 foreach ($badge_types_present as $type => $terms) {
                                                     $type_lc = strtolower($type);
@@ -544,6 +468,7 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
                                                     $style = ($color !== '') ? "background-color: $color;" : '';
                                                     $fg_color = isset($badge_types_fg_colors[$type]) && $badge_types_fg_colors[$type] ? $badge_types_fg_colors[$type] : '';
                                                     $fg_style = ($fg_color !== '') ? "color: $fg_color;" : '';
+
                                                     if ($show_badge) {
                                                         if (!empty($badge_types_icons[$type])) {
                                                             $icon_class_raw = $badge_types_icons[$type];
@@ -557,7 +482,7 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
                                                             }
                                                         } elseif (isset($canonical_badges[$type_lc])) {
                                                             $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
-                                                            $badgeSpans .= str_replace("<span class='badge ", "<span class='badge " . $span_style, $canonical_badges[$type_lc]);
+                                                            $badgeSpans .= str_replace("'>", "'" . $span_style . ">", $canonical_badges[$type_lc]);
                                                         } else {
                                                             $class = 'badge-' . sanitize_title_with_dashes($type);
                                                             $label = esc_html(ucwords($type));
@@ -569,9 +494,10 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
 
                                                 echo '<div class="col-md-3 col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule" data-dismiss="modal">' . get_the_title(get_the_ID()) . '</a>' . $badgeSpans . '</div>';
                                                 echo '<hr class="visible-sm">';
+                                                $filterLinkClass = ($theming != 'schedule') ? ' schedule-filter-link' : '';
                                                 echo '<dl class="col-md-2 col-sm-3' . $hiddenLg . '">';
                                                 echo '<dt><i class="fa ' . $roomClassMarker . '" aria-hidden="true"></i></dt>';
-                                                echo '<dd class="schedule-room">' . $rooms . '</dd>';
+                                                echo '<dd class="schedule-room' . $filterLinkClass . '">' . $rooms . '</dd>';
                                                 echo '</dl>';
                                                 echo '<dl class="col-md-2 col-sm-3' . $hideTime . '">';
                                                 echo '<dt><i class="far fa-clock" aria-hidden="true"></i></dt>';
@@ -580,7 +506,7 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
                                                 echo '<dl class="col-md-2 col-sm-3' . $hiddenLg . ' hidden-xs">';
                                                 if ($tags != 'None') {
                                                     echo '<dt><i class="fa fa-tags" aria-hidden="true"></i></dt>';
-                                                    echo '<dd class="schedule-tags">' . $tags . '</dd>';
+                                                    echo '<dd class="schedule-tags' . $filterLinkClass . '">' . $tags . '</dd>';
                                                 }
                                                 echo '</dl>';
                                                 echo '<dl class="col-md-2 col-sm-3 hidden-xs">';
@@ -608,7 +534,7 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
 
                                                     $eventDescription = get_the_content();
                                                     if ($filterLINKS) {
-                                                        $eventDescription = $message = strip_tags(preg_replace('/<a href="(.*)">/', '$1', $eventDescription));
+                                                        $eventDescription = strip_tags(preg_replace('/<a href="(.*)">/', '$1', $eventDescription));
                                                     }
 
 
@@ -688,7 +614,7 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
                                                         <i class="fas fa-copy"
                                                            aria-label="Copy symbol to represent copy to clipboard"
                                                            style="margin-right:10px;"></i>
-                                                        Copies the specific programming event URL to the clipborad. It
+                                                        Copies the specific programming event URL to the clipboard. It
                                                         can be used to copy and paste through social media, email, and
                                                             any other direct linking.</span>
                                                     </p>
@@ -917,20 +843,6 @@ $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array()
             </div>
         </div>
     </div>
-<script>
-jQuery(document).ready(function() {
-    jQuery('#android-google-calendar-modal-close').on('click', function(e) {
-        e.preventDefault();
-        jQuery('#android-google-calendar-modal').modal('hide');
-    });
-    // Also allow clicking outside modal to close
-    jQuery('#android-google-calendar-modal').on('click', function(e) {
-        if (e.target === this) {
-            jQuery(this).modal('hide');
-        }
-    });
-});
-</script>
 <?php
 // Only use custom provider/cookie/session for login state
 $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';

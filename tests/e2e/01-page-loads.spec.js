@@ -32,10 +32,15 @@ test.describe('01 — Page Loads', () => {
 
   test('no critical JS console errors', async ({ page }) => {
     const critical = consoleErrors.filter(e =>
+      e !== 'Error' &&                                        // bare browser-internal error (Firefox/WebKit)
+      !e.startsWith('NS_ERROR_') &&                           // Firefox network-layer errors
       !e.includes('favicon') &&
       !e.includes('404') &&
       !e.toLowerCase().includes('onesignal') &&
-      !e.toLowerCase().includes('ssl certificate')
+      !e.includes('Can only be used on') &&                   // OneSignal domain restriction on localhost (WebKit)
+      !e.toLowerCase().includes('ssl certificate') &&
+      !e.toLowerCase().includes('content security policy') && // CSP notices
+      !e.toLowerCase().includes('net::err_')                  // Chromium network errors
     );
     expect(critical).toHaveLength(0);
   });

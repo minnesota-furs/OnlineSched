@@ -12,12 +12,12 @@ test.describe('07 — Hash Routing', () => {
   });
 
   test('#tag- hash selects matching tag in dropdown', async ({ page }) => {
-    // Use the Fursuiting tag which exists in seed data
-    await page.goto('/schedule/#tag-Fursuiting');
+    // Use the Essential tag which exists in seed data
+    await page.goto('/schedule/#tag-essential');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000); // Give JS routing time to populate and select
     const selectedText = await page.locator(`${S.selectTags} option:checked`).textContent();
-    expect(selectedText?.toLowerCase()).toContain('fursuit');
+    expect(selectedText?.toLowerCase()).toContain('essential');
   });
 
   test('#evt- hash opens the matching event modal', async ({ page }) => {

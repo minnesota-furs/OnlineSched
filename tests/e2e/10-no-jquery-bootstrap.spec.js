@@ -4,7 +4,7 @@
 const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
-test.describe('09 — No jQuery / Bootstrap (Phase 6+)', () => {
+test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
   test.skip(true, 'Enable after Phase 6: Final Cleanup & Removal is complete.');
 
   test.beforeEach(async ({ page }) => {

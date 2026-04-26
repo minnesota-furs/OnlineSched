@@ -2,23 +2,31 @@
 function closeMessageBox(btn) {
 	btn.parentElement.style.display = 'none';
 }
-function showEditForm(badge) {
-	document.querySelectorAll('.badge-edit-form').forEach(function(form) {
-		form.classList.remove('active');
+function showEditForm(badge_slug) {
+	document.querySelectorAll('.badge-edit-row').forEach(function(row) {
+		row.style.display = 'none';
 	});
-	document.querySelectorAll('.badge-types-table tr').forEach(function(row) {
+	document.querySelectorAll('.badge-types-table tr.main-row').forEach(function(row) {
 		row.classList.remove('editing');
 	});
-	var form = document.getElementById('badge-edit-form-' + badge);
-	if (form) {
-		form.classList.add('active');
-		var row = document.getElementById('badge-row-' + badge);
-		if (row) row.classList.add('editing');
+	var editRow = document.getElementById('badge-edit-row-' + badge_slug);
+	if (editRow) {
+		editRow.style.display = 'table-row';
+		var mainRow = document.getElementById('badge-row-' + badge_slug);
+		if (mainRow) mainRow.classList.add('editing');
 	}
 }
-function confirmDelete(badge) {
-	if (confirm('Are you sure you want to delete the badge type "' + badge + '"? This cannot be undone.')) {
-		document.getElementById('badge-delete-form-' + badge).submit();
+function hideEditForm(badge_slug) {
+	var editRow = document.getElementById('badge-edit-row-' + badge_slug);
+	if (editRow) {
+		editRow.style.display = 'none';
+		var mainRow = document.getElementById('badge-row-' + badge_slug);
+		if (mainRow) mainRow.classList.remove('editing');
+	}
+}
+function confirmDelete(badge_slug) {
+	if (confirm('Are you sure you want to delete this badge type? This cannot be undone.')) {
+		document.getElementById('badge-delete-form-' + badge_slug).submit();
 	}
 }
 document.addEventListener('DOMContentLoaded', function() {

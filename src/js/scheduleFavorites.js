@@ -121,49 +121,7 @@ export function scheduleFavorites() {
             }
         }
     }
-window.restoreFavoritesFromCookie = restoreFavoritesFromCookie;
-
-// Favorite (star) toggle button logic
-     function setupFavoriteToggleHandler() {
-        jQuery(document).on('click', '.schedule-favorite-toggle', function (e) {
-            e.preventDefault();
-            const $btn = jQuery(this);
-            const isActive = $btn.hasClass('active');
-            // Determine if this is the modal's star or a schedule-item's star
-            const $modalTitle = $btn.closest('#modal-schedule-title');
-            let $mainItem = null;
-            let evt_id = null;
-            if ($modalTitle.length) {
-                // This is the modal's star
-                evt_id = window.location.hash.replace('#', 'onlineevt-');
-                $mainItem = jQuery('#' + evt_id);
-            } else {
-                // This is a schedule-item's star
-                $mainItem = $btn.closest('.schedule-item');
-                evt_id = $mainItem.attr('id');
-            }
-            if (!$mainItem || !$mainItem.length) return;
-            // Toggle favorite state
-            const newState = !isActive;
-            // Update main item
-            if (newState) {
-                $mainItem.attr('data-favorite', 'true');
-                $mainItem.find('.schedule-favorite-toggle').addClass('active').attr('aria-pressed', 'true');
-                $mainItem.find('.schedule-favorite-toggle i').removeClass('far').addClass('fas');
-            } else {
-                $mainItem.removeAttr('data-favorite');
-                $mainItem.find('.schedule-favorite-toggle').removeClass('active').attr('aria-pressed', 'false');
-                $mainItem.find('.schedule-favorite-toggle i').removeClass('fas').addClass('far');
-            }
-            // If modal is open for this event, update modal star too
-            if (window.location.hash.replace('#', 'onlineevt-') === evt_id) {
-                let $modalBtn = jQuery('#modal-schedule-title .schedule-favorite-toggle');
-                $modalBtn.toggleClass('active', newState).attr('aria-pressed', newState ? 'true' : 'false');
-                $modalBtn.find('i').toggleClass('fas', newState).toggleClass('far', !newState);
-            }
-            updateFavoritesCookie && updateFavoritesCookie();
-        });
-    }
+    window.restoreFavoritesFromCookie = restoreFavoritesFromCookie;
 
 init_favorites();
     function init_favorites() {

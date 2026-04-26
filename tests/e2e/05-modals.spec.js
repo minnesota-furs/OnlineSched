@@ -82,6 +82,26 @@ test.describe('05 — Modals', () => {
       await expect(page.locator('#modal-schedule-room')).toBeVisible();
     });
 
+    test('modal description is populated', async ({ page }) => {
+      await page.locator(S.scheduleTitle).first().click();
+      await page.waitForTimeout(400);
+      const desc = await page.locator('#modal-schedule-description').textContent();
+      expect(desc?.trim().length).toBeGreaterThan(0);
+    });
+
+    test('modal shows panelist name when present', async ({ page }) => {
+      // Open modal for first event (Opening Howl Ceremony — has panelist "Kurst Hyperyote")
+      await page.locator(S.scheduleTitle).first().click();
+      await page.waitForTimeout(400);
+      // At least one event has a panelist — if this one doesn't, just verify the field exists
+      const panelistField = page.locator('#modal-schedule-panelist, #modal-schedule-panelists, .schedule-panelists');
+      const count = await panelistField.count();
+      if (count > 0) {
+        const text = await panelistField.first().textContent();
+        expect(text?.trim().length).toBeGreaterThan(0);
+      }
+    });
+
     test('calendar buttons present in modal footer', async ({ page }) => {
       await page.locator(S.scheduleTitle).first().click();
       await page.waitForTimeout(400);

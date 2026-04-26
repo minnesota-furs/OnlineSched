@@ -56,7 +56,10 @@ if [ "$EXISTING" -ge 1 ]; then
     "Dealers Den Guided Tour" \
     "Napping in the Raccoon Lounge" \
     "Charity Auction for Critter Rescue" \
-    "Closing Howl and Dead Dog"; do
+    "Closing Howl and Dead Dog" \
+    "After Dark Howl" \
+    "Quiet Paws Chill Zone" \
+    "VIP Tail Grooming Lounge"; do
     IDS=$(docker exec $CONTAINER $WP post list \
       --post_type=event_schedule --post_status=publish \
       --fields=ID,post_title --format=csv 2>/dev/null \
@@ -76,6 +79,51 @@ echo "Set event_schedule_year to $YEAR"
 # Without this, the Essentials tab shows 0 items and test 02-tabs fails.
 docker exec $CONTAINER $WP option update onlinesched_essentials_tags '["essential"]' --format=json 2>/dev/null || true
 echo "Set onlinesched_essentials_tags to [\"essential\"]"
+
+# ── Badge Type Defaults ──
+# The badge system uses several WP options. Restore them so badges render with
+# correct colors, icons, and row highlights. These match the admin "Restore Defaults" values.
+echo "Setting up default badge types..."
+
+docker exec $CONTAINER $WP option update onlinesched_badge_types \
+  '["Adult","Cancelled","Essentials","Guest Of Honor","Sensory","Special Guest","Streaming","VIP"]' \
+  --format=json 2>/dev/null || true
+
+docker exec $CONTAINER $WP option update onlinesched_badge_types_display \
+  '{"Adult":true,"Sensory":true,"VIP":true,"Essentials":true,"Guest Of Honor":false,"Special Guest":false,"Streaming":true,"Cancelled":true}' \
+  --format=json 2>/dev/null || true
+
+docker exec $CONTAINER $WP option update onlinesched_badge_types_colors \
+  '{"Adult":"#d12229","Sensory":"#0a58ca","VIP":"","Essentials":"","Guest Of Honor":"","Special Guest":"","Streaming":"","Cancelled":""}' \
+  --format=json 2>/dev/null || true
+
+docker exec $CONTAINER $WP option update onlinesched_badge_types_fg_colors \
+  '{"Adult":"#ffffff","Sensory":"#ffffff","VIP":"","Essentials":"","Guest Of Honor":"","Special Guest":"","Streaming":"","Cancelled":""}' \
+  --format=json 2>/dev/null || true
+
+docker exec $CONTAINER $WP option update onlinesched_badge_types_row_colors \
+  '{"Adult":"","Sensory":"","VIP":"#fff0b2","Essentials":"","Guest Of Honor":"#b5d8ac","Special Guest":"#b5d8ac","Streaming":"","Cancelled":""}' \
+  --format=json 2>/dev/null || true
+
+docker exec $CONTAINER $WP option update onlinesched_badge_types_icons \
+  '{"Adult":"","Sensory":"","VIP":"","Essentials":"","Guest Of Honor":"fas fa-star","Special Guest":"fas fa-star","Streaming":"","Cancelled":""}' \
+  --format=json 2>/dev/null || true
+
+echo "Badge type options set."
+
+# Assign badge types to tags via term meta.
+# The auto-assign hook maps by slug, but "Essential" -> slug "essential" does NOT match "essentials".
+# We must explicitly set badge_type term meta for each tag the seed creates.
+assign_badge_type() {
+  local TAG_SLUG="$1"
+  local BADGE_TYPE="$2"
+  TERM_ID=$(docker exec $CONTAINER $WP term list event_schedule_tags_type \
+    --slug="$TAG_SLUG" --field=term_id --format=csv 2>/dev/null | tail -1)
+  if [ -n "$TERM_ID" ] && [ "$TERM_ID" != "term_id" ]; then
+    docker exec $CONTAINER $WP term meta update "$TERM_ID" badge_type "$BADGE_TYPE" 2>/dev/null || true
+    echo "  Assigned badge_type '$BADGE_TYPE' to tag '$TAG_SLUG' (term $TERM_ID)"
+  fi
+}
 
 create_event() {
   local TITLE="$1"
@@ -111,7 +159,7 @@ create_event() {
   echo "  Created: $TITLE (ID: $POST_ID)"
 }
 
-echo "Seeding 9 test events for $YEAR..."
+echo "Seeding 12 test events for $YEAR..."
 
 # Friday
 create_event "Opening Howl Ceremony" \
@@ -152,5 +200,26 @@ create_event "Closing Howl and Dead Dog" \
   $((NEXT_SUNDAY + 50400)) 60 "Mainstage" "Essential" "Kurst Hyperyote" \
   "One last howl before we scatter back to our dens. See you next year, furiends."
 
-echo "✓ Seed complete. 9 test events created for $YEAR."
+# Badge-testing events (Adult and Sensory have distinct badge colors)
+create_event "After Dark Howl" \
+  $((NEXT_SATURDAY + 75600)) 90 "Panel Room B" "Restricted" "" \
+  "The adults-only late night session. Badge required for entry. 18+ only."
+
+create_event "Quiet Paws Chill Zone" \
+  $((NEXT_SUNDAY + 43200)) 60 "Panel Room A" "Sensory" "" \
+  "A low-stimulation space for furs who need a sensory break. Dim lights, soft music, bean bags."
+
+create_event "VIP Tail Grooming Lounge" \
+  $((NEXT_SATURDAY + 50400)) 90 "Panel Room B" "VIP" "Kurst Hyperyote" \
+  "Exclusive tail grooming session for VIP badge holders. Includes premium floof brushes, detangling sprays, and a complimentary tail bow."
+
+# ── Assign badge types to tags via term meta ──
+echo "Assigning badge types to tags..."
+assign_badge_type "essential" "Essentials"
+assign_badge_type "cancelled" "Cancelled"
+assign_badge_type "restricted" "Adult"
+assign_badge_type "sensory" "Sensory"
+assign_badge_type "vip" "VIP"
+
+echo "Done. 12 test events created for $YEAR."
 
