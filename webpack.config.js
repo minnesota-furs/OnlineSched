@@ -61,13 +61,7 @@ module.exports = {
                     MiniCssExtractPlugin.loader,
                     'css-loader',
                     {
-                        loader: 'sass-loader',
-                        options: {
-                            api: "modern",
-                        }
-                    },
-                    {
-                        // Loader for webpack to process CSS with PostCSS
+                        // postcss runs on compiled CSS (after sass)
                         loader: 'postcss-loader',
                         options: {
                             postcssOptions: {
@@ -75,6 +69,13 @@ module.exports = {
                                     autoprefixer
                                 ]
                             }
+                        }
+                    },
+                    {
+                        // sass compiles SCSS -> CSS first
+                        loader: 'sass-loader',
+                        options: {
+                            api: "modern",
                         }
                     }
                 ]

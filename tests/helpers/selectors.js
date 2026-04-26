@@ -71,8 +71,8 @@ module.exports = {
   logoutBtn:            '#logout-modal-btn',
 
   // Responsive
-  hiddenXs:             '.hidden-xs',
-  visibleXs:            '.visible-xs',
+  hiddenXs:             '.os-hide-mobile',
+  visibleXs:            '.os-show-mobile',
 
   // Kiosk mode
   kioskClass:           '.kiosk-schedule',
@@ -89,15 +89,15 @@ module.exports = {
   scheduleTags:         '.schedule-tags',
 
   // Badges
-  badge:                '.badge',
-  badgeDanger:          '.badge-danger',
-  badgeSensory:         '.badge-sensory',
-  badgeVip:             '.badge-vip',
-  badgeEssentials:      '.badge-essentials',
-  badgeCancelled:       '.badge-cancelled',
-  badgeStreaming:        '.badge-streaming',
-  badgeGoh:             '.badge-goh',
-  badgeSpecialGuest:    '.badge-specialguest',
-  badgeIcon:            '.badge-icon',
+  badge:                '.os-badge',
+  badgeDanger:          '.os-badge--danger',
+  badgeSensory:         '.os-badge--sensory',
+  badgeVip:             '.os-badge--vip',
+  badgeEssentials:      '.os-badge--essentials',
+  badgeCancelled:       '.os-badge--cancelled',
+  badgeStreaming:        '.os-badge--streaming',
+  badgeGoh:             '.os-badge--goh',
+  badgeSpecialGuest:    '.os-badge--specialguest',
+  badgeIcon:            '.os-badge--icon',
 };
 

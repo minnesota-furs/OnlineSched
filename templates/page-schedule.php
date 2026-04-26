@@ -115,7 +115,7 @@ $start = microtime(true);
                                             $icon = '<i class="fas fa-user" style="margin-right:8px;"></i>';
                                     }
                                 }
-                                echo '<div class="login-provider-item"><button onclick="openLoginWithProvider(\'' . esc_js($provider) . '\', event)" class="btn btn-default">' . $icon . 'Login with ' . esc_html($provider) . '</button></div>';
+                                echo '<div class="login-provider-item"><button onclick="openLoginWithProvider(\'' . esc_js($provider) . '\', event)" class="os-btn os-btn--default">' . $icon . 'Login with ' . esc_html($provider) . '</button></div>';
                             }
                         }
                     }
@@ -125,34 +125,34 @@ $start = microtime(true);
             </div>
         </div>
     </div>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-lg-10 col-lg-offset-1">
+    <div class="os-container">
+        <div class="os-row">
+            <div class="os-schedule-main">
                 <h1><?php the_title(); ?></h1>
                 <?php if (!empty($post->post_excerpt)) : ?><p
-                        class="lead"><?php echo get_the_excerpt(); ?></p><?php endif; ?>
+                        class="os-lead"><?php echo get_the_excerpt(); ?></p><?php endif; ?>
                 <?php edit_post_link(__('Edit', 'mnfm'), '<div class="edit-link">', '</div>'); ?>
 
                 <?php if ($liveStreaming) {
                 ?>
-                <div class="row">
-                    <div class="col-lg-6 schedule-live-left"><?php
+                <div class="os-row">
+                    <div class="os-col-lg-6 schedule-live-left"><?php
                         the_content();
                         ?>
                     </div>
-                    <div class="col-lg-6 schedule-live-right">
+                    <div class="os-col-lg-6 schedule-live-right">
                         <?php
                         }
                         if (!$liveStreaming && $theming != "schedule") { ?>
                             <div style="text-align:right;width:100%;clear:both;margin-bottom:10px;">
-                                <button id="login-modal-btn" class="btn btn-primary">
+                                <button id="login-modal-btn" class="os-btn os-btn--primary">
                                     <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login
                                 </button>
-                                <button id="logout-modal-btn" class="btn btn-danger" style="display:none;"
+                                <button id="logout-modal-btn" class="os-btn os-btn--danger" style="display:none;"
                                         onclick="openLogoutProvider(window.ONLINESCHED_USER.provider, event)">
                                     <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
                                 </button>
-                                <button id="info-modal-btn" class="btn btn-primary" style="margin-left:8px;" title="How favorites, login, and calendar work">
+                                <button id="info-modal-btn" class="os-btn os-btn--primary" style="margin-left:8px;" title="How favorites, login, and calendar work">
                                     <i class="fa fa-question-circle" aria-hidden="true"></i>
                                 </button>
                             </div>
@@ -163,8 +163,8 @@ $start = microtime(true);
                                                                           aria-controls="programming"
                                                                           role="tab" data-toggle="tab"
                                                                           onclick="setFilterEvents(true);"><span
-                                                class="hidden-xs">Programming</span><span
-                                                class="visible-xs">Events</span></a>
+                                                class="os-hide-mobile">Programming</span><span
+                                                class="os-show-mobile">Events</span></a>
                                 </li>
                                 <li role="presentation"><a href="#programming" aria-controls="programming" role="tab"
                                                            data-toggle="tab" onclick="setFilterEvents(false);"><?php echo esc_html($essentials_tab_name); ?></a>
@@ -183,11 +183,11 @@ $start = microtime(true);
 
                             <div class="tab-content">
                                 <div role="tabpanel" class="tab-pane active" id="programming">
-                                    <div class="schedule-sort well">
-                                        <div class="row">
-                                            <div class="col-sm-3">
+                                    <div class="schedule-sort os-well">
+                                        <div class="os-row">
+                                            <div class="os-col-sm-3">
                                                 <div class="schedule-search">
-                                                    <input class="form-control" type="text"
+                                                    <input class="os-form-control" type="text"
                                                            placeholder="Type to search..."
                                                            id="schedule-search-text" value=""
                                                            autocomplete='off' <?php if ($theming == 'schedule') {
@@ -195,39 +195,39 @@ $start = microtime(true);
                                                     } ?>>
                                                 </div>
                                             </div>
-                                            <div class="col-sm-2">
-                                                <select class="form-control" id="schedule-select-tags">
+                                            <div class="os-col-sm-2">
+                                                <select class="os-form-control" id="schedule-select-tags">
                                                     <option selected value="all">All Tags</option>
                                                 </select>
                                             </div>
-                                            <div class="col-sm-2">
-                                                <select class="form-control" id="schedule-select-days">
+                                            <div class="os-col-sm-2">
+                                                <select class="os-form-control" id="schedule-select-days">
                                                     <option value="all">All Days</option>
                                                     <option selected value="Current">Now and Future</option>
                                                 </select>
                                             </div>
-                                            <div class="col-sm-2">
-                                                <select class="form-control" id="schedule-select-rooms">
+                                            <div class="os-col-sm-2">
+                                                <select class="os-form-control" id="schedule-select-rooms">
                                                     <option selected value="all">All Rooms</option>
                                                 </select>
                                             </div>
                                             <?php if (!$liveStreaming && $theming != "schedule") { ?>
-                                                <div class="col-sm-1 schedule-favorites-filter"
+                                                <div class="os-col-sm-1 schedule-favorites-filter"
                                                      style="display: flex; align-items: center;">
-                                                    <button class="btn btn-default btn-sm btn-block schedule-favorites-toggle"
+                                                    <button class="os-btn os-btn--default os-btn--sm os-btn--block schedule-favorites-toggle"
                                                             id="schedule-favorites-toggle" title="Show Favorites Only"
                                                             aria-pressed="false"
-                                                            style="display: flex; align-items: center; justify-content: center;">
-                                                        <span class="favorite-label-mobile visible-xs-inline"
-                                                              style="margin-right: 4px;">Favorite</span>
+                                                            style="display: flex; align-items: center; justify-content: center; height: 34px;">
+                                                        <span class="favorite-label-mobile"
+                                                              style="margin-right: 4px; display: none;">Favorite</span>
                                                         <i class="far fa-star" aria-hidden="true"
                                                            style="color: #f6c700;"></i>
-                                                        <span class="sr-only">Show Favorites Only</span>
+                                                        <span class="os-sr-only">Show Favorites Only</span>
                                                     </button>
                                                 </div>
                                             <?php } ?>
-                                            <div class="col-sm-2 schedule-reset">
-                                                <button class="btn btn-primary btn-sm btn-block" disabled
+                                            <div class="os-col-sm-2 schedule-reset">
+                                                <button class="os-btn os-btn--primary os-btn--sm os-btn--block" disabled
                                                         id="schedule-reset"><i
                                                             class="fa fa-refresh" aria-hidden="true"></i> Reset
                                                 </button>
@@ -277,14 +277,14 @@ $start = microtime(true);
 
                                     // Canonical badges fallback
                                     $canonical_badges = [
-                                            'adult' => " <span class='badge badge-danger'>Adult</span>",
-                                            'sensory' => " <span class='badge badge-sensory'>Sensory</span>",
-                                            'vip' => " <span class='badge badge-vip'>VIP</span>",
-                                            'essentials' => " <span class='badge badge-essentials'>Essentials</span>",
-                                            'guest of honor' => " <span class='badge badge-goh'>Guest Of Honor</span>",
-                                            'special guest' => " <span class='badge badge-specialguest'>Special Guest</span>",
-                                            'streaming' => " <span class='badge badge-streaming'>Streaming</span>",
-                                            'cancelled' => " <span class='badge badge-cancelled'>Cancelled</span>",
+                                            'adult' => " <span class='os-badge os-badge--danger'>Adult</span>",
+                                            'sensory' => " <span class='os-badge os-badge--sensory'>Sensory</span>",
+                                            'vip' => " <span class='os-badge os-badge--vip'>VIP</span>",
+                                            'essentials' => " <span class='os-badge os-badge--essentials'>Essentials</span>",
+                                            'guest of honor' => " <span class='os-badge os-badge--goh'>Guest Of Honor</span>",
+                                            'special guest' => " <span class='os-badge os-badge--specialguest'>Special Guest</span>",
+                                            'streaming' => " <span class='os-badge os-badge--streaming'>Streaming</span>",
+                                            'cancelled' => " <span class='os-badge os-badge--cancelled'>Cancelled</span>",
                                     ];
 
                                     if (!$loop->have_posts()){
@@ -293,11 +293,11 @@ $start = microtime(true);
                                          data-schedule-day="Friday, September 6"><h2>No date in past or future</h2>
                                         <div class="schedule-hour"><h3>Out of time</h3>
                                             <div id="onlineevt-17175"
-                                                 class="row schedule-item schedule-room-main-stage schedule-tag-essential schedule-tag-streaming"
+                                                 class="os-row schedule-item schedule-room-main-stage schedule-tag-essential schedule-tag-streaming"
                                                  data-end-time="1725645600" data-schedule-tag0="0"
                                                  data-schedule-tag1="1"
                                                  data-schedule-room0="0">
-                                                <div class="col-xs-12 schedule-title">Nothing happening. No valid
+                                                <div class="os-col-xs-12 schedule-title">Nothing happening. No valid
                                                     entries in past or future
                                                 </div>
                                             </div>
@@ -451,10 +451,10 @@ $start = microtime(true);
 
                                                 // Build the row container
                                                 $row_style = $row_highlight_color ? ' style="background-color: ' . esc_attr($row_highlight_color) . ';"' : '';
-                                                echo '<div id="onlineevt-' . get_the_ID() . '" class="row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-end-time="' . $sortEndTimeGMT . '"' . $row_style . '>';
+                                                echo '<div id="onlineevt-' . get_the_ID() . '" class="os-row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-end-time="' . $sortEndTimeGMT . '"' . $row_style . '>';
 
-                                                $hiddenLg = $liveStreaming ? ' hidden-lg' : '';
-                                                $titleLg = $liveStreaming ? ' col-lg-7' : '';
+                                                $hiddenLg = $liveStreaming ? ' os-hide-desktop' : '';
+                                                $titleLg = $liveStreaming ? ' os-col-lg-7' : '';
 
                                                 // Build badges using the exact case type
                                                 $badgeSpans = '';
@@ -476,40 +476,40 @@ $start = microtime(true);
                                                             $label = esc_html(ucwords($type));
                                                             // If the icon class contains 'fa-', use it as-is. Otherwise, prepend 'fa-classic fa-'
                                                             if (strpos($icon_class_raw, 'fa-') !== false) {
-                                                                $badgeSpans .= " <span class='badge badge-icon badge-" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> <span class='sr-only'>" . $label . "</span></span>";
+                                                                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> <span class='os-sr-only'>" . $label . "</span></span>";
                                                             } else {
-                                                                $badgeSpans .= " <span class='badge badge-icon badge-" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='fa-classic fa-" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> <span class='sr-only'>" . $label . "</span></span>";
+                                                                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='fa-classic fa-" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> <span class='os-sr-only'>" . $label . "</span></span>";
                                                             }
                                                         } elseif (isset($canonical_badges[$type_lc])) {
                                                             $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
                                                             $badgeSpans .= str_replace("'>", "'" . $span_style . ">", $canonical_badges[$type_lc]);
                                                         } else {
-                                                            $class = 'badge-' . sanitize_title_with_dashes($type);
+                                                            $class = 'os-badge--' . sanitize_title_with_dashes($type);
                                                             $label = esc_html(ucwords($type));
                                                             $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
-                                                            $badgeSpans .= " <span class='badge $class'$span_style>$label</span>";
+                                                            $badgeSpans .= " <span class='os-badge $class'$span_style>$label</span>";
                                                         }
                                                     }
                                                 }
 
-                                                echo '<div class="col-md-3 col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule" data-dismiss="modal">' . get_the_title(get_the_ID()) . '</a>' . $badgeSpans . '</div>';
+                                                echo '<div class="os-col-md-3 os-col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule" data-dismiss="modal">' . get_the_title(get_the_ID()) . '</a>' . $badgeSpans . '</div>';
                                                 echo '<hr class="visible-sm">';
                                                 $filterLinkClass = ($theming != 'schedule') ? ' schedule-filter-link' : '';
-                                                echo '<dl class="col-md-2 col-sm-3' . $hiddenLg . '">';
+                                                echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . '">';
                                                 echo '<dt><i class="fa ' . $roomClassMarker . '" aria-hidden="true"></i></dt>';
                                                 echo '<dd class="schedule-room' . $filterLinkClass . '">' . $rooms . '</dd>';
                                                 echo '</dl>';
-                                                echo '<dl class="col-md-2 col-sm-3' . $hideTime . '">';
+                                                echo '<dl class="os-col-md-2 os-col-sm-3' . $hideTime . '">';
                                                 echo '<dt><i class="far fa-clock" aria-hidden="true"></i></dt>';
-                                                echo '<dd class="schedule-time"><span class="sr-only">' . date('g:i A', $sorttime) . '</span>' . esc_html($hourduration) . '</dd>';
+                                                echo '<dd class="schedule-time"><span class="os-sr-only">' . date('g:i A', $sorttime) . '</span>' . esc_html($hourduration) . '</dd>';
                                                 echo '</dl>';
-                                                echo '<dl class="col-md-2 col-sm-3' . $hiddenLg . ' hidden-xs">';
+                                                echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . ' os-hide-mobile">';
                                                 if ($tags != 'None') {
                                                     echo '<dt><i class="fa fa-tags" aria-hidden="true"></i></dt>';
                                                     echo '<dd class="schedule-tags' . $filterLinkClass . '">' . $tags . '</dd>';
                                                 }
                                                 echo '</dl>';
-                                                echo '<dl class="col-md-2 col-sm-3 hidden-xs">';
+                                                echo '<dl class="os-col-md-2 os-col-sm-3 os-hide-mobile">';
                                                 if ($panelists != 'None') {
                                                     echo '<dt><i class="fa fa-user" aria-hidden="true"></i></dt>';
                                                     echo '<dd class="schedule-panelists">' . $panelists . '</dd>';
@@ -556,12 +556,12 @@ $start = microtime(true);
                                             var scheduleMasterTags = <?php echo json_encode(decode_array_keys($masterTags));?>;
                                         </script>
                                         <div id="schedule-add-to-calendar">
-                                            <div class="row" id="schedule-add-to-calendar-div">
-                                                <div class="col-xs-12 col-md-7 schedule-add-to-calendar-blurb d-flex align-items-center">
+                                            <div class="os-row" id="schedule-add-to-calendar-div">
+                                                <div class="os-col-xs-12 os-col-md-7 schedule-add-to-calendar-blurb d-flex align-items-center">
                                                     Do you like what you see?<br/><span
                                                             id="schedule-add-to-calendar-message">Add this filtered list to your calendar!</span>
                                                 </div>
-                                                <div class="col-xs-12 col-md-5 schedule-add-to-calendar-buttons">
+                                                <div class="os-col-xs-12 os-col-md-5 schedule-add-to-calendar-buttons">
                                                     <button onclick="open_calendar_google()"
                                                             aria-label="Add subscription"><i class="fab fa-google"
                                                                                              aria-hidden="true"></i><br/>
@@ -583,8 +583,8 @@ $start = microtime(true);
                                         <div id="schedule-key">
 
 
-                                            <div class="row">
-                                                <div class="col-xs-12">
+                                            <div class="os-row">
+                                                <div class="os-col-xs-12">
                                                     <h3>Key</h3>
                                                     <p>
                                                         <span style="display: flex; align-items: flex-start;">
@@ -620,8 +620,8 @@ $start = microtime(true);
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div class="row">
-                                                <div class="col-xs-12">
+                                            <div class="os-row">
+                                                <div class="os-col-xs-12">
                                                     <h2>Important Notes About Calendar Feeds</h2>
                                                     <p>Please be aware that calendar feeds may not always reflect
                                                         real-time updates and are controlled by calendar client. The
@@ -718,8 +718,8 @@ $start = microtime(true);
                 <div class="modal-body">
                     <p id="modal-schedule-description">&nbsp;</p>
                     <hr>
-                    <div class="row">
-                        <div class="col-sm-6">
+                    <div class="os-row">
+                        <div class="os-col-sm-6">
                             <dl class="schedule-meta">
                                 <dt><i class="fa fa-calendar" aria-hidden="true"></i></dt>
                                 <dd id="modal-schedule-date">&nbsp;</dd>
@@ -729,7 +729,7 @@ $start = microtime(true);
                                 <dd id="modal-schedule-room">&nbsp;</dd>
                             </dl>
                         </div>
-                        <div class="col-sm-6">
+                        <div class="os-col-sm-6">
                             <dl class="schedule-meta">
                                 <dt><i class="fa fa-tags" aria-hidden="true"></i></dt>
                                 <dd id="modal-schedule-tags">&nbsp;</dd>
@@ -741,11 +741,11 @@ $start = microtime(true);
                 </div>
                 <?php if ($theming != "schedule") { ?>
 
-                    <div class="modal-footer"><a href="#" class="btn btn-default" id="modal-schedule-ical"
+                    <div class="modal-footer"><a href="#" class="os-btn os-btn--default" id="modal-schedule-ical"
                                                  target="_blank"><i class="fab fa-apple" aria-hidden="true"></i> Apple
-                            Calendar</a> <a href="#" class="btn btn-default" id="modal-schedule-google" target="_blank"><i
+                            Calendar</a> <a href="#" class="os-btn os-btn--default" id="modal-schedule-google" target="_blank"><i
                                     class="fab fa-google" aria-hidden="true"></i> Google Calendar</a>
-                        <button href="#" class="btn btn-default" id="modal-copy-url">
+                        <button href="#" class="os-btn os-btn--default" id="modal-copy-url">
                             <i class="fas fa-copy" aria-hidden="true"></i> Copy
                         </button>
                     </div>
@@ -797,21 +797,21 @@ $start = microtime(true);
                             <strong>One Time Google Event:</strong>
                             <span class="android-gcal-onetime-desc">Create a single event in your Google Calendar for this session. This does not subscribe you to future updates, changes, or cancellations.</span>
                             <div class="android-gcal-buttons">
-                                <button class="btn btn-default btn-block android-gcal-onetime-btn"><i class="fab fa-google"></i> <i class="fa fa-calendar"></i> One-Time Google Event</button>
+                                <button class="os-btn os-btn--default os-btn--block android-gcal-onetime-btn"><i class="fab fa-google"></i> <i class="fa fa-calendar"></i> One-Time Google Event</button>
                             </div>
                         </li>
                         <li>
                             <span class="android-gcal-option-icon"><i class="fab fa-google" aria-hidden="true"></i></span>
                             <strong>Try the official Google Calendar link:</strong> This may not work on Android, but you can try. It's been spotty for 15+ years.
                             <div class="android-gcal-buttons">
-                                <button class="btn btn-primary btn-block" id="android-gcal-try-link"><i class="fab fa-google"></i> Try Google Calendar (may not work)</button>
+                                <button class="os-btn os-btn--primary os-btn--block" id="android-gcal-try-link"><i class="fab fa-google"></i> Try Google Calendar (may not work)</button>
                             </div>
                         </li>
                         <li>
                             <span class="android-gcal-option-icon"><i class="fa fa-download" aria-hidden="true"></i></span>
                             <strong>Download the calendar file (.ics):</strong> You can manually import this file into Google Calendar by double clicking it. Those will not sync from the web.
                             <div class="android-gcal-buttons">
-                                <a class="btn btn-default btn-block" id="android-gcal-download" href="#" download>
+                                <a class="os-btn os-btn--default os-btn--block" id="android-gcal-download" href="#" download>
                                     <i class="fa fa-download"></i> Download calendar file (.ics)
                                 </a>
                             </div>
@@ -820,7 +820,7 @@ $start = microtime(true);
                             <span class="android-gcal-option-icon"><i class="fa fa-copy" aria-hidden="true"></i></span>
                             <strong>Copy the calendar subscription link:</strong> You can add this link manually in Google Calendar settings.
                             <div class="android-gcal-buttons">
-                                <button class="btn btn-default btn-block" id="android-gcal-copy"><i class="fa fa-copy"></i> Copy calendar link</button>
+                                <button class="os-btn os-btn--default os-btn--block" id="android-gcal-copy"><i class="fa fa-copy"></i> Copy calendar link</button>
                             </div>
                             <div id="android-gcal-copy-confirm" class="hidden"><i class="fa fa-check"></i> Link copied!</div>
                             <div class="android-gcal-manual-instructions">

@@ -152,18 +152,6 @@ init_favorites();
         });
 
 
-        jQuery('#login-modal-btn').on('click', function() {
-            jQuery('#login-modal').show();
-        });
-        jQuery('#login-modal-close').on('click', function() {
-            jQuery('#login-modal').hide();
-        });
-        // Optional: Hide modal when clicking outside the modal content
-        jQuery('#login-modal').on('click', function(e) {
-            if (e.target === this) {
-                jQuery(this).hide();
-            }
-        });
         // Show/hide login/logout buttons based on login state
         if (window.ONLINESCHED_USER && typeof updateLoginLogoutUI === 'function') {
             updateLoginLogoutUI();

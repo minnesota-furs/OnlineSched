@@ -1,0 +1,57 @@
+// @author Kurst Hyperyote for Furry Migration
+@use 'variables' as *;
+
+.os-tabs {
+  display: flex;
+  list-style: none;
+  margin: 0 -20px;
+  padding: 0;
+  border: none;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 14px;
+  height: 40px;
+  background: #fff;
+
+  li {
+    width: 33.333333%;
+    margin: 0;
+  }
+
+  a {
+    display: block;
+    height: 100%;
+    line-height: 40px;
+    text-align: center;
+    background: #333;
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 5px;
+
+    &:hover { background: $os-green; color: #fff; }
+  }
+}
+
+.os-tab-content {
+  position: relative;
+}
+
+.os-tab-pane {
+  display: none;
+
+  &--active {
+    display: block;
+  }
+}
+
+// Active tab link
+.os-tabs li.os-tabs__item--active > a,
+.os-tabs a.os-tabs__link--active {
+  background: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
