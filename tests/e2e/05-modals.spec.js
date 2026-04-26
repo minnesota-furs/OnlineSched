@@ -43,6 +43,16 @@ test.describe('05 — Modals', () => {
       await expect(page.locator(S.infoModal)).toContainText('Favorites');
     });
 
+    test('contains all four help sections', async ({ page }) => {
+      await page.click(S.infoModalBtn);
+      await page.waitForTimeout(300);
+      const modalText = await page.locator(S.infoModal).textContent();
+      expect(modalText).toContain('Favorites');
+      expect(modalText).toContain('Login');
+      expect(modalText).toContain('Calendar');
+      expect(modalText).toContain('Share');
+    });
+
     test('closes on close button click', async ({ page }) => {
       await page.click(S.infoModalBtn);
       await page.waitForTimeout(200);
@@ -90,15 +100,42 @@ test.describe('05 — Modals', () => {
     });
 
     test('modal shows panelist name when present', async ({ page }) => {
-      // Open modal for first event (Opening Howl Ceremony — has panelist "Kurst Hyperyote")
+      // Open modal for first event (Opening Howl Ceremony - has panelist "Kurst Hyperyote")
       await page.locator(S.scheduleTitle).first().click();
       await page.waitForTimeout(400);
-      // At least one event has a panelist — if this one doesn't, just verify the field exists
       const panelistField = page.locator('#modal-schedule-panelist, #modal-schedule-panelists, .schedule-panelists');
       const count = await panelistField.count();
       if (count > 0) {
         const text = await panelistField.first().textContent();
         expect(text?.trim().length).toBeGreaterThan(0);
+      }
+    });
+
+    test('modal title matches the clicked event title', async ({ page }) => {
+      const eventTitle = await page.locator(S.scheduleTitle).first().textContent();
+      await page.locator(S.scheduleTitle).first().click();
+      await page.waitForTimeout(400);
+      const modalTitle = await page.locator(S.scheduleModalTitle).textContent();
+      expect(modalTitle).toContain(eventTitle.trim());
+    });
+
+    test('modal tags field is populated', async ({ page }) => {
+      await page.locator(S.scheduleTitle).first().click();
+      await page.waitForTimeout(400);
+      const tagsField = page.locator('#modal-schedule-tags');
+      const tagsText = await tagsField.textContent();
+      expect(tagsText?.trim().length).toBeGreaterThan(0);
+    });
+
+    test('modal room matches event row room', async ({ page }) => {
+      // Get room from the first event row
+      const firstItem = page.locator(S.scheduleItem).first();
+      const rowRoom = await firstItem.locator('.schedule-room').textContent();
+      await page.locator(S.scheduleTitle).first().click();
+      await page.waitForTimeout(400);
+      const modalRoom = await page.locator('#modal-schedule-room').textContent();
+      if (rowRoom?.trim()) {
+        expect(modalRoom?.trim()).toBe(rowRoom.trim());
       }
     });
 
