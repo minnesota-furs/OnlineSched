@@ -132,5 +132,55 @@ test.describe('03 — Filters', () => {
     const calButtons = await item.locator('.schedule-clipboard, .schedule-ical, .schedule-google').count();
     expect(calButtons).toBe(0);
   });
+
+  test('clicking a room name in an event row sets the room filter', async ({ page }) => {
+    const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
+    // Find the first visible clickable room element with text
+    const roomLink = page.locator(`${S.scheduleRoom}${S.filterLink}`).first();
+    const roomText = await roomLink.textContent();
+    if (!roomText?.trim()) return test.skip(true, 'No clickable room found');
+
+    await roomLink.click();
+    await page.waitForTimeout(400);
+
+    // Room dropdown should now have a non-default value
+    const selectedRoom = await page.locator(S.selectRooms).inputValue();
+    expect(selectedRoom).not.toBe('all');
+
+    // Visible items should be filtered
+    const totalAfter = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(totalAfter).toBeGreaterThan(0);
+    expect(totalAfter).toBeLessThanOrEqual(totalBefore);
+  });
+
+  test('clicking a tag name in an event row sets the tag filter', async ({ page }) => {
+    const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
+    // Find the first visible clickable tags element with text
+    const tagLink = page.locator(`${S.scheduleTags}${S.filterLink}`).first();
+    const tagText = await tagLink.textContent();
+    if (!tagText?.trim()) return test.skip(true, 'No clickable tag found');
+
+    await tagLink.click();
+    await page.waitForTimeout(400);
+
+    // Tag dropdown should now have a non-default value
+    const selectedTag = await page.locator(S.selectTags).inputValue();
+    expect(selectedTag).not.toBe('all');
+
+    // Visible items should be filtered
+    const totalAfter = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(totalAfter).toBeGreaterThan(0);
+    expect(totalAfter).toBeLessThanOrEqual(totalBefore);
+  });
+
+  test('clickable room/tag links are not present on kiosk', async ({ page }) => {
+    await page.goto('/kiosk-schedule/');
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+    await page.selectOption(S.selectDays, 'all');
+    await page.waitForTimeout(300);
+
+    const filterLinks = await page.locator(S.filterLink).count();
+    expect(filterLinks).toBe(0);
+  });
 });
 

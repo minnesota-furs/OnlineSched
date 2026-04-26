@@ -83,6 +83,11 @@ module.exports = {
   scheduleGoogleLink:   '.schedule-google',
   tabMap:               '#map',
 
+  // Clickable inline filters (room/tag text in event rows)
+  filterLink:           '.schedule-filter-link',
+  scheduleRoom:         '.schedule-room',
+  scheduleTags:         '.schedule-tags',
+
   // Badges
   badge:                '.badge',
   badgeDanger:          '.badge-danger',
