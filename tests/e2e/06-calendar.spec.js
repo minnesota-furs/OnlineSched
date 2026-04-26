@@ -53,13 +53,64 @@ test.describe('06 — Calendar', () => {
       expect(count).toBe(0);
     });
 
+    test('clipboard effect contains "Copied" text', async ({ page }) => {
+      await page.locator(S.clipboard).first().click();
+      await page.waitForTimeout(300);
+      const effect = page.locator(S.clipboardEffect);
+      await expect(effect).toContainText('Copied');
+    });
+
+    test('inline clipboard copies correct event URL to clipboard', async ({ context, page }) => {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+      const firstItem = page.locator(S.scheduleItem).first();
+      const itemId = await firstItem.getAttribute('id');
+      const evtId = itemId?.replace('onlineevt-', '');
+
+      await firstItem.locator(S.clipboard).click();
+      await page.waitForTimeout(300);
+
+      const clipText = await page.evaluate(() => navigator.clipboard.readText());
+      expect(clipText).toContain('/schedule/');
+      expect(clipText).toContain('#evt-' + evtId);
+    });
+
+    test('modal copy button copies page URL to clipboard', async ({ context, page }) => {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+      await page.locator(S.scheduleTitle).first().click();
+      await page.waitForTimeout(400);
+      await expect(page.locator(S.scheduleModal)).toBeVisible();
+
+      await page.click(S.modalCopyUrl);
+      await page.waitForTimeout(300);
+
+      const clipText = await page.evaluate(() => navigator.clipboard.readText());
+      expect(clipText).toContain('/schedule/');
+      // Modal sets the hash to the event ID before showing
+      expect(clipText).toContain('#evt-');
+    });
+
     test('prefers-reduced-motion skips clipboard animation', async ({ page }) => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.locator(S.clipboard).first().click();
       await page.waitForTimeout(300);
-      // With reduced motion, the animation is skipped — no .clipboard-effect element created
+      // With reduced motion, the animation is skipped - no .clipboard-effect element created
       const count = await page.locator(S.clipboardEffect).count();
       expect(count).toBe(0);
+    });
+
+    test('prefers-reduced-motion still copies to clipboard', async ({ context, page }) => {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+
+      const firstItem = page.locator(S.scheduleItem).first();
+      const itemId = await firstItem.getAttribute('id');
+      const evtId = itemId?.replace('onlineevt-', '');
+
+      await firstItem.locator(S.clipboard).click();
+      await page.waitForTimeout(300);
+
+      const clipText = await page.evaluate(() => navigator.clipboard.readText());
+      expect(clipText).toContain('#evt-' + evtId);
     });
   });
 
