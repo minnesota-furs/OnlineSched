@@ -89,24 +89,22 @@ export function new_schedule() {
             jQuery(clipObject).blur().focusout().fadeOut(750).fadeIn(750);
         }
 
-        jQuery(document).ready(function () {
-            // Listen for the tab change event
-            jQuery('.nav-tabs a').on('shown.bs.tab', function (e) {
-                // Get the href attribute of the active tab
-                var hash = jQuery(e.target).attr('href');
-                // Update the browser's hash
-                if (hash) {
-                    history.pushState(null, null, hash);
-                }
-                // If switching to Programming or Essentials tab, reset all filters
-                if (hash === '#programming') {
-                    resetDropDowns();
-                    window.favoritesFilterActive = false;
-                    jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
-                    scheduleSort();
-                    resetSelectTags();
-                }
-            });
+        // Listen for the vanilla tab change event
+        document.addEventListener('os:tab:shown', function (e) {
+            // Get the hash of the active tab
+            var hash = e.detail.hash;
+            // Update the browser's hash
+            if (hash) {
+                history.pushState(null, null, hash);
+            }
+            // If switching to Programming or Essentials tab, reset all filters
+            if (hash === '#programming' || hash === '#essentials') {
+                resetDropDowns();
+                window.favoritesFilterActive = false;
+                jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
+                scheduleSort();
+                resetSelectTags();
+            }
         });
 
         jQuery("a[data-target=#modal-schedule]").click(function (ev) {
@@ -748,6 +746,12 @@ export function new_schedule() {
                 jQuery("#schedule").show();
                 jQuery('#hours-tab').click();
                 scrollTopMenu();
+            } else if (hash === '#essentials') {
+                jQuery("#schedule").show();
+                window.setFilterEvents(false);
+                // Trigger tab click to update UI state
+                const essentialsTab = document.querySelector('[data-os-tab="essentials"]');
+                if (essentialsTab) essentialsTab.click();
             } else if (hash.startsWith('#tag-')) {
                 let option_val = hash.substring(5);
                 option_val = option_val.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
@@ -799,6 +803,11 @@ export function new_schedule() {
                         jQuery(evt_id + ' .schedule-title a').click();
                     }, 300);
                 }
+            } else {
+                // If it's a known tab or any other hash, make sure schedule is shown
+                jQuery("#schedule").show();
+                reset_schedule(true);
+                scheduleSort();
             }
             // Dispatch custom event for tests/external listeners
             document.dispatchEvent(new CustomEvent('os:hash-routing:complete', { detail: { hash: hash } }));

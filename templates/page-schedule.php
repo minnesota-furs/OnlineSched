@@ -158,32 +158,34 @@ $start = microtime(true);
                             </div>
                         <?php } ?>
                         <div id="schedule" style="display:none" class="<?php echo $cssClass; ?>">
-                            <ul class="nav nav-tabs schedule-tabs" role="tablist">
-                                <li role="presentation" class="active"><a href="#programming"
+                            <ul class="os-tabs schedule-tabs" role="tablist">
+                                <li role="presentation" class="os-tabs__item os-tabs__item--active"><a href="#programming"
                                                                           aria-controls="programming"
-                                                                          role="tab" data-toggle="tab"
+                                                                          role="tab" data-os-tab="programming"
+                                                                          data-os-pane="programming"
                                                                           onclick="setFilterEvents(true);"><span
                                                 class="os-hide-mobile">Programming</span><span
                                                 class="os-show-mobile">Events</span></a>
                                 </li>
-                                <li role="presentation"><a href="#programming" aria-controls="programming" role="tab"
-                                                           data-toggle="tab" onclick="setFilterEvents(false);"><?php echo esc_html($essentials_tab_name); ?></a>
+                                <li role="presentation" class="os-tabs__item"><a href="#essentials" aria-controls="programming" role="tab"
+                                                           data-os-tab="essentials"
+                                                           data-os-pane="programming"
+                                                           onclick="setFilterEvents(false);"><?php echo esc_html($essentials_tab_name); ?></a>
                                 </li>
                                 <?php if ($theming != "schedule") { ?>
-                                    <li role="presentation"><a href="#hours" aria-controls="hours" role="tab"
-                                                               data-toggle="tab"
-                                                               id="hours-tab" onclick="scrollTopMenu()">Hours</a></li>
+                                    <li role="presentation" class="os-tabs__item"><a href="#hours" aria-controls="hours" role="tab"
+                                                                data-os-tab="hours"
+                                                                id="hours-tab" onclick="scrollTopMenu()">Hours</a></li>
                                 <?php } else { ?>
-                                    <li role="presentation"><a href="#map" aria-controls="map" role="tab"
-                                                               data-toggle="tab"
-                                                               id="map-tab" onclick="scrollTopMenu()">Map</a></li>
+                                    <li role="presentation" class="os-tabs__item"><a href="#map" aria-controls="map" role="tab"
+                                                                data-os-tab="map"
+                                                                id="map-tab" onclick="scrollTopMenu()">Map</a></li>
                                     <?php
                                 } ?>
                             </ul>
 
-                            <div class="tab-content">
-                                <div role="tabpanel" class="tab-pane active" id="programming">
-                                    <div class="schedule-sort os-well">
+                            <div class="os-tab-content">
+                                <div role="tabpanel" class="os-tab-pane os-tab-pane--active" id="programming">                                    <div class="schedule-sort os-well">
                                         <div class="os-row">
                                             <div class="os-col-sm-3">
                                                 <div class="schedule-search">
@@ -647,7 +649,7 @@ $start = microtime(true);
                                     <?php } ?>
                                 </div><!-- end of tab -->
 
-                                <div role="tabpanel" class="tab-pane" id="hours">
+                                <div role="tabpanel" class="os-tab-pane" id="hours">
 
 
                                     <?php
@@ -674,7 +676,7 @@ $start = microtime(true);
                                 </div>
 
                                 <!-- map for kiosk -->
-                                <div role="tabpanel" class="tab-pane" id="map">
+                                <div role="tabpanel" class="os-tab-pane" id="map">
                                     <?php
                                     $hours = new WP_Query(array(
                                             'posts_per_page' => 1,

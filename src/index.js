@@ -6,10 +6,12 @@ import { new_schedule} from "js/new_schedule.js";
 import {scheduleFavorites} from "./js/scheduleFavorites";
 import {loginHelpers} from "./js/loginHelpers";
 import { scheduleCalendar } from "./js/scheduleCalendar";
+import { initTabs } from "./js/osTabs";
 
 // Initialize everything on document ready
 
 jQuery(document).ready(function () {
+    initTabs();
     new_schedule();
     scheduleFavorites();
     loginHelpers();

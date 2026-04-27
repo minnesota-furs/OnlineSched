@@ -31,9 +31,9 @@ module.exports = {
   scheduleTitle:        '.schedule-title a',
 
   // Tabs
-  tabList:              '.schedule-tabs',
-  tabLinks:             '.schedule-tabs a',
-  tabPaneActive:        '.tab-pane.active',
+  tabList:              '.os-tabs',
+  tabLinks:             '.os-tabs a',
+  tabPaneActive:        '.os-tab-pane--active',
   tabProgramming:       '#programming',
   tabHours:             '#hours',
 

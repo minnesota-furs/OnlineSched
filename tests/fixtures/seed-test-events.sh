@@ -131,7 +131,7 @@ create_event() {
   local DURATION="$3"
   local ROOM="$4"
   local TAG="$5"
-  local PANELIST="$6"
+  local PANELIST="$6" # Can be comma-separated
   local CONTENT="$7"
 
   POST_ID=$(docker exec $CONTAINER $WP post create \
@@ -152,8 +152,15 @@ create_event() {
   docker exec $CONTAINER $WP post term set $POST_ID event_schedule_tags_type "$TAG"
 
   if [ -n "$PANELIST" ]; then
-    docker exec $CONTAINER $WP term create event_schedule_panelist_type "$PANELIST" --porcelain 2>/dev/null || true
-    docker exec $CONTAINER $WP post term set $POST_ID event_schedule_panelist_type "$PANELIST"
+    # Split by comma and trim
+    IFS=',' read -ra NAMES <<< "$PANELIST"
+    CLEAN_NAMES=()
+    for NAME in "${NAMES[@]}"; do
+      TRIMMED=$(echo "$NAME" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+      docker exec $CONTAINER $WP term create event_schedule_panelist_type "$TRIMMED" --porcelain 2>/dev/null || true
+      CLEAN_NAMES+=("$TRIMMED")
+    done
+    docker exec $CONTAINER $WP post term set $POST_ID event_schedule_panelist_type "${CLEAN_NAMES[@]}"
   fi
 
   echo "  Created: $TITLE (ID: $POST_ID)"
@@ -176,7 +183,7 @@ create_event "Intro to Paw Art" \
 
 # Saturday
 create_event "Coyote vs Raccoon Dance-Off" \
-  $((NEXT_SATURDAY + 36000)) 120 "Mainstage" "Essential" "" \
+  $((NEXT_SATURDAY + 36000)) 120 "Mainstage" "Essential" "Sly Coyote, Bandit Raccoon" \
   "The age-old rivalry continues on the dance floor. Team Coyote and Team Raccoon battle for convention supremacy."
 
 create_event "Writing Your Fursona's Story" \
@@ -202,7 +209,7 @@ create_event "Closing Howl and Dead Dog" \
 
 # Badge-testing events (Adult and Sensory have distinct badge colors)
 create_event "After Dark Howl" \
-  $((NEXT_SATURDAY + 75600)) 90 "Panel Room B" "Restricted" "" \
+  $((NEXT_SATURDAY + 75600)) 90 "Panel Room B" "Restricted" "Silver Husky, Night Wolf, Midnight Canine" \
   "The adults-only late night session. Badge required for entry. 18+ only."
 
 create_event "Quiet Paws Chill Zone" \

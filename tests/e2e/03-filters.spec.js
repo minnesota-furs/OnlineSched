@@ -134,6 +134,10 @@ test.describe('03 — Filters', () => {
   });
 
   test('clicking a room name in an event row sets the room filter', async ({ page }) => {
+    // Hidden on mobile (max-width: 767px)
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width <= 767) return test.skip(true, 'Clickable room links may be hidden or hard to tap on mobile');
+
     const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
     // Find the first visible clickable room element with text
     const roomLink = page.locator(`${S.scheduleRoom}${S.filterLink}`).first();
@@ -154,6 +158,10 @@ test.describe('03 — Filters', () => {
   });
 
   test('clicking a tag name in an event row sets the tag filter', async ({ page }) => {
+    // Hidden on mobile (max-width: 767px)
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width <= 767) return test.skip(true, 'Tags are hidden on mobile');
+
     const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
     // Find the first visible clickable tags element with text
     const tagLink = page.locator(`${S.scheduleTags}${S.filterLink}`).first();

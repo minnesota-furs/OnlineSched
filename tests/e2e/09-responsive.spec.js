@@ -65,6 +65,20 @@ test.describe('09 — Responsive (mobile 375px)', () => {
     ).toHaveLength(0);
   });
 
+  test('tags and panelists are hidden on mobile', async ({ page }) => {
+    // Check first schedule item's tags and panelists dl elements
+    const firstItem = page.locator(S.scheduleItem).first();
+    const tagsDl = firstItem.locator('.schedule-tags').locator('xpath=ancestor::dl');
+    const panelistsDl = firstItem.locator('.schedule-panelists').locator('xpath=ancestor::dl');
+
+    if (await tagsDl.count() > 0) {
+      await expect(tagsDl).toBeHidden();
+    }
+    if (await panelistsDl.count() > 0) {
+      await expect(panelistsDl).toBeHidden();
+    }
+  });
+
   test('.visible-xs elements are visible on mobile', async ({ page }) => {
     const visibleEls = page.locator(S.visibleXs);
     const count = await visibleEls.count();
