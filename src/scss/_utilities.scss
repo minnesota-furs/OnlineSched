@@ -39,6 +39,8 @@
   color: inherit;
   opacity: 0.6;
   &:hover { opacity: 1; }
+  &:focus { outline: none; box-shadow: none; }
+  &:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 }
 
 .os-hide-mobile {

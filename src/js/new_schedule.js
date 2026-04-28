@@ -1,5 +1,6 @@
 /* Schedule code to do filtering and the magic */
 import { rewriteGoogleCalendarUrlForAndroid } from './scheduleCalendar.js';
+import { openModal, closeModal } from './osModal.js';
 
 export function new_schedule() {
     let header_top = 60;
@@ -111,7 +112,7 @@ export function new_schedule() {
             ev.preventDefault();
 
             var parent = jQuery(this).parents('.schedule-item');
-            var eventDetails = getEventDetailsFromElement(parent);
+            var eventDetails = getEventDetailsFromElement(parent[0]);
             window.currentModalEventDetails = eventDetails; // Store globally for modal use
             var panelists = eventDetails.panelists;
             var title = jQuery(this).html();
@@ -188,10 +189,8 @@ export function new_schedule() {
             jQuery("#modal-schedule-google").attr('href', googleCal); // Set correct subscription link for non-Android
             let evt_hash = jQuery(parent).attr('id').substring(6);
             window.location.hash = evt_hash;
-            jQuery("#modal-schedule").modal("show");
-            jQuery("#modal-schedule").one('hidden.bs.modal', function () {
-                removeHash();
-            });
+            openModal('modal-schedule');
+            document.getElementById('modal-schedule').addEventListener('close', removeHash, { once: true });
         });
 
         // Patch: override Google Calendar click for Android to show modal with eventDetails
@@ -919,8 +918,8 @@ export function new_schedule() {
                 rawLink = googleUrl;
             }
             let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
-            let $event = jQuery(link).closest('.schedule-item');
-            let eventDetails = $event.length ? getEventDetailsFromElement($event) : null;
+            let scheduleItem = link.closest('.schedule-item');
+            let eventDetails = scheduleItem ? getEventDetailsFromElement(scheduleItem) : null;
             let eventDetailsForModal = null;
             if (eventDetails) {
                 eventDetailsForModal = {
@@ -948,73 +947,24 @@ export function new_schedule() {
         return false;
     };
 
-    // --- VANILLA JS MODAL LOGIC FOR LOGIN & HELP ---
-    var loginBtn = document.getElementById('login-modal-btn');
-    var loginModal = document.getElementById('login-modal');
-    var loginCloseBtn = document.getElementById('login-modal-close');
-    var lastLoginTrigger = null;
-
-    if (loginBtn && loginModal && loginCloseBtn) {
-        loginBtn.addEventListener('click', function (e) {
+    // --- LOGIN & HELP MODAL BUTTONS ---
+    // Close buttons and backdrop close are handled by initModal() in index.js.
+    // These just open the dialogs.
+    const loginBtn = document.getElementById('login-modal-btn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            loginModal.style.display = 'block';
-            lastLoginTrigger = loginBtn;
-            loginCloseBtn.focus();
-            loginCloseBtn.blur();
-        });
-        loginCloseBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            loginModal.style.display = 'none';
-
-            if (lastLoginTrigger) {
-                lastLoginTrigger.focus();
-                lastLoginTrigger.blur();
-            }
+            openModal('login-modal');
         });
     }
 
-    // --- HELP MODAL ---
-    var infoBtn = document.getElementById('info-modal-btn');
-    var infoModal = document.getElementById('info-modal');
-    var infoCloseBtn = document.getElementById('info-modal-close');
-    var lastInfoTrigger = null;
-
-    if (infoBtn && infoModal && infoCloseBtn) {
-        infoBtn.addEventListener('click', function (e) {
+    const infoBtn = document.getElementById('info-modal-btn');
+    if (infoBtn) {
+        infoBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            infoModal.style.display = 'block';
-            lastInfoTrigger = infoBtn;
-            infoCloseBtn.focus();
-        });
-        infoCloseBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            infoModal.style.display = 'none';
-            if (lastInfoTrigger) {
-                lastInfoTrigger.focus();
-                lastInfoTrigger.blur();
-            }
+            openModal('info-modal');
         });
     }
-
-    // --- ESCAPE KEY HANDLING FOR BOTH MODALS ---
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' || e.keyCode === 27) {
-            if (loginModal && loginModal.style.display !== 'none') {
-                loginModal.style.display = 'none';
-                if (lastLoginTrigger) {
-                    lastLoginTrigger.focus();
-                    lastLoginTrigger.blur();
-                }
-            }
-            if (infoModal && infoModal.style.display !== 'none') {
-                infoModal.style.display = 'none';
-                if (lastInfoTrigger) {
-                    lastInfoTrigger.focus();
-                    lastInfoTrigger.blur();
-                }
-            }
-        }
-    });
 
 
 }

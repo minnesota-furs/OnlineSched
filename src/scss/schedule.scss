@@ -12,29 +12,7 @@
 
 $fm-green: #017940;
 
-.modal-header h3 {
-  /*                            color: #ef1818;*/
-  color: #0d375a;
-  position: relative;
-  z-index: 0;
-  & .badge {
-    font-size: inherit;
-  }
-}
-
-.modal-header .close {
-  position: relative;
-  z-index: 2;
-  font-size: 32px;
-  outline: none;
-  box-shadow: none;
-  background: none;
-  &:hover, &:focus { outline: none; box-shadow: none; }
-}
-
-#modal-schedule .modal-footer {
-  text-align: center;
-}
+// Phase 4: modal Bootstrap overrides removed - now handled by _modals.scss
 
 .btn-default .fa {
   color: #402b56;
@@ -556,9 +534,9 @@ body.page-id-9880 .schedule-day > h2 {
   }
 }
 @media (min-width: 768px) {
-  .login-modal .modal-dialog {
+  dialog.os-modal.login-modal {
     max-width: 650px;
-    width: 100%;
+    width: min(90vw, 650px);
   }
   .login-provider-list {
     flex-wrap: wrap;

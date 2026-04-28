@@ -57,7 +57,7 @@ module.exports = {
   infoModalClose:       '#info-modal-close',
   scheduleModal:        '#modal-schedule',
   scheduleModalTitle:   '#modal-schedule-title',
-  scheduleModalClose:   '#modal-schedule .close',
+  scheduleModalClose:   '#modal-schedule .os-close',
   androidModal:         '#android-google-calendar-modal',
 
   // Calendar

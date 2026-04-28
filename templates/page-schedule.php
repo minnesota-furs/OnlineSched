@@ -64,67 +64,61 @@ $start = microtime(true);
 ?>
 
     <!-- Login Modal -->
-    <div id="login-modal" class="modal login-modal" tabindex="-1" role="dialog" style="display:none;">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" id="login-modal-close" aria-label="Close"><span
-                                aria-hidden="true">&times;</span></button>
-                    <h3 class="modal-title">Login</h3>
-                </div>
-                <div class="modal-body">
-                    <p>You can keep track of your schedule by logging in. If you choose not to log in, any events you favorite will be saved locally on your device.</p>
-                    <p>Login with your account:</p>
-                    <div class="login-provider-list">
-                    <?php
-                    $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
-                    if (isset($social_config['providers']) && is_array($social_config['providers'])) {
-                        foreach ($social_config['providers'] as $provider => $providerData) {
-                            $showProvider = false;
-                            if (!empty($providerData['no_keys'])) {
-                                // For providers with no_keys, show if enabled
-                                $showProvider = !empty($providerData['enabled']);
-                            } else if (isset($providerData['keys']) && is_array($providerData['keys'])) {
-                                foreach ($providerData['keys'] as $key => $val) {
-                                    $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
-                                    $option_val = get_option($option_name);
-                                    if (!empty($option_val)) {
-                                        $showProvider = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if ($showProvider) {
-                                $icon = '';
-                                if (isset($providerData['use-favicon']) && !empty($providerData['use-favicon']['enabled'])) {
-                                    $favicon = !empty($providerData['use-favicon']['favicon']) ? $providerData['use-favicon']['favicon'] : 'fa-user';
-                                    $color = !empty($providerData['use-favicon']['color']) ? '#' . ltrim($providerData['use-favicon']['color'], '#') : '';
-                                    $icon = '<i class="fab ' . esc_attr($favicon) . '" style="color:' . esc_attr($color) . '; margin-right:8px;"></i>';
-                                } else {
-                                    switch (strtolower($provider)) {
-                                        case 'facebook':
-                                            $icon = '<i class="fab fa-facebook" style="color:#4267B2; margin-right:8px;"></i>';
-                                            break;
-                                        case 'twitter':
-                                            $icon = '<i class="fab fa-twitter" style="color:#1DA1F2; margin-right:8px;"></i>';
-                                            break;
-                                        case 'discord':
-                                            $icon = '<i class="fab fa-discord" style="color:#7289DA; margin-right:8px;"></i>';
-                                            break;
-                                        default:
-                                            $icon = '<i class="fas fa-user" style="margin-right:8px;"></i>';
-                                    }
-                                }
-                                echo '<div class="login-provider-item"><button onclick="openLoginWithProvider(\'' . esc_js($provider) . '\', event)" class="os-btn os-btn--default">' . $icon . 'Login with ' . esc_html($provider) . '</button></div>';
+    <dialog id="login-modal" class="os-modal login-modal" aria-modal="true" aria-label="Login">
+        <div class="os-modal__header">
+            <h3>Login</h3>
+            <button type="button" class="os-close" id="login-modal-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="os-modal__body">
+            <p>You can keep track of your schedule by logging in. If you choose not to log in, any events you favorite will be saved locally on your device.</p>
+            <p>Login with your account:</p>
+            <div class="login-provider-list">
+            <?php
+            $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
+            if (isset($social_config['providers']) && is_array($social_config['providers'])) {
+                foreach ($social_config['providers'] as $provider => $providerData) {
+                    $showProvider = false;
+                    if (!empty($providerData['no_keys'])) {
+                        $showProvider = !empty($providerData['enabled']);
+                    } else if (isset($providerData['keys']) && is_array($providerData['keys'])) {
+                        foreach ($providerData['keys'] as $key => $val) {
+                            $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
+                            $option_val = get_option($option_name);
+                            if (!empty($option_val)) {
+                                $showProvider = true;
+                                break;
                             }
                         }
                     }
-                    ?>
-                    </div>
-                </div>
+                    if ($showProvider) {
+                        $icon = '';
+                        if (isset($providerData['use-favicon']) && !empty($providerData['use-favicon']['enabled'])) {
+                            $favicon = !empty($providerData['use-favicon']['favicon']) ? $providerData['use-favicon']['favicon'] : 'fa-user';
+                            $color = !empty($providerData['use-favicon']['color']) ? '#' . ltrim($providerData['use-favicon']['color'], '#') : '';
+                            $icon = '<i class="fab ' . esc_attr($favicon) . '" style="color:' . esc_attr($color) . '; margin-right:8px;"></i>';
+                        } else {
+                            switch (strtolower($provider)) {
+                                case 'facebook':
+                                    $icon = '<i class="fab fa-facebook" style="color:#4267B2; margin-right:8px;"></i>';
+                                    break;
+                                case 'twitter':
+                                    $icon = '<i class="fab fa-twitter" style="color:#1DA1F2; margin-right:8px;"></i>';
+                                    break;
+                                case 'discord':
+                                    $icon = '<i class="fab fa-discord" style="color:#7289DA; margin-right:8px;"></i>';
+                                    break;
+                                default:
+                                    $icon = '<i class="fas fa-user" style="margin-right:8px;"></i>';
+                            }
+                        }
+                        echo '<div class="login-provider-item"><button onclick="openLoginWithProvider(\'' . esc_js($provider) . '\', event)" class="os-btn os-btn--default">' . $icon . 'Login with ' . esc_html($provider) . '</button></div>';
+                    }
+                }
+            }
+            ?>
             </div>
         </div>
-    </div>
+    </dialog>
     <div class="os-container">
         <div class="os-row">
             <div class="os-schedule-main">
@@ -494,7 +488,7 @@ $start = microtime(true);
                                                     }
                                                 }
 
-                                                echo '<div class="os-col-md-3 os-col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule" data-dismiss="modal">' . get_the_title(get_the_ID()) . '</a>' . $badgeSpans . '</div>';
+                                                echo '<div class="os-col-md-3 os-col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule">' . get_the_title(get_the_ID()) . '</a>' . $badgeSpans . '</div>';
                                                 echo '<hr class="visible-sm">';
                                                 $filterLinkClass = ($theming != 'schedule') ? ' schedule-filter-link' : '';
                                                 echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . '">';
@@ -709,142 +703,125 @@ $start = microtime(true);
         </div>
         <?php } ?>
     </div>
-    <div class="modal fade" tabindex="-1" role="dialog" id="modal-schedule">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
-                                aria-hidden="true">&times;</span></button>
-                    <h3 class="modal-title" id="modal-schedule-title"></h3>
-                </div>
-                <div class="modal-body">
-                    <p id="modal-schedule-description">&nbsp;</p>
-                    <hr>
-                    <div class="os-row">
-                        <div class="os-col-sm-6">
-                            <dl class="schedule-meta">
-                                <dt><i class="fa fa-calendar" aria-hidden="true"></i></dt>
-                                <dd id="modal-schedule-date">&nbsp;</dd>
-                                <dt><i class="far fa-clock" aria-hidden="true"></i></dt>
-                                <dd id="modal-schedule-time">&nbsp;</dd>
-                                <dt><i class="fa fa-map-marker" aria-hidden="true"></i></dt>
-                                <dd id="modal-schedule-room">&nbsp;</dd>
-                            </dl>
-                        </div>
-                        <div class="os-col-sm-6">
-                            <dl class="schedule-meta">
-                                <dt><i class="fa fa-tags" aria-hidden="true"></i></dt>
-                                <dd id="modal-schedule-tags">&nbsp;</dd>
-                                <dt><i class="fa fa-user" aria-hidden="true"></i></dt>
-                                <dd id="modal-schedule-panelists">&nbsp;</dd>
-                            </dl>
-                        </div>
-                    </div>
-                </div>
-                <?php if ($theming != "schedule") { ?>
-
-                    <div class="modal-footer"><a href="#" class="os-btn os-btn--default" id="modal-schedule-ical"
-                                                 target="_blank"><i class="fab fa-apple" aria-hidden="true"></i> Apple
-                            Calendar</a> <a href="#" class="os-btn os-btn--default" id="modal-schedule-google" target="_blank"><i
-                                    class="fab fa-google" aria-hidden="true"></i> Google Calendar</a>
-                        <button href="#" class="os-btn os-btn--default" id="modal-copy-url">
-                            <i class="fas fa-copy" aria-hidden="true"></i> Copy
-                        </button>
-                    </div>
-                <?php } ?>
-            </div>
-            <!-- /.modal-content -->
+    <dialog id="modal-schedule" class="os-modal" aria-modal="true">
+        <div class="os-modal__header">
+            <h3 id="modal-schedule-title"></h3>
+            <button type="button" class="os-close" aria-label="Close">&times;</button>
         </div>
-        <!-- /.modal-dialog -->
-    </div>
-    <!-- /.modal -->
+        <div class="os-modal__body">
+            <p id="modal-schedule-description">&nbsp;</p>
+            <hr>
+            <div class="os-row">
+                <div class="os-col-sm-6">
+                    <dl class="schedule-meta">
+                        <dt><i class="fa fa-calendar" aria-hidden="true"></i></dt>
+                        <dd id="modal-schedule-date">&nbsp;</dd>
+                        <dt><i class="far fa-clock" aria-hidden="true"></i></dt>
+                        <dd id="modal-schedule-time">&nbsp;</dd>
+                        <dt><i class="fa fa-map-marker" aria-hidden="true"></i></dt>
+                        <dd id="modal-schedule-room">&nbsp;</dd>
+                    </dl>
+                </div>
+                <div class="os-col-sm-6">
+                    <dl class="schedule-meta">
+                        <dt><i class="fa fa-tags" aria-hidden="true"></i></dt>
+                        <dd id="modal-schedule-tags">&nbsp;</dd>
+                        <dt><i class="fa fa-user" aria-hidden="true"></i></dt>
+                        <dd id="modal-schedule-panelists">&nbsp;</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <?php if ($theming != "schedule") { ?>
+            <div class="os-modal__footer"><a href="#" class="os-btn os-btn--default" id="modal-schedule-ical"
+                                             target="_blank"><i class="fab fa-apple" aria-hidden="true"></i> Apple
+                    Calendar</a> <a href="#" class="os-btn os-btn--default" id="modal-schedule-google" target="_blank"><i
+                            class="fab fa-google" aria-hidden="true"></i> Google Calendar</a>
+                <button href="#" class="os-btn os-btn--default" id="modal-copy-url">
+                    <i class="fas fa-copy" aria-hidden="true"></i> Copy
+                </button>
+            </div>
+        <?php } ?>
+    </dialog>
     <!-- Info Modal -->
-    <div id="info-modal" class="modal info-modal" tabindex="-1" role="dialog" style="display:none;">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" id="info-modal-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h3 class="modal-title">How Favorites, Login, Calendar, and Sharing Work</h3>
-                </div>
-                <div class="modal-body">
-                    <div style="font-size:1.1em;">
-                        <p><strong><i class="far fa-star" aria-hidden="true"></i> Favorites:</strong> Mark events as favorites to keep track of your schedule. If you’re not logged in, your favorites are saved only on this device. If you log in, your favorites are saved to your account and sync across devices.</p>
-                        <p><strong><i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login:</strong> Logging in lets you save your schedule and favorites to your account, so you can access them from any device. Your login info is only used to identify you, nothing more! And won't be kept past the convention.</p>
-                        <p><strong><i class="far fa-calendar-alt" aria-hidden="true"></i> Calendar:</strong> Add events or your whole schedule to your calendar (Google, Apple, Outlook). You can add individual events by tapping the calendar icons, or add everything at once from the bottom of the page. Calendar feeds update periodically, but may not always reflect real-time changes. For the latest info, check this website.</p>
-                        <p><strong><i class="fas fa-copy" aria-hidden="true"></i> Share:</strong> Want to share an event with a friend? Tap the copy icon to grab the event link and paste it anywhere like social media, email, chat, on side of your car, Rico's hand, or stiched on your fursuit. No tech wizardry required!</p>
-                    </div>
-                </div>
+    <dialog id="info-modal" class="os-modal info-modal" aria-modal="true">
+        <div class="os-modal__header">
+            <h3>How Favorites, Login, Calendar, and Sharing Work</h3>
+            <button type="button" class="os-close" id="info-modal-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="os-modal__body">
+            <div style="font-size:1.1em;">
+                <p><strong><i class="far fa-star" aria-hidden="true"></i> Favorites:</strong> Mark events as favorites to keep track of your schedule. If you're not logged in, your favorites are saved only on this device. If you log in, your favorites are saved to your account and sync across devices.</p>
+                <p><strong><i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login:</strong> Logging in lets you save your schedule and favorites to your account, so you can access them from any device. Your login info is only used to identify you, nothing more! And won't be kept past the convention.</p>
+                <p><strong><i class="far fa-calendar-alt" aria-hidden="true"></i> Calendar:</strong> Add events or your whole schedule to your calendar (Google, Apple, Outlook). You can add individual events by tapping the calendar icons, or add everything at once from the bottom of the page. Calendar feeds update periodically, but may not always reflect real-time changes. For the latest info, check this website.</p>
+                <p><strong><i class="fas fa-copy" aria-hidden="true"></i> Share:</strong> Want to share an event with a friend? Tap the copy icon to grab the event link and paste it anywhere like social media, email, chat, on side of your car, Rico's hand, or stiched on your fursuit. No tech wizardry required!</p>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- Android Google Calendar Modal -->
-    <div id="android-google-calendar-modal" class="modal fade android-gcal-options-four" tabindex="-1" role="dialog" style="display:none;">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" id="android-google-calendar-modal-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h3 class="modal-title">Google Calendar on Android</h3>
-                </div>
-                <div class="modal-body">
-                    <p><strong>Google Calendar on Android does not support direct calendar subscriptions via webcal/ics links.</strong></p>
-                    <div class="android-gcal-apology">
-                        <i class="fa fa-exclamation-triangle" aria-hidden="true" style="margin-right:6px;"></i>
-                        We apologize for the inconvenience.... Google Calendar on Android does not support direct calendar subscriptions. We hope Google or our team can improve this in the future!
-                    </div>
-                    <p class="android-gcal-options-text">You have these options below:</p>
-                    <ol class="android-gcal-options-list">
-                        <li class="android-gcal-onetime-section">
-                            <span class="android-gcal-option-icon"><i class="fa fa-calendar-plus" aria-hidden="true"></i></span>
-                            <strong>One Time Google Event:</strong>
-                            <span class="android-gcal-onetime-desc">Create a single event in your Google Calendar for this session. This does not subscribe you to future updates, changes, or cancellations.</span>
-                            <div class="android-gcal-buttons">
-                                <button class="os-btn os-btn--default os-btn--block android-gcal-onetime-btn"><i class="fab fa-google"></i> <i class="fa fa-calendar"></i> One-Time Google Event</button>
-                            </div>
-                        </li>
-                        <li>
-                            <span class="android-gcal-option-icon"><i class="fab fa-google" aria-hidden="true"></i></span>
-                            <strong>Try the official Google Calendar link:</strong> This may not work on Android, but you can try. It's been spotty for 15+ years.
-                            <div class="android-gcal-buttons">
-                                <button class="os-btn os-btn--primary os-btn--block" id="android-gcal-try-link"><i class="fab fa-google"></i> Try Google Calendar (may not work)</button>
-                            </div>
-                        </li>
-                        <li>
-                            <span class="android-gcal-option-icon"><i class="fa fa-download" aria-hidden="true"></i></span>
-                            <strong>Download the calendar file (.ics):</strong> You can manually import this file into Google Calendar by double clicking it. Those will not sync from the web.
-                            <div class="android-gcal-buttons">
-                                <a class="os-btn os-btn--default os-btn--block" id="android-gcal-download" href="#" download>
-                                    <i class="fa fa-download"></i> Download calendar file (.ics)
-                                </a>
-                            </div>
-                        </li>
-                        <li>
-                            <span class="android-gcal-option-icon"><i class="fa fa-copy" aria-hidden="true"></i></span>
-                            <strong>Copy the calendar subscription link:</strong> You can add this link manually in Google Calendar settings.
-                            <div class="android-gcal-buttons">
-                                <button class="os-btn os-btn--default os-btn--block" id="android-gcal-copy"><i class="fa fa-copy"></i> Copy calendar link</button>
-                            </div>
-                            <div id="android-gcal-copy-confirm" class="hidden"><i class="fa fa-check"></i> Link copied!</div>
-                            <div class="android-gcal-manual-instructions">
-                                <strong>Manual Add Instructions:</strong>
-                                <ol>
-                                    <li>Click the <b>Copy calendar link</b> button above.</li>
-                                    <li>Go to <a href="https://calendar.google.com" target="_blank" rel="noopener">Google Calendar</a> on a computer.</li>
-                                    <li>In the left sidebar, click the <b>+</b> next to <b>Other calendars</b> and choose <b>From URL</b>.</li>
-                                    <li>Paste the copied link and click <b>Add calendar</b>.</li>
-                                    <li>Your calendar will appear under "Other calendars" and update automatically.</li>
-                                </ol>
-                            </div>
-                        </li>
-                        <li>
-                            <span class="android-gcal-option-icon"><i class="fa fa-desktop" aria-hidden="true"></i></span>
-                            <strong>Subscribe on a computer:</strong> Google recommends this, <a href="https://support.google.com/calendar/answer/37118?hl=en&co=GENIE.Platform%3DAndroid&oco=1" target="_blank" rel="noopener">Seriously</a>. If you are on the computer and you hit the icon and it will subscribe to Google calendar.
-                        </li>
-                    </ol>
-                </div>
-            </div>
+    <dialog id="android-google-calendar-modal" class="os-modal android-gcal-options-four" aria-modal="true">
+        <div class="os-modal__header">
+            <h3>Google Calendar on Android</h3>
+            <button type="button" class="os-close" id="android-google-calendar-modal-close" aria-label="Close">&times;</button>
         </div>
-    </div>
+        <div class="os-modal__body">
+            <p><strong>Google Calendar on Android does not support direct calendar subscriptions via webcal/ics links.</strong></p>
+            <div class="android-gcal-apology">
+                <i class="fa fa-exclamation-triangle" aria-hidden="true" style="margin-right:6px;"></i>
+                We apologize for the inconvenience.... Google Calendar on Android does not support direct calendar subscriptions. We hope Google or our team can improve this in the future!
+            </div>
+            <p class="android-gcal-options-text">You have these options below:</p>
+            <ol class="android-gcal-options-list">
+                <li class="android-gcal-onetime-section">
+                    <span class="android-gcal-option-icon"><i class="fa fa-calendar-plus" aria-hidden="true"></i></span>
+                    <strong>One Time Google Event:</strong>
+                    <span class="android-gcal-onetime-desc">Create a single event in your Google Calendar for this session. This does not subscribe you to future updates, changes, or cancellations.</span>
+                    <div class="android-gcal-buttons">
+                        <button class="os-btn os-btn--default os-btn--block android-gcal-onetime-btn"><i class="fab fa-google"></i> <i class="fa fa-calendar"></i> One-Time Google Event</button>
+                    </div>
+                </li>
+                <li>
+                    <span class="android-gcal-option-icon"><i class="fab fa-google" aria-hidden="true"></i></span>
+                    <strong>Try the official Google Calendar link:</strong> This may not work on Android, but you can try. It's been spotty for 15+ years.
+                    <div class="android-gcal-buttons">
+                        <button class="os-btn os-btn--primary os-btn--block" id="android-gcal-try-link"><i class="fab fa-google"></i> Try Google Calendar (may not work)</button>
+                    </div>
+                </li>
+                <li>
+                    <span class="android-gcal-option-icon"><i class="fa fa-download" aria-hidden="true"></i></span>
+                    <strong>Download the calendar file (.ics):</strong> You can manually import this file into Google Calendar by double clicking it. Those will not sync from the web.
+                    <div class="android-gcal-buttons">
+                        <a class="os-btn os-btn--default os-btn--block" id="android-gcal-download" href="#" download>
+                            <i class="fa fa-download"></i> Download calendar file (.ics)
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <span class="android-gcal-option-icon"><i class="fa fa-copy" aria-hidden="true"></i></span>
+                    <strong>Copy the calendar subscription link:</strong> You can add this link manually in Google Calendar settings.
+                    <div class="android-gcal-buttons">
+                        <button class="os-btn os-btn--default os-btn--block" id="android-gcal-copy"><i class="fa fa-copy"></i> Copy calendar link</button>
+                    </div>
+                    <div id="android-gcal-copy-confirm" style="display:none;"><i class="fa fa-check"></i> Link copied!</div>
+                    <div class="android-gcal-manual-instructions">
+                        <strong>Manual Add Instructions:</strong>
+                        <ol>
+                            <li>Click the <b>Copy calendar link</b> button above.</li>
+                            <li>Go to <a href="https://calendar.google.com" target="_blank" rel="noopener">Google Calendar</a> on a computer.</li>
+                            <li>In the left sidebar, click the <b>+</b> next to <b>Other calendars</b> and choose <b>From URL</b>.</li>
+                            <li>Paste the copied link and click <b>Add calendar</b>.</li>
+                            <li>Your calendar will appear under "Other calendars" and update automatically.</li>
+                        </ol>
+                    </div>
+                </li>
+                <li>
+                    <span class="android-gcal-option-icon"><i class="fa fa-desktop" aria-hidden="true"></i></span>
+                    <strong>Subscribe on a computer:</strong> Google recommends this, <a href="https://support.google.com/calendar/answer/37118?hl=en&co=GENIE.Platform%3DAndroid&oco=1" target="_blank" rel="noopener">Seriously</a>. If you are on the computer and you hit the icon and it will subscribe to Google calendar.
+                </li>
+            </ol>
+        </div>
+    </dialog>
 <?php
 // Only use custom provider/cookie/session for login state
 $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';

@@ -7,10 +7,12 @@ import {scheduleFavorites} from "./js/scheduleFavorites";
 import {loginHelpers} from "./js/loginHelpers";
 import { scheduleCalendar } from "./js/scheduleCalendar";
 import { initTabs } from "./js/osTabs";
+import { initModal } from "./js/osModal";
 
 // Initialize everything on document ready
 
 jQuery(document).ready(function () {
+    ['login-modal', 'modal-schedule', 'info-modal', 'android-google-calendar-modal'].forEach(initModal);
     initTabs();
     new_schedule();
     scheduleFavorites();
