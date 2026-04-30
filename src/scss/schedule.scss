@@ -334,7 +334,7 @@ body.page-id-9880 .schedule-day > h2 {
   boder: none;
 }
 
-.clipboard-effect {
+.os-clipboard-effect {
   position: absolute;
   padding: 10px 20px;
   border-radius: 10px;
@@ -347,13 +347,13 @@ body.page-id-9880 .schedule-day > h2 {
 }
 
 @media (max-width: 900px) {
-  .clipboard-effect {
+  .os-clipboard-effect {
     font-size: 24px;
   }
 }
 
 @media (max-width: 600px) {
-  .clipboard-effect {
+  .os-clipboard-effect {
     font-size: 18px;
     padding: 8px 15px;
   }

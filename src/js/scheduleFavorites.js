@@ -1,59 +1,61 @@
 export function scheduleFavorites() {
-// Favorite (star) toggle button logic
-    jQuery(document).on('click', '.schedule-favorite-toggle', function (e) {
+    const endpoints = window.OnlineSchedPublic || {};
+    const saveFavoritesUrl = endpoints.saveFavoritesUrl || '/wp-content/plugins/OnlineSched/includes/save_favorites.php';
+    const loginStateUrl = endpoints.loginStateUrl || '/wp-content/plugins/OnlineSched/includes/login_state.php';
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.schedule-favorite-toggle');
+        if (!btn) return;
+
         e.preventDefault();
-        const $btn = jQuery(this);
-        const $icon = $btn.find('i');
-        const isActive = $btn.hasClass('active');
-        // Determine if this is the modal's star or a schedule-item's star
-        const $modalTitle = $btn.closest('#modal-schedule-title');
-        let $mainItem = null;
-        let evt_id = null;
-        if ($modalTitle.length) {
-            // This is the modal's star
-            // Get the event id from the modal's star (from hash)
-            evt_id = window.location.hash.replace('#', 'onlineevt-');
-            $mainItem = jQuery('#' + evt_id);
+
+        const icon = btn.querySelector('i');
+        const isActive = btn.classList.contains('active');
+        const modalTitle = btn.closest('#modal-schedule-title');
+        let mainItem = null;
+        let evtId = null;
+
+        if (modalTitle) {
+            evtId = window.location.hash.replace('#', 'online');
+            mainItem = document.getElementById(evtId);
         } else {
-            // This is a schedule-item's star
-            $mainItem = $btn.closest('.schedule-item');
-            evt_id = $mainItem.attr('id');
+            mainItem = btn.closest('.schedule-item');
+            evtId = mainItem?.getAttribute('id');
         }
-        if (!$mainItem || !$mainItem.length) return;
-        // Toggle favorite state
+
+        if (!mainItem || !evtId) return;
+
         const newState = !isActive;
-        // Update main item
-        if (newState) {
-            $mainItem.attr('data-favorite', 'true');
-            $mainItem.find('.schedule-favorite-toggle').addClass('active').attr('aria-pressed', 'true');
-            $mainItem.find('.schedule-favorite-toggle i').removeClass('far').addClass('fas');
-        } else {
-            $mainItem.removeAttr('data-favorite');
-            $mainItem.find('.schedule-favorite-toggle').removeClass('active').attr('aria-pressed', 'false');
-            $mainItem.find('.schedule-favorite-toggle i').removeClass('fas').addClass('far');
+        setFavoriteState(mainItem, newState);
+
+        if (window.location.hash.replace('#', 'online') === evtId) {
+            const modalBtn = document.querySelector('#modal-schedule-title .schedule-favorite-toggle');
+            if (modalBtn) {
+                modalBtn.classList.toggle('active', newState);
+                modalBtn.setAttribute('aria-pressed', newState ? 'true' : 'false');
+                const modalIcon = modalBtn.querySelector('i');
+                modalIcon?.classList.toggle('fas', newState);
+                modalIcon?.classList.toggle('far', !newState);
+            }
         }
-        // If modal is open for this event, update modal star too
-        if (window.location.hash.replace('#', 'onlineevt-') === evt_id) {
-            let $modalBtn = jQuery('#modal-schedule-title .schedule-favorite-toggle');
-            $modalBtn.toggleClass('active', newState).attr('aria-pressed', newState ? 'true' : 'false');
-            $modalBtn.find('i').toggleClass('fas', newState).toggleClass('far', !newState);
+
+        if (icon) {
+            icon.classList.toggle('fas', newState);
+            icon.classList.toggle('far', !newState);
         }
-        updateFavoritesCookie && updateFavoritesCookie();
+
+        window.updateFavoritesCookie?.();
     });
 
-
-// Utility to set a cooki
-
-     function setCookie(name, value, days) {
+    function setCookie(name, value, days) {
         const d = new Date();
         d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-        const expires = "expires=" + d.toUTCString();
-        document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+        const expires = 'expires=' + d.toUTCString();
+        document.cookie = name + '=' + encodeURIComponent(value) + ';' + expires + ';path=/';
     }
 
-// Utility to get a cookie
-     function getCookie(name) {
-        const cname = name + "=";
+    function getCookie(name) {
+        const cname = name + '=';
         const decodedCookie = decodeURIComponent(document.cookie);
         const ca = decodedCookie.split(';');
         for (let i = 0; i < ca.length; i++) {
@@ -61,101 +63,115 @@ export function scheduleFavorites() {
             while (c.charAt(0) === ' ') c = c.substring(1);
             if (c.indexOf(cname) === 0) return c.substring(cname.length, c.length);
         }
-        return "";
+        return '';
     }
 
-// Update favorites cookie
-     function updateFavoritesCookie() {
+    function setFavoriteState(item, state) {
+        if (state) {
+            item.setAttribute('data-favorite', 'true');
+        } else {
+            item.removeAttribute('data-favorite');
+        }
+
+        item.querySelectorAll('.schedule-favorite-toggle').forEach((button) => {
+            button.classList.toggle('active', state);
+            button.setAttribute('aria-pressed', state ? 'true' : 'false');
+            const buttonIcon = button.querySelector('i');
+            buttonIcon?.classList.toggle('fas', state);
+            buttonIcon?.classList.toggle('far', !state);
+        });
+    }
+
+    function updateFavoritesCookie() {
         const ids = [];
-        jQuery('.schedule-item[data-favorite="true"]').each(function () {
-            const id = jQuery(this).attr('id');
+        document.querySelectorAll('.schedule-item[data-favorite="true"]').forEach((item) => {
+            const id = item.getAttribute('id');
             const match = id && id.match(/onlineevt-(\d+)/);
             if (match) ids.push(match[1]);
         });
-        setCookie('schedule_favorites', JSON.stringify(ids), 30); // 30 days
-        // --- Save to DB if logged in ---
+
+        setCookie('schedule_favorites', JSON.stringify(ids), 30);
+
         if (window.ONLINESCHED_USER && window.ONLINESCHED_USER.loggedIn && window.ONLINESCHED_USER.provider && window.ONLINESCHED_USER.identifier) {
-            jQuery.ajax({
-                url: '/wp-content/plugins/OnlineSched/includes/save_favorites.php',
-                method: 'POST',
-                data: {
-                    provider: window.ONLINESCHED_USER.provider,
-                    identifier: window.ONLINESCHED_USER.identifier,
-                    favorites: JSON.stringify(ids)
-                },
-                success: function(resp) {
-                    // Optionally handle success
-                },
-                error: function(xhr) {
-                    // Optionally handle error
-                }
+            const body = new URLSearchParams({
+                provider: window.ONLINESCHED_USER.provider,
+                identifier: window.ONLINESCHED_USER.identifier,
+                favorites: JSON.stringify(ids)
             });
+
+            if (endpoints.nonce) {
+                body.set('nonce', endpoints.nonce);
+            }
+
+            fetch(saveFavoritesUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body
+            }).catch(() => {});
         }
     }
 
     window.updateFavoritesCookie = updateFavoritesCookie;
 
-// Restore favorites from cookie
-     function restoreFavoritesFromCookie() {
+    function restoreFavoritesFromCookie() {
         const favCookie = getCookie('schedule_favorites');
-        if (favCookie) {
-            try {
-                // Try to parse as array, fallback to object keys if needed
-                let favIds = JSON.parse(favCookie);
-                if (favIds && typeof favIds === 'object' && !Array.isArray(favIds)) {
-                    // If it's an object, convert keys to array
-                    favIds = Object.keys(favIds);
-                }
-                if (Array.isArray(favIds)) {
-                    favIds.forEach(function (id) {
-                        const $item = jQuery('#onlineevt-' + id);
-                        if ($item.length) {
-                            $item.attr('data-favorite', 'true');
-                            $item.find('.schedule-favorite-toggle').addClass('active').attr('aria-pressed', 'true');
-                            $item.find('.schedule-favorite-toggle i').removeClass('far').addClass('fas');
-                        }
-                    });
-                }
-            } catch (e) {
-                // ignore parse errors
+        if (!favCookie) return;
+
+        try {
+            let favIds = JSON.parse(favCookie);
+            if (favIds && typeof favIds === 'object' && !Array.isArray(favIds)) {
+                favIds = Object.keys(favIds);
             }
+
+            if (Array.isArray(favIds)) {
+                favIds.forEach((id) => {
+                    const item = document.getElementById('onlineevt-' + id);
+                    if (item) {
+                        setFavoriteState(item, true);
+                    }
+                });
+            }
+        } catch (e) {
+            // Ignore malformed favorite cookies.
         }
     }
+
     window.restoreFavoritesFromCookie = restoreFavoritesFromCookie;
 
-init_favorites();
+    init_favorites();
+
     function init_favorites() {
         window.restoreFavoritesFromCookie();
-        // Fetch login state and then restore favorites
-        jQuery.ajax({
-            url: '/wp-content/plugins/OnlineSched/includes/login_state.php',
+
+        fetch(loginStateUrl, {
             method: 'GET',
-            dataType: 'json',
-            success: function(data) {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then((response) => response.json())
+            .then((data) => {
                 window.ONLINESCHED_USER = data;
 
                 if (window.ONLINESCHED_USER && window.ONLINESCHED_USER.loggedIn && window.ONLINESCHED_USER.provider && window.ONLINESCHED_USER.identifier) {
-                    // Use favorites from login_state.php response
-
                     if (data.favorites) {
-                        document.cookie = 'schedule_favorites=' + JSON.stringify(data.favorites) + ';path=/;max-age=' + (60*60*24*30);
+                        document.cookie = 'schedule_favorites=' + encodeURIComponent(JSON.stringify(data.favorites)) + ';path=/;max-age=' + (60 * 60 * 24 * 30);
                     }
                     window.restoreFavoritesFromCookie();
                 } else {
-                    if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
+                    window.restoreFavoritesFromCookie();
                 }
-                if (window.updateLoginLogoutUI) window.updateLoginLogoutUI();
-            },
-            error: function() {
-                if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
-            }
-        });
 
+                window.updateLoginLogoutUI?.();
+            })
+            .catch(() => {
+                window.restoreFavoritesFromCookie();
+            });
 
-        // Show/hide login/logout buttons based on login state
-        if (window.ONLINESCHED_USER && typeof updateLoginLogoutUI === 'function') {
-            updateLoginLogoutUI();
-        }
+        window.updateLoginLogoutUI?.();
     }
-
-};
+}

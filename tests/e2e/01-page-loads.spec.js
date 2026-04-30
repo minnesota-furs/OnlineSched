@@ -45,12 +45,8 @@ test.describe('01 — Page Loads', () => {
     expect(critical).toHaveLength(0);
   });
 
-  test('jQuery is not undefined (pre-refactor baseline)', async ({ page }) => {
-    // Phase 0-4: jQuery should exist. Expect true.
-    // Phase 5+:  jQuery is removed. Change expect to: expect(defined).toBe(false);
-    //            Also rename this test to "jQuery is removed (post-refactor)"
+  test('jQuery is removed (post-refactor)', async ({ page }) => {
     const defined = await page.evaluate(() => typeof window.jQuery !== 'undefined');
-    expect(defined).toBe(true);
+    expect(defined).toBe(false);
   });
 });
-

@@ -65,7 +65,7 @@ module.exports = {
   modalGoogle:          '#modal-schedule-google',
   modalCopyUrl:         '#modal-copy-url',
   clipboard:            '.schedule-clipboard',
-  clipboardEffect:      '.clipboard-effect',
+  clipboardEffect:      '.os-clipboard-effect',
 
   // Buttons
   logoutBtn:            '#logout-modal-btn',
@@ -100,4 +100,3 @@ module.exports = {
   badgeSpecialGuest:    '.os-badge--specialguest',
   badgeIcon:            '.os-badge--icon',
 };
-

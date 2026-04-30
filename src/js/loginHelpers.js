@@ -1,4 +1,8 @@
 export function loginHelpers() {
+    const endpoints = window.OnlineSchedPublic || {};
+    const loginStateUrl = endpoints.loginStateUrl || '/wp-content/plugins/OnlineSched/includes/login_state.php';
+    const getFavoritesUrl = endpoints.getFavoritesUrl || '/wp-content/plugins/OnlineSched/includes/get_favorites.php';
+
     function openLoginWithProvider(provider, event) {
         if (event) event.preventDefault();
         var rand = (window.crypto && window.crypto.getRandomValues) ?
@@ -77,7 +81,7 @@ export function loginHelpers() {
     window.hideLoginButtons = hideLoginButtons;
 
     function fetchLoginStateAndInit() {
-        fetch('/wp-content/plugins/OnlineSched/includes/login_state.php', {credentials: 'same-origin'})
+        fetch(loginStateUrl, {credentials: 'same-origin'})
             .then(function (resp) {
                 return resp.json();
             })
@@ -86,7 +90,7 @@ export function loginHelpers() {
                 if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
                 // If logged in, fetch favorites from DB and sync cookie/UI
                 if (window.ONLINESCHED_USER && window.ONLINESCHED_USER.loggedIn && window.ONLINESCHED_USER.provider && window.ONLINESCHED_USER.identifier) {
-                    fetch('/wp-content/plugins/OnlineSched/includes/get_favorites.php?provider=' + encodeURIComponent(window.ONLINESCHED_USER.provider) + '&identifier=' + encodeURIComponent(window.ONLINESCHED_USER.identifier), {credentials: 'same-origin'})
+                    fetch(getFavoritesUrl + '?provider=' + encodeURIComponent(window.ONLINESCHED_USER.provider) + '&identifier=' + encodeURIComponent(window.ONLINESCHED_USER.identifier), {credentials: 'same-origin'})
                         .then(function (resp) {
                             return resp.json();
                         })
@@ -97,15 +101,21 @@ export function loginHelpers() {
                             }
                             // Always call restoreFavoritesFromCookie after updating the cookie
                             if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
-                            if (window.scheduleFavorites) window.scheduleFavorites();
+                        })
+                        .catch(function () {
+                            if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
                         });
                 } else {
                     if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
-                    if (window.scheduleFavorites) window.scheduleFavorites();
                 }
+            })
+            .catch(function () {
+                window.ONLINESCHED_USER = {loggedIn: false, provider: '', identifier: ''};
+                if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
+                if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
             });
     }
     window.fetchLoginStateAndInit = fetchLoginStateAndInit;
 
-    document.addEventListener('DOMContentLoaded', fetchLoginStateAndInit);
+    fetchLoginStateAndInit();
 }
