@@ -9,6 +9,7 @@ dialog.os-modal {
   width: 90vw;
   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
   animation: os-fade-in 0.2s ease;
+  margin: 30px auto auto auto; /* Replaces default dialog centering, positions modal near top */
 
   &::backdrop {
     background: rgba(0, 0, 0, 0.5);
@@ -46,13 +47,9 @@ dialog.os-modal {
 
 @media (max-width: $os-bp-mobile) {
   dialog.os-modal {
-    width: 100vw;
-    max-width: 100vw;
-    margin: 0;
-    border-radius: 0;
-    position: fixed;
-    bottom: 0;
-    top: auto;
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    margin: 10px auto auto auto;
+    border-radius: 6px;
   }
 }
-
