@@ -2,6 +2,21 @@
 const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
+async function installClipboardShim(page) {
+  await page.evaluate(() => {
+    let clipboardText = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text) => {
+          clipboardText = String(text);
+        },
+        readText: async () => clipboardText,
+      },
+    });
+  });
+}
+
 test.describe('06 — Calendar', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/schedule/');
@@ -60,8 +75,8 @@ test.describe('06 — Calendar', () => {
       await expect(effect).toContainText('Copied');
     });
 
-    test('inline clipboard copies correct event URL to clipboard', async ({ context, page }) => {
-      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    test('inline clipboard copies correct event URL to clipboard', async ({ page }) => {
+      await installClipboardShim(page);
       const firstItem = page.locator(S.scheduleItem).first();
       const itemId = await firstItem.getAttribute('id');
       const evtId = itemId?.replace('onlineevt-', '');
@@ -74,8 +89,8 @@ test.describe('06 — Calendar', () => {
       expect(clipText).toContain('#evt-' + evtId);
     });
 
-    test('modal copy button copies page URL to clipboard', async ({ context, page }) => {
-      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    test('modal copy button copies page URL to clipboard', async ({ page }) => {
+      await installClipboardShim(page);
       await page.locator(S.scheduleTitle).first().click();
       await page.waitForTimeout(400);
       await expect(page.locator(S.scheduleModal)).toBeVisible();
@@ -98,8 +113,8 @@ test.describe('06 — Calendar', () => {
       expect(count).toBe(0);
     });
 
-    test('prefers-reduced-motion still copies to clipboard', async ({ context, page }) => {
-      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    test('prefers-reduced-motion still copies to clipboard', async ({ page }) => {
+      await installClipboardShim(page);
       await page.emulateMedia({ reducedMotion: 'reduce' });
 
       const firstItem = page.locator(S.scheduleItem).first();
@@ -122,4 +137,3 @@ test.describe('06 — Calendar', () => {
     });
   });
 });
-
