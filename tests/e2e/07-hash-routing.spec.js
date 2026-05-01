@@ -43,9 +43,7 @@ test.describe('07 — Hash Routing', () => {
     await expect(page.locator(`#onlineevt-${evtId}`)).toBeVisible({ timeout: 5000 });
 
     // Hash routing triggers a programmatic click on the event title.
-    // Pre-Phase 4: Bootstrap's [data-dismiss="modal"] may intercept the click and toggle
-    // the modal closed. If so, fall back to a direct Playwright click.
-    // Post-Phase 4: This workaround is harmless and can be simplified.
+    // If the modal isn't visible after hash navigation, fall back to a direct Playwright click.
     if (!(await page.locator(S.scheduleModal).isVisible())) {
       await page.locator(`#onlineevt-${evtId} .schedule-title a`).click();
       await page.waitForTimeout(400);

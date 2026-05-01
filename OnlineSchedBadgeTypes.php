@@ -10,7 +10,7 @@ add_action('admin_enqueue_scripts', function($hook) {
     $js_version = file_exists(plugin_dir_path(__FILE__) . 'admin-badge-types.js') ? filemtime(plugin_dir_path(__FILE__) . 'admin-badge-types.js') : '1.1';
     
     wp_enqueue_style('onlinesched-badge-types-admin', plugin_dir_url(__FILE__) . 'build/admin-badge-types.css', [], $css_version);
-    wp_enqueue_script('onlinesched-badge-types-admin', plugin_dir_url(__FILE__) . 'admin-badge-types.js', ['jquery'], $js_version, true);
+    wp_enqueue_script('onlinesched-badge-types-admin', plugin_dir_url(__FILE__) . 'admin-badge-types.js', [], $js_version, true);
 
     // Removed direct enqueue of Font Awesome. It will be imported via admin-badge-types.scss and compiled by webpack
 });

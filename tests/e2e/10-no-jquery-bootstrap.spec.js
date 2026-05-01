@@ -1,66 +1,109 @@
 // @author kurst@mnfurs.org Kurst Hyperyote for Furry Migration
-// SKIP until Phase 6 is complete.
-// Validates zero Bootstrap/jQuery presence on the page post-refactor.
+// Validates OnlineSched no longer emits Bootstrap/jQuery markup or assets.
+// The host theme may still expose jQuery for its own Bootstrap menu.
 const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
 test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
-  test.skip(true, 'Enable after Phase 6: Final Cleanup & Removal is complete.');
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/schedule/');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
   });
 
-  test('window.jQuery is undefined', async ({ page }) => {
-    const defined = await page.evaluate(() => typeof window.jQuery);
-    expect(defined).toBe('undefined');
+  test('no Bootstrap requires jQuery console error', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', msg => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
+
+    await page.goto('/schedule/');
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+
+    expect(errors.filter(error => error.includes("Bootstrap's JavaScript requires jQuery"))).toHaveLength(0);
   });
 
-  test('window.$ is undefined', async ({ page }) => {
-    const defined = await page.evaluate(() => typeof window.$);
-    expect(defined).toBe('undefined');
-  });
-
-  test('no Bootstrap CSS link tag', async ({ page }) => {
-    const el = await page.evaluate(() =>
-      document.querySelector('link[href*="bootstrap"]')
-    );
-    expect(el).toBeNull();
-  });
-
-  test('no jQuery script tag', async ({ page }) => {
-    const el = await page.evaluate(() =>
-      document.querySelector('script[src*="jquery"]')
-    );
-    expect(el).toBeNull();
-  });
-
-  test('no Bootstrap col-xs- classes remain in DOM', async ({ page }) => {
+  test('no OnlineSched-owned jQuery script tag', async ({ page }) => {
     const count = await page.evaluate(() =>
-      document.querySelectorAll('[class*="col-xs-"]').length
+      Array.from(document.scripts).filter(script => {
+        const src = script.getAttribute('src') || '';
+        return src.includes('OnlineSched') && src.toLowerCase().includes('jquery');
+      }).length
     );
     expect(count).toBe(0);
   });
 
-  test('no Bootstrap col-sm- classes remain in DOM', async ({ page }) => {
+  test('no OnlineSched-owned Bootstrap asset tag', async ({ page }) => {
     const count = await page.evaluate(() =>
-      document.querySelectorAll('[class*="col-sm-"]').length
+      Array.from(document.querySelectorAll('script[src], link[href]')).filter(el => {
+        const url = el.getAttribute('src') || el.getAttribute('href') || '';
+        return url.includes('OnlineSched') && url.toLowerCase().includes('bootstrap');
+      }).length
     );
     expect(count).toBe(0);
   });
 
-  test('no Bootstrap col-md- classes remain in DOM', async ({ page }) => {
-    const count = await page.evaluate(() =>
-      document.querySelectorAll('[class*="col-md-"]').length
-    );
+  // Col-* checks are scoped to OnlineSched-owned markup (#schedule + dialogs).
+  // Use regex /^col-XX-/ to match Bootstrap classes exactly — avoids false-positive
+  // hits on os-col-xs-* etc. (class* substring match would catch those too).
+  // Excluded from scope (not plugin-owned):
+  //   .schedule-description / #modal-schedule-description — user-generated WP post content
+  //   .hours-of-operations — theme-injected Hours tab content (theme uses Bootstrap grid)
+  //   #footer — theme footer rendered inside #schedule by get_footer()
+  test('no Bootstrap col-xs- classes remain in OnlineSched DOM', async ({ page }) => {
+    const count = await page.evaluate(() => {
+      const re = /^col-xs-/;
+      return [
+        ...document.querySelectorAll('#schedule *'),
+        ...document.querySelectorAll('dialog.os-modal *'),
+      ].filter(el =>
+        !el.closest('.schedule-description, #modal-schedule-description, .hours-of-operations, #footer') &&
+        Array.from(el.classList).some(c => re.test(c))
+      ).length;
+    });
     expect(count).toBe(0);
   });
 
-  test('no Bootstrap col-lg- classes remain in DOM', async ({ page }) => {
-    const count = await page.evaluate(() =>
-      document.querySelectorAll('[class*="col-lg-"]').length
-    );
+  test('no Bootstrap col-sm- classes remain in OnlineSched DOM', async ({ page }) => {
+    const count = await page.evaluate(() => {
+      const re = /^col-sm-/;
+      return [
+        ...document.querySelectorAll('#schedule *'),
+        ...document.querySelectorAll('dialog.os-modal *'),
+      ].filter(el =>
+        !el.closest('.schedule-description, #modal-schedule-description, .hours-of-operations, #footer') &&
+        Array.from(el.classList).some(c => re.test(c))
+      ).length;
+    });
+    expect(count).toBe(0);
+  });
+
+  test('no Bootstrap col-md- classes remain in OnlineSched DOM', async ({ page }) => {
+    const count = await page.evaluate(() => {
+      const re = /^col-md-/;
+      return [
+        ...document.querySelectorAll('#schedule *'),
+        ...document.querySelectorAll('dialog.os-modal *'),
+      ].filter(el =>
+        !el.closest('.schedule-description, #modal-schedule-description, .hours-of-operations, #footer') &&
+        Array.from(el.classList).some(c => re.test(c))
+      ).length;
+    });
+    expect(count).toBe(0);
+  });
+
+  test('no Bootstrap col-lg- classes remain in OnlineSched DOM', async ({ page }) => {
+    const count = await page.evaluate(() => {
+      const re = /^col-lg-/;
+      return [
+        ...document.querySelectorAll('#schedule *'),
+        ...document.querySelectorAll('dialog.os-modal *'),
+      ].filter(el =>
+        !el.closest('.schedule-description, #modal-schedule-description, .hours-of-operations, #footer') &&
+        Array.from(el.classList).some(c => re.test(c))
+      ).length;
+    });
     expect(count).toBe(0);
   });
 
@@ -79,10 +122,10 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
   });
 
   test('os- namespaced classes present on key elements', async ({ page }) => {
-    await expect(page.locator('.os-btn').first()).toBeVisible();
+    // Scope .os-btn to #schedule to avoid matching buttons inside closed <dialog> elements
+    await expect(page.locator('#schedule .os-btn').first()).toBeVisible();
     await expect(page.locator('.os-tabs')).toBeVisible();
     await expect(page.locator('.os-form-control').first()).toBeVisible();
-    await expect(page.locator('dialog.os-modal').first()).toHaveCount(1);
+    await expect(page.locator('dialog.os-modal').first()).toBeAttached();
   });
 });
-

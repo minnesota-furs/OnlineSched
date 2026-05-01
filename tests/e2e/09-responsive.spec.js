@@ -226,8 +226,7 @@ test.describe('09 — Responsive (tablet-landscape 1366px)', () => {
     await page.locator(S.scheduleTitle).first().click();
     await page.waitForTimeout(400);
     await expect(page.locator(S.scheduleModal)).toBeVisible();
-    // Use .modal-dialog specifically — the outer #modal-schedule is position:fixed at x=0
-    const box = await page.locator('#modal-schedule .modal-dialog').boundingBox();
+    const box = await page.locator('#modal-schedule .os-modal__body').boundingBox();
     if (box) {
       expect(box.x).toBeGreaterThan(20);           // left margin exists
       expect(box.x + box.width).toBeLessThan(1346); // right margin exists at 1366px

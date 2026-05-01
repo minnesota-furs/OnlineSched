@@ -19,7 +19,6 @@
     "@playwright/test": "^1.59.1",
     "autoprefixer": "^10.4.16",
     "babel-loader": "^9.1.3",
-    "bootstrap": "^3.4.1",
     "css-loader": "^6.8.1",
     "css-minimizer-webpack-plugin": "^5.0.1",
     "mini-css-extract-plugin": "^2.7.6",

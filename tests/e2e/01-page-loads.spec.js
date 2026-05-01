@@ -45,8 +45,9 @@ test.describe('01 — Page Loads', () => {
     expect(critical).toHaveLength(0);
   });
 
-  test('jQuery is removed (post-refactor)', async ({ page }) => {
+  test('schedule works when host theme jQuery is present', async ({ page }) => {
     const defined = await page.evaluate(() => typeof window.jQuery !== 'undefined');
-    expect(defined).toBe(false);
+    expect(typeof defined).toBe('boolean');
+    await expect(page.locator(S.scheduleItem).first()).toBeVisible();
   });
 });

@@ -47,21 +47,62 @@ document.addEventListener('DOMContentLoaded', function() {
 			addBtn.style.display = '';
 		});
 	}
-	jQuery(document).ready(function($){
-		$('#assign-default-badge-types').on('click', function(e){
+	var assignBtn = document.getElementById('assign-default-badge-types');
+	var assignMessage = document.getElementById('assign-badge-types-message');
+	if (assignBtn && assignMessage) {
+		assignBtn.addEventListener('click', function(e) {
 			e.preventDefault();
-			var btn = $(this);
-			btn.prop('disabled', true);
-			$('#assign-badge-types-message').hide().empty();
-			$.post(ajaxurl, { action: 'onlinesched_assign_default_badge_types' }, function(resp){
-				btn.prop('disabled', false);
-				var msgClass = resp.success ? 'schedule-updated' : 'upload-error';
-				var msgText = resp.success ?
-					'Assigned badge types to ' + resp.data.updated + ' tags.' :
-					'Error: ' + resp.data;
-				var msgHtml = '<div class="' + msgClass + '"><button class="close-message" onclick="closeMessageBox(this)">&times;</button><p>' + msgText + '</p></div>';
-				$('#assign-badge-types-message').html(msgHtml).show();
-			});
+			assignBtn.disabled = true;
+			assignMessage.style.display = 'none';
+			assignMessage.textContent = '';
+
+			fetch(ajaxurl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: new URLSearchParams({ action: 'onlinesched_assign_default_badge_types' })
+			})
+				.then(function(response) {
+					if (!response.ok) throw new Error('HTTP ' + response.status);
+					return response.json();
+				})
+				.then(function(resp) {
+					var msgClass = resp.success ? 'schedule-updated' : 'upload-error';
+					var msgText = resp.success ?
+						'Assigned badge types to ' + resp.data.updated + ' tags.' :
+						'Error: ' + resp.data;
+
+					var msgBox = document.createElement('div');
+					msgBox.className = msgClass;
+
+					var closeBtn = document.createElement('button');
+					closeBtn.className = 'close-message';
+					closeBtn.type = 'button';
+					closeBtn.innerHTML = '&times;';
+					closeBtn.addEventListener('click', function() {
+						closeMessageBox(closeBtn);
+					});
+
+					var msgParagraph = document.createElement('p');
+					msgParagraph.textContent = msgText;
+
+					msgBox.appendChild(closeBtn);
+					msgBox.appendChild(msgParagraph);
+					assignMessage.appendChild(msgBox);
+					assignMessage.style.display = '';
+				})
+				.catch(function(error) {
+					var msgBox = document.createElement('div');
+					msgBox.className = 'upload-error';
+					var msgParagraph = document.createElement('p');
+					msgParagraph.textContent = 'Error: ' + error.message;
+					msgBox.appendChild(msgParagraph);
+					assignMessage.appendChild(msgBox);
+					assignMessage.style.display = '';
+				})
+				.finally(function() {
+					assignBtn.disabled = false;
+				});
 		});
-	});
+	}
 });

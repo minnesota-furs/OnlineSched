@@ -20,17 +20,6 @@ if (!defined('ABSPATH')) {
  * @filesource     wp-content/plugins/OnlineSched/grid.php
  */
 
-$onlinesched_remove_jquery = static function () {
-    $jquery_handles = array('jquery', 'jquery-core', 'jquery-migrate');
-    foreach ($jquery_handles as $jquery_handle) {
-        wp_dequeue_script($jquery_handle);
-        wp_deregister_script($jquery_handle);
-    }
-};
-$onlinesched_remove_jquery();
-add_action('wp_print_scripts', $onlinesched_remove_jquery, 0);
-add_action('wp_print_footer_scripts', $onlinesched_remove_jquery, 0);
-
 wp_enqueue_style('online-schedule-css', plugin_dir_url(dirname(__FILE__)) . "build/main.css", array(), filemtime(plugin_dir_path(dirname(__FILE__)) . "build/main.css"));
 wp_enqueue_script('online-schedule-js', plugin_dir_url(dirname(__FILE__)) . "build/bundle.js", array(), filemtime(plugin_dir_path(dirname(__FILE__)) . 'build/bundle.js'));
 wp_localize_script('online-schedule-js', 'OnlineSchedPublic', array(

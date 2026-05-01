@@ -105,11 +105,12 @@ add_shortcode('ical_schedule_cheat_display', function() {
     </div>
     <script>
     // Add feedback for copy buttons
-    jQuery(document).ready(function($){
-      $('.cheat-copy-btn').on('click', function(){
-        var btn = $(this);
-        btn.text('✔');
-        setTimeout(function(){ btn.text('📋'); }, 1200);
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.cheat-copy-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          btn.textContent = '\u2714';
+          setTimeout(function() { btn.textContent = '\uD83D\uDCCB'; }, 1200);
+        });
       });
     });
     </script>

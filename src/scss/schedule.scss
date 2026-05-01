@@ -12,18 +12,10 @@
 
 $fm-green: #017940;
 
-// Phase 4: modal Bootstrap overrides removed - now handled by _modals.scss
-
-.btn-default .fa {
+.os-btn--default .fa {
   color: #402b56;
   margin-right: 5px;
   font-size: 1.1em;
-}
-
-.btn-sm {
-  height: 34px;
-  padding-top: 9px;
-  padding-bottom: 9px;
 }
 
 .canceled, .canceled a {
@@ -44,17 +36,6 @@ $fm-green: #017940;
 }
 
 .schedule-sort .os-row > div {
-  padding-left: 8px;
-  padding-right: 7px;
-}
-
-// Legacy selectors for any remaining .row references
-.schedule-sort .row {
-  margin-left: -8px;
-  margin-right: -7px;
-}
-
-.schedule-sort .row > div {
   padding-left: 8px;
   padding-right: 7px;
 }
@@ -210,15 +191,7 @@ dl.schedule-meta:after {
 }
 
 @media (max-width: 767px) {
-  #schedule-modal .modal-footer .btn {
-    display: block;
-    width: 100%;
-    text-align: center;
-    margin: 2px 0;
-  }
-
-  .schedule-sort .os-row > div,
-  .schedule-sort .row > div {
+  .schedule-sort .os-row > div {
     flex: 0 0 100%;
     max-width: 100%;
     margin: 3px 0;
@@ -270,7 +243,7 @@ dl.schedule-meta:after {
   padding-top: 0px;
 }
 
-.page-id-8669 #body .container-fluid {
+.page-id-8669 #body .os-container {
   padding-top: 0px;
 }
 
@@ -499,7 +472,7 @@ body.page-id-9880 .schedule-day > h2 {
   align-items: center;
   justify-content: center;
 }
-.login-provider-item .btn {
+.login-provider-item .os-btn {
   width: 100%;
   box-sizing: border-box;
   display: flex;
@@ -511,9 +484,9 @@ body.page-id-9880 .schedule-day > h2 {
   border-radius: 6px;
   word-break: break-word;
 }
-.login-provider-item .btn:hover,
-.login-provider-item .btn:focus,
-.login-provider-item .btn:active {
+.login-provider-item .os-btn:hover,
+.login-provider-item .os-btn:focus,
+.login-provider-item .os-btn:active {
   background: #e6f7ee;
   box-shadow: 0 0 0 2px #01794033;
   outline: none;
@@ -546,7 +519,7 @@ body.page-id-9880 .schedule-day > h2 {
     flex: 1 1 48%;
     max-width: 48%;
   }
-  .login-provider-item .btn {
+  .login-provider-item .os-btn {
     font-size: 1em;
     padding: 8px 14px;
   }
@@ -598,7 +571,7 @@ body.page-id-9880 .schedule-day > h2 {
 }
 
 /* Badges */
-.badge {
+.os-badge {
   border-radius: 0 !important;
   text-transform: uppercase;
   font-size: 11px;
