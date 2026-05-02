@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    name: Build release zip
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --classmap-authoritative
+
+      - name: Build release package
+        run: BABEL_DISABLE_CACHE=1 npm run release
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/OnlineSched-*.zip

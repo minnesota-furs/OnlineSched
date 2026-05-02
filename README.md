@@ -1,17 +1,44 @@
 # OnlineSched
-FM Online schedule
+A flexible event scheduling plugin for WordPress conventions and organizations.
 
-## Todo
-* Move things out of the main theme to here
-* Put a build system to minify/compress files
-* Make a more flexible admin
-* Support dynamic tag color and text areas
-* Verify js is being used in here
+## Installation
+
+You can install this plugin either by downloading a pre-built release or by building it from source.
+
+### Option 1: Download from GitHub Releases (Recommended)
+1. Go to the [Releases](https://github.com/onlinesched/OnlineSched/releases) page on GitHub.
+2. Download the `OnlineSched-x.x.x.zip` file from the latest release.
+3. In your WordPress admin dashboard, go to **Plugins > Add New Plugin > Upload Plugin**.
+4. Choose the downloaded zip file and click **Install Now**.
+5. Activate the plugin.
+
+### Option 2: Build from Source
+If you are developing the plugin or want to build it yourself:
+
+1. Clone the repository into your WordPress `wp-content/plugins` directory:
+   ```bash
+   git clone https://github.com/onlinesched/OnlineSched.git
+   cd OnlineSched
+   ```
+2. Install PHP dependencies via Composer:
+   ```bash
+   composer install --no-dev
+   ```
+3. Install Node dependencies and build the assets:
+   ```bash
+   npm install
+   npm run build
+   ```
+4. Activate the plugin in your WordPress admin dashboard.
+
+If you want to package a release zip locally, run `npm run release`. This will generate a clean installation zip in the `dist/` directory.
 
 
 ========================================================================
 HOW TO RUN THE AUTOMATED TESTS
 ========================================================================
+
+> **Note for Open Source Users:** The Playwright end-to-end test suite is currently tightly coupled to the Furry Migration local Docker environment (`fm-php`). You do not need to run these tests to use the plugin. If you are developing locally outside of that Docker stack, the `npm run test:setup` command will fail because it expects to seed data via WP-CLI inside the `fm-php` container.
 
 These tests check that the schedule page on the website still works
 correctly. Think of them like a robot that clicks around the site and
@@ -20,13 +47,14 @@ sizes (phone, tablet, big monitor, kiosk TV) and even tries different
 web browsers (Chrome, Firefox, Safari, Edge).
 
 ------------------------------------------------------------------------
-BEFORE YOU START -- you need these things:
+BEFORE YOU START (Furry Migration Environment Only) -- you need these things:
 ------------------------------------------------------------------------
 
   1. Docker Desktop is running (the little whale icon in your taskbar)
 
-  2. The website is up at https://furrymigration.local
-     (Try opening it in your browser first. If it loads, you're good.)
+  2. Your local WordPress site is running and reachable in a browser.
+     If your local URL differs from the test configuration, update the test
+     base URL before running the suite.
 
   3. You have a terminal open and you're inside the OnlineSched folder:
 

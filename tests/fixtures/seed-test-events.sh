@@ -59,7 +59,7 @@ if [ "$EXISTING" -ge 1 ]; then
     "Closing Howl and Dead Dog" \
     "After Dark Howl" \
     "Quiet Paws Chill Zone" \
-    "VIP Tail Grooming Lounge"; do
+    "VIP Tail Care Lounge"; do
     IDS=$(docker exec $CONTAINER $WP post list \
       --post_type=os_event --post_status=publish \
       --fields=ID,post_title --format=csv 2>/dev/null \
@@ -216,9 +216,9 @@ create_event "Quiet Paws Chill Zone" \
   $((NEXT_SUNDAY + 43200)) 60 "Panel Room A" "Sensory" "" \
   "A low-stimulation space for furs who need a sensory break. Dim lights, soft music, bean bags."
 
-create_event "VIP Tail Grooming Lounge" \
+create_event "VIP Tail Care Lounge" \
   $((NEXT_SATURDAY + 50400)) 90 "Panel Room B" "VIP" "Kurst Hyperyote" \
-  "Exclusive tail grooming session for VIP badge holders. Includes premium floof brushes, detangling sprays, and a complimentary tail bow."
+  "Exclusive tail care session for VIP badge holders. Includes premium floof brushes, detangling sprays, and a complimentary tail bow."
 
 # ── Assign badge types to tags via term meta ──
 echo "Assigning badge types to tags..."

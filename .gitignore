@@ -2,6 +2,7 @@
 .htaccess
 .idea/
 build/
+dist/
 vendor/
 *~
 node_modules/
