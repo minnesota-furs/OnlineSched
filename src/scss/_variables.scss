@@ -7,17 +7,18 @@
   --os-orange:     #f36d21;
   --os-gold:       #f6c700;
   --os-danger:     #d12229;
+  --os-green-soft: #e6f7ee;
+  --os-green-focus: rgba(1, 121, 64, 0.2);
   --os-radius:     4px;
   --os-transition: 0.2s ease;
 }
 
-$os-green:      #017940;
-$os-blue:       #0d375a;
-$os-danger:     #d12229;
+$os-green:      var(--os-green);
+$os-blue:       var(--os-blue);
+$os-danger:     var(--os-danger);
 $os-sensory:    #0a58ca;
 $os-vip-row:    #fff0b2;
 
 $os-bp-mobile:  767px;
 $os-bp-tablet:  991px;
 $os-bp-desktop: 1200px;
-

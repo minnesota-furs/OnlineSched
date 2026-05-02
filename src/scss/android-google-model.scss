@@ -4,7 +4,7 @@
   border-bottom: 1px solid #eee;
 }
 #android-google-calendar-modal .os-modal__header h3 {
-  color: #0d375a;
+  color: var(--os-blue);
   font-size: 1.5em;
   font-weight: bold;
 }
@@ -68,7 +68,7 @@
   text-align: center;
 }
 #android-google-calendar-modal .os-btn--primary {
-  background: #0d375a;
+  background: var(--os-blue);
   color: #fff;
   border: none;
 }
@@ -79,17 +79,17 @@
 }
 #android-google-calendar-modal .os-btn--default:hover,
 #android-google-calendar-modal .os-btn--primary:hover {
-  background: #017940;
+  background: var(--os-green);
   color: #fff;
 }
 #android-google-calendar-modal .fa-google {
   color: #4285F4;
 }
 #android-google-calendar-modal .fa-download {
-  color: #0d375a;
+  color: var(--os-blue);
 }
 #android-google-calendar-modal .fa-copy {
-  color: #f36d21;
+  color: var(--os-orange);
 }
 #android-google-calendar-modal #android-gcal-copy-confirm {
   font-size: 1.1em;
@@ -99,7 +99,7 @@
   margin-top: 10px;
 }
 #android-google-calendar-modal .os-modal__body strong {
-  color: #017940;
+  color: var(--os-green);
 }
 #android-google-calendar-modal.android-gcal-options-four .android-gcal-options-number::after {
   content: "four";

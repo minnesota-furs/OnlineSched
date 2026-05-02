@@ -21,6 +21,7 @@ if (!defined('ABSPATH')) {
  */
 
 wp_enqueue_style('online-schedule-css', plugin_dir_url(dirname(__FILE__)) . "build/main.css", array(), filemtime(plugin_dir_path(dirname(__FILE__)) . "build/main.css"));
+onlinesched_add_color_inline_style('online-schedule-css');
 wp_enqueue_script('online-schedule-js', plugin_dir_url(dirname(__FILE__)) . "build/bundle.js", array(), filemtime(plugin_dir_path(dirname(__FILE__)) . 'build/bundle.js'));
 wp_localize_script('online-schedule-js', 'OnlineSchedPublic', array(
     'nonce' => wp_create_nonce('onlinesched_public'),
@@ -241,7 +242,7 @@ $start = microtime(true);
                                                         <span class="favorite-label-mobile"
                                                               style="margin-right: 4px; display: none;">Favorite</span>
                                                         <i class="far fa-star" aria-hidden="true"
-                                                           style="color: #f6c700;"></i>
+                                                           style="color: var(--os-gold, #f6c700);"></i>
                                                         <span class="os-sr-only">Show Favorites Only</span>
                                                     </button>
                                                 </div>

@@ -89,6 +89,7 @@ function OnlineSched_admin_init()
     );
 
     add_option('event_schedule_year', 'Event Schedule Year');
+    onlinesched_auto_detect_pages();
 
     onlinesched_register_main_setting('event_schedule_year', 'sanitize_text_field');
     onlinesched_register_main_setting('onlinesched_schedule_page_id', 'absint');
@@ -102,6 +103,9 @@ function OnlineSched_admin_init()
     onlinesched_register_main_setting('onlinesched_tab_map_label', 'sanitize_text_field');
     onlinesched_register_main_setting('onlinesched_sticky_offset_desktop', 'absint');
     onlinesched_register_main_setting('onlinesched_sticky_offset_mobile', 'absint');
+    foreach (onlinesched_get_color_defaults() as $key => $unused) {
+        onlinesched_register_main_setting(onlinesched_get_option_name($key), 'onlinesched_sanitize_color_option');
+    }
 }
 
 function OnlineSched_register_options_page()
@@ -175,8 +179,12 @@ function onlinesched_text_input_row($option_name, $label, $default, $description
 
 function onlinesched_number_input_row($option_name, $label, $default, $description)
 {
-    $constant_name = onlinesched_get_constant_name(str_replace('onlinesched_', '', $option_name));
-    $managed_in_code = defined($constant_name);
+    $key = str_replace('onlinesched_', '', $option_name);
+    $constant_name = onlinesched_get_constant_name($key);
+    $filter_name = 'os_config_' . sanitize_key($key);
+    $managed_by_constant = defined($constant_name);
+    $managed_by_filter = has_filter($filter_name);
+    $managed_in_code = $managed_by_constant || $managed_by_filter;
     ?>
     <tr>
         <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html($label); ?></label></th>
@@ -184,8 +192,46 @@ function onlinesched_number_input_row($option_name, $label, $default, $descripti
             <input type="number" min="0" id="<?php echo esc_attr($option_name); ?>" name="<?php echo esc_attr($option_name); ?>"
                    value="<?php echo esc_attr(absint(get_option($option_name, $default))); ?>" class="small-text"
                 <?php disabled($managed_in_code); ?> />
-            <?php if ($managed_in_code) : ?>
+            <?php if ($managed_by_constant) : ?>
                 <span class="description">Managed in code by <code><?php echo esc_html($constant_name); ?></code>.</span>
+            <?php elseif ($managed_by_filter) : ?>
+                <span class="description">Managed in code by <code><?php echo esc_html($filter_name); ?></code>.</span>
+            <?php endif; ?>
+            <p class="description"><?php echo esc_html($description); ?></p>
+        </td>
+    </tr>
+    <?php
+}
+
+function onlinesched_color_input_row($key, $label, $description)
+{
+    $defaults = onlinesched_get_color_defaults();
+    $option_name = onlinesched_get_option_name($key);
+    $default = $defaults[$key];
+    $value = onlinesched_get_colors()[$key];
+    $constant_name = onlinesched_get_constant_name($key);
+    $filter_name = 'os_config_' . sanitize_key($key);
+    $managed_by_constant = defined($constant_name);
+    $managed_by_filter = has_filter($filter_name);
+    $managed_in_code = $managed_by_constant || $managed_by_filter;
+    ?>
+    <tr>
+        <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html($label); ?></label></th>
+        <td>
+            <input
+                type="color"
+                id="<?php echo esc_attr($option_name); ?>"
+                name="<?php echo esc_attr($option_name); ?>"
+                value="<?php echo esc_attr($value); ?>"
+                data-default-color="<?php echo esc_attr($default); ?>"
+                style="width:60px; height:34px;"
+                <?php disabled($managed_in_code); ?>
+            />
+            <span class="description">Default: <code><?php echo esc_html($default); ?></code></span>
+            <?php if ($managed_by_constant) : ?>
+                <span class="description">Managed in code by <code><?php echo esc_html($constant_name); ?></code>.</span>
+            <?php elseif ($managed_by_filter) : ?>
+                <span class="description">Managed in code by <code><?php echo esc_html($filter_name); ?></code>.</span>
             <?php endif; ?>
             <p class="description"><?php echo esc_html($description); ?></p>
         </td>
@@ -233,6 +279,41 @@ function OnlineSched_options_page()
                 ?>
             </table>
 
+            <h2>Appearance</h2>
+            <p>FM colors are the defaults. Change these only when a site needs its own palette.</p>
+            <table class="form-table" role="presentation">
+                <?php
+                onlinesched_color_input_row('color_primary', 'Primary Color', 'Used for primary highlights, tab hover states, and login button hover states.');
+                onlinesched_color_input_row('color_secondary', 'Secondary Color', 'Used for schedule day headers, modal headings, and calendar panels.');
+                onlinesched_color_input_row('color_accent', 'Accent Color', 'Used for calendar and copy action icons.');
+                onlinesched_color_input_row('color_gold', 'Favorites Color', 'Used for favorites stars and favorite highlights.');
+                onlinesched_color_input_row('color_danger', 'Danger Color', 'Used for cancelled events and destructive buttons.');
+                ?>
+                <tr>
+                    <th scope="row">Restore Defaults</th>
+                    <td>
+                        <button type="button" class="button" id="onlinesched_restore_default_colors">Restore Default Colors</button>
+                        <p class="description">Sets the color pickers back to the FM defaults. Click Save Changes to apply.</p>
+                    </td>
+                </tr>
+            </table>
+            <script>
+                (function () {
+                    var restoreButton = document.getElementById('onlinesched_restore_default_colors');
+                    if (!restoreButton) {
+                        return;
+                    }
+
+                    restoreButton.addEventListener('click', function () {
+                        var inputs = document.querySelectorAll('input[type="color"][data-default-color]');
+                        for (var i = 0; i < inputs.length; i++) {
+                            var input = inputs[i];
+                            input.value = input.getAttribute('data-default-color');
+                        }
+                    });
+                }());
+            </script>
+
             <?php submit_button(); ?>
         </form>
     </div>
@@ -279,6 +360,11 @@ function OnlineSched_config_status_page()
         'tab_map_label' => 'Map Tab Label',
         'sticky_offset_desktop' => 'Desktop Sticky Offset',
         'sticky_offset_mobile' => 'Mobile Sticky Offset',
+        'color_primary' => 'Primary Color',
+        'color_secondary' => 'Secondary Color',
+        'color_accent' => 'Accent Color',
+        'color_gold' => 'Favorites Color',
+        'color_danger' => 'Danger Color',
     );
     ?>
     <div class="wrap">

@@ -10,8 +10,6 @@
 @use 'tables';
 @use 'utilities';
 
-$fm-green: #017940;
-
 .os-btn--default .fa {
   color: #402b56;
   margin-right: 5px;
@@ -19,7 +17,7 @@ $fm-green: #017940;
 }
 
 .canceled, .canceled a {
-  color: #d12229 !important;
+  color: var(--os-danger) !important;
   text-decoration: line-through !important;
 }
 
@@ -152,13 +150,13 @@ dl.schedule-meta:after {
   cursor: pointer;
   &:hover {
     text-decoration: underline;
-    color: $fm-green;
+    color: var(--os-green);
   }
 }
 
 .schedule-day > h2 {
   /* background: #ef1818; */
-  background: #0d375a;
+  background: var(--os-blue);
 }
 
 .schedule-hour > h3 {
@@ -283,7 +281,7 @@ dl.schedule-meta:after {
   border: none;
   background: inherit;
   padding: 0;
-  color: #f36d21; /* Pulled from a */
+  color: var(--os-orange);
 }
 
 #modal-copy-url {
@@ -298,7 +296,7 @@ dl.schedule-meta:after {
   z-index: 1100;
   font-size: 28px;
   color: #ffffff; /* White text */
-  background-color: #0d375a; /* Dark Blue background */
+  background-color: var(--os-blue);
   text-wrap: nowrap;
 }
 
@@ -321,7 +319,7 @@ dl.schedule-meta:after {
 
 #schedule-add-to-calendar {
   margin-top: 20px;
-  border: 5px solid #0d375a;
+  border: 5px solid var(--os-blue);
   padding: 10px;
 
   #schedule-add-to-calendar-div {
@@ -371,7 +369,7 @@ dl.schedule-meta:after {
   margin-left: 10px;
 
   i {
-    color: #f36d21; /* Pulled from a */
+    color: var(--os-orange);
   }
 
   :hover {
@@ -412,19 +410,19 @@ dl.schedule-meta:after {
   box-shadow: none;
   padding: 0;
   margin: 0 6px 0 0;
-  color: #f6c700;
+  color: var(--os-gold);
   font-size: 1em;
   vertical-align: middle;
   cursor: pointer;
 
   &:focus {
-    outline: 2px solid #0d375a;
+    outline: 2px solid var(--os-blue);
     outline-offset: 2px;
   }
 
   &:hover i,
   &.active i {
-    color: #ffd700;
+    color: var(--os-gold);
   }
 }
 
@@ -470,8 +468,8 @@ dl.schedule-meta:after {
 .login-provider-item .os-btn:hover,
 .login-provider-item .os-btn:focus,
 .login-provider-item .os-btn:active {
-  background: #e6f7ee;
-  box-shadow: 0 0 0 2px #01794033;
+  background: var(--os-green-soft);
+  box-shadow: 0 0 0 2px var(--os-green-focus);
   outline: none;
 }
 .login-provider-item i {
@@ -520,9 +518,9 @@ dl.schedule-meta:after {
 #logout-modal-btn:focus,
 #info-modal-btn:hover,
 #info-modal-btn:focus {
-  background-color: $fm-green;
+  background-color: var(--os-green);
   color: #fff;
-  box-shadow: 0 0 0 2px #01794033;
+  box-shadow: 0 0 0 2px var(--os-green-focus);
   outline: none;
 }
 
@@ -537,7 +535,7 @@ dl.schedule-meta:after {
 }
 .android-gcal-onetime-link {
   word-break: break-all;
-  color: #0d375a;
+  color: var(--os-blue);
   font-size: 1em;
   margin-left: 6px;
 }

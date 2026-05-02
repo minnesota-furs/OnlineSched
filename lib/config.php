@@ -133,6 +133,97 @@ function onlinesched_get_sticky_offsets()
     );
 }
 
+function onlinesched_get_color_defaults()
+{
+    return array(
+        'color_primary' => '#017940',
+        'color_secondary' => '#0d375a',
+        'color_accent' => '#f36d21',
+        'color_gold' => '#f6c700',
+        'color_danger' => '#d12229',
+    );
+}
+
+function onlinesched_sanitize_color_option($value)
+{
+    return sanitize_hex_color($value) ?: '';
+}
+
+function onlinesched_hex_to_rgb($hex)
+{
+    $hex = sanitize_hex_color($hex);
+    if (!$hex) {
+        return null;
+    }
+
+    $hex = ltrim($hex, '#');
+    if (strlen($hex) === 3) {
+        $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+    }
+
+    return array(
+        hexdec(substr($hex, 0, 2)),
+        hexdec(substr($hex, 2, 2)),
+        hexdec(substr($hex, 4, 2)),
+    );
+}
+
+function onlinesched_get_colors()
+{
+    $colors = array();
+    foreach (onlinesched_get_color_defaults() as $key => $default) {
+        $colors[$key] = sanitize_hex_color(onlinesched_get_config($key, $default)) ?: $default;
+    }
+
+    return $colors;
+}
+
+function onlinesched_add_color_inline_style($handle = 'online-schedule-css')
+{
+    if (!wp_style_is($handle, 'enqueued')) {
+        return;
+    }
+
+    $defaults = onlinesched_get_color_defaults();
+    $colors = onlinesched_get_colors();
+
+    if ($colors === $defaults) {
+        return;
+    }
+
+    $primary_rgb = onlinesched_hex_to_rgb($colors['color_primary']);
+    $primary_soft = '#e6f7ee';
+    $primary_focus = 'rgba(1, 121, 64, 0.2)';
+
+    if ($primary_rgb) {
+        $primary_soft = sprintf(
+            'rgba(%1$d, %2$d, %3$d, 0.1)',
+            $primary_rgb[0],
+            $primary_rgb[1],
+            $primary_rgb[2]
+        );
+        $primary_focus = sprintf(
+            'rgba(%1$d, %2$d, %3$d, 0.2)',
+            $primary_rgb[0],
+            $primary_rgb[1],
+            $primary_rgb[2]
+        );
+    }
+
+    $css = sprintf(
+        ':root { --os-green: %1$s; --os-blue: %2$s; --os-orange: %3$s; --os-gold: %4$s; --os-danger: %5$s; --os-green-soft: %6$s; --os-green-focus: %7$s; }',
+        wp_strip_all_tags($colors['color_primary']),
+        wp_strip_all_tags($colors['color_secondary']),
+        wp_strip_all_tags($colors['color_accent']),
+        wp_strip_all_tags($colors['color_gold']),
+        wp_strip_all_tags($colors['color_danger']),
+        wp_strip_all_tags($primary_soft),
+        wp_strip_all_tags($primary_focus)
+    );
+
+    wp_add_inline_style($handle, $css);
+}
+
 function onlinesched_get_schedule_page_url()
 {
     $page_id = onlinesched_get_page_id('schedule', 'schedule');
