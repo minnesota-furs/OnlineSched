@@ -9,46 +9,50 @@ return [
                 'secret' => '',
             ],
             'scope' => 'email',
-	        'use-favicon' => [
-					'enabled' => true,
-					'favicon' => 'fa-google',
-		            'color' =>  '4285F4',
-	        ]
-
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-google',
+                'color' => '4285F4',
+            ],
         ],
-	    'Telegram' => [
-				'enabled' => true,
-		    'keys' => [
-				'id' => '',
-			    'secret' => '',
-		    ],
-			'scope' => 'email',
-		    'use-favicon' => [
-			    'enabled' => true,
-			    'favicon' => 'fa-telegram',
-			    'color' =>  '4285F4',
-		    ],
-	    ],
-	    'Discord' => [
-			'enabled' => true,
-		    'keys' => [
-				'id' => '',
-			    'secret' => '',
-		    ],
-		    'scope' => 'identify email',
-		    'use-favicon' => [
-			    'enabled' => true,
-			    'favicon' => 'fa-discord',
-			    'color' =>  '4285F4',
-		    ],
-	    ],
-	    'Facebook'  => [
+        'Telegram' => [
             'enabled' => true,
             'keys' => [
                 'id' => '',
                 'secret' => '',
             ],
             'scope' => 'email',
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-telegram',
+                'color' => '229ED9',
+            ],
+        ],
+        'Discord' => [
+            'enabled' => true,
+            'keys' => [
+                'id' => '',
+                'secret' => '',
+            ],
+            'scope' => 'identify email',
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-discord',
+                'color' => '5865F2',
+            ],
+        ],
+        'Facebook'  => [
+            'enabled' => true,
+            'keys' => [
+                'id' => '',
+                'secret' => '',
+            ],
+            'scope' => 'email',
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-facebook',
+                'color' => '1877F2',
+            ],
         ],
         'Steam' => [
             'enabled' => false,

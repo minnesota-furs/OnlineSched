@@ -1,5 +1,33 @@
 <?php
+if (!defined('ABSPATH')) {
+	exit;
+}
+
 /* Used for theming */
+function onlinesched_get_template_part($slug, $args = array())
+{
+	$slug = trim((string) $slug, '/');
+	if ('' === $slug || preg_match('/[^A-Za-z0-9_\/-]/', $slug)) {
+		return false;
+	}
+
+	$template = locate_template(array('onlinesched/partials/' . $slug . '.php'), false, false);
+	if (!$template) {
+		$template = ONLINESCHED_PLUGIN_DIR . 'templates/partials/' . $slug . '.php';
+	}
+
+	if (!file_exists($template)) {
+		return false;
+	}
+
+	if (is_array($args) && !empty($args)) {
+		extract($args, EXTR_SKIP);
+	}
+
+	include $template;
+	return true;
+}
+
 function OnlineSched_terms_list($term, &$masterList = null): string
 {
 	$fields = ($masterList === null) ? 'names' : 'all';

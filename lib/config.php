@@ -168,6 +168,31 @@ function onlinesched_hex_to_rgb($hex)
     );
 }
 
+function onlinesched_relative_luminance($hex)
+{
+    $rgb = onlinesched_hex_to_rgb($hex);
+    if (!$rgb) {
+        return 0.0;
+    }
+
+    $linear = array_map(function ($channel) {
+        $channel = $channel / 255;
+        return $channel <= 0.03928 ? $channel / 12.92 : pow(($channel + 0.055) / 1.055, 2.4);
+    }, $rgb);
+
+    return 0.2126 * $linear[0] + 0.7152 * $linear[1] + 0.0722 * $linear[2];
+}
+
+function onlinesched_contrast_ratio($hex_a, $hex_b)
+{
+    $luminance_a = onlinesched_relative_luminance($hex_a);
+    $luminance_b = onlinesched_relative_luminance($hex_b);
+    $lighter = max($luminance_a, $luminance_b);
+    $darker = min($luminance_a, $luminance_b);
+
+    return ($lighter + 0.05) / ($darker + 0.05);
+}
+
 function onlinesched_get_colors()
 {
     $colors = array();
@@ -194,6 +219,8 @@ function onlinesched_add_color_inline_style($handle = 'online-schedule-css')
     $primary_rgb = onlinesched_hex_to_rgb($colors['color_primary']);
     $primary_soft = '#e6f7ee';
     $primary_focus = 'rgba(1, 121, 64, 0.2)';
+    $modal_chrome = $colors['color_primary'];
+    $modal_chrome_focus = $primary_focus;
 
     if ($primary_rgb) {
         $primary_soft = sprintf(
@@ -208,20 +235,90 @@ function onlinesched_add_color_inline_style($handle = 'online-schedule-css')
             $primary_rgb[1],
             $primary_rgb[2]
         );
+        $modal_chrome_focus = $primary_focus;
+    }
+
+    if (onlinesched_contrast_ratio($colors['color_primary'], '#ffffff') < 4.5) {
+        $modal_chrome = '#4a4a4a';
+        $modal_chrome_focus = 'rgba(74, 74, 74, 0.25)';
     }
 
     $css = sprintf(
-        ':root { --os-green: %1$s; --os-blue: %2$s; --os-orange: %3$s; --os-gold: %4$s; --os-danger: %5$s; --os-green-soft: %6$s; --os-green-focus: %7$s; }',
+        ':root { --os-green: %1$s; --os-blue: %2$s; --os-orange: %3$s; --os-gold: %4$s; --os-danger: %5$s; --os-green-soft: %6$s; --os-green-focus: %7$s; --os-modal-chrome: %8$s; --os-modal-chrome-focus: %9$s; }',
         wp_strip_all_tags($colors['color_primary']),
         wp_strip_all_tags($colors['color_secondary']),
         wp_strip_all_tags($colors['color_accent']),
         wp_strip_all_tags($colors['color_gold']),
         wp_strip_all_tags($colors['color_danger']),
         wp_strip_all_tags($primary_soft),
-        wp_strip_all_tags($primary_focus)
+        wp_strip_all_tags($primary_focus),
+        wp_strip_all_tags($modal_chrome),
+        wp_strip_all_tags($modal_chrome_focus)
     );
 
     wp_add_inline_style($handle, $css);
+}
+
+function onlinesched_get_provider_icon_allowed_html()
+{
+    return array(
+        'i' => array(
+            'aria-hidden' => true,
+            'class' => true,
+            'style' => true,
+            'title' => true,
+        ),
+        'span' => array(
+            'aria-hidden' => true,
+            'class' => true,
+            'style' => true,
+            'title' => true,
+        ),
+        'svg' => array(
+            'aria-hidden' => true,
+            'aria-label' => true,
+            'class' => true,
+            'fill' => true,
+            'focusable' => true,
+            'height' => true,
+            'role' => true,
+            'style' => true,
+            'viewBox' => true,
+            'viewbox' => true,
+            'width' => true,
+            'xmlns' => true,
+        ),
+        'path' => array(
+            'clip-rule' => true,
+            'd' => true,
+            'fill' => true,
+            'fill-rule' => true,
+            'stroke' => true,
+            'stroke-width' => true,
+        ),
+        'g' => array(
+            'fill' => true,
+            'stroke' => true,
+            'transform' => true,
+        ),
+        'title' => array(),
+    );
+}
+
+function onlinesched_get_provider_icon_html($provider, $provider_data)
+{
+    $icon = '<i class="fas fa-user" style="margin-right:8px;" aria-hidden="true"></i>';
+
+    if (isset($provider_data['use-favicon']) && !empty($provider_data['use-favicon']['enabled'])) {
+        $favicon = !empty($provider_data['use-favicon']['favicon']) ? sanitize_html_class($provider_data['use-favicon']['favicon']) : 'fa-user';
+        $color = !empty($provider_data['use-favicon']['color']) ? sanitize_hex_color('#' . ltrim($provider_data['use-favicon']['color'], '#')) : '';
+        $style = $color ? 'color:' . $color . '; margin-right:8px;' : 'margin-right:8px;';
+        $icon = '<i class="fab ' . esc_attr($favicon) . '" style="' . esc_attr($style) . '" aria-hidden="true"></i>';
+    }
+
+    $icon = apply_filters('os_provider_icon_html', $icon, $provider, $provider_data);
+
+    return wp_kses($icon, onlinesched_get_provider_icon_allowed_html());
 }
 
 function onlinesched_get_schedule_page_url()

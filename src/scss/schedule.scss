@@ -518,9 +518,9 @@ dl.schedule-meta:after {
 #logout-modal-btn:focus,
 #info-modal-btn:hover,
 #info-modal-btn:focus {
-  background-color: var(--os-green);
+  background-color: var(--os-modal-chrome);
   color: #fff;
-  box-shadow: 0 0 0 2px var(--os-green-focus);
+  box-shadow: 0 0 0 2px var(--os-modal-chrome-focus);
   outline: none;
 }
 

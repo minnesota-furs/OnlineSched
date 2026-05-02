@@ -96,52 +96,7 @@ if (!empty($theming)) {
 $start = microtime(true);
 ?>
 
-    <!-- Login Modal -->
-    <dialog id="login-modal" class="os-modal login-modal" aria-modal="true" aria-label="Login">
-        <div class="os-modal__header">
-            <h3>Login</h3>
-            <button type="button" class="os-close" id="login-modal-close" aria-label="Close">&times;</button>
-        </div>
-        <div class="os-modal__body">
-            <p>You can keep track of your schedule by logging in. If you choose not to log in, any events you favorite will be saved locally on your device.</p>
-            <p>Login with your account:</p>
-            <div class="login-provider-list">
-            <?php
-            $social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
-            if (isset($social_config['providers']) && is_array($social_config['providers'])) {
-                foreach ($social_config['providers'] as $provider => $providerData) {
-                    $showProvider = function_exists('onlinesched_social_provider_is_enabled')
-                        ? onlinesched_social_provider_is_enabled($provider, $providerData)
-                        : false;
-                    if ($showProvider) {
-                        $icon = '';
-                        if (isset($providerData['use-favicon']) && !empty($providerData['use-favicon']['enabled'])) {
-                            $favicon = !empty($providerData['use-favicon']['favicon']) ? $providerData['use-favicon']['favicon'] : 'fa-user';
-                            $color = !empty($providerData['use-favicon']['color']) ? '#' . ltrim($providerData['use-favicon']['color'], '#') : '';
-                            $icon = '<i class="fab ' . esc_attr($favicon) . '" style="color:' . esc_attr($color) . '; margin-right:8px;"></i>';
-                        } else {
-                            switch (strtolower($provider)) {
-                                case 'facebook':
-                                    $icon = '<i class="fab fa-facebook" style="color:#4267B2; margin-right:8px;"></i>';
-                                    break;
-                                case 'twitter':
-                                    $icon = '<i class="fab fa-twitter" style="color:#1DA1F2; margin-right:8px;"></i>';
-                                    break;
-                                case 'discord':
-                                    $icon = '<i class="fab fa-discord" style="color:#7289DA; margin-right:8px;"></i>';
-                                    break;
-                                default:
-                                    $icon = '<i class="fas fa-user" style="margin-right:8px;"></i>';
-                            }
-                        }
-                        echo '<div class="login-provider-item"><button onclick="openLoginWithProvider(\'' . esc_js($provider) . '\', event)" class="os-btn os-btn--default">' . $icon . 'Login with ' . esc_html($provider) . '</button></div>';
-                    }
-                }
-            }
-            ?>
-            </div>
-        </div>
-    </dialog>
+    <?php onlinesched_get_template_part('login-modal'); ?>
     <div class="os-container">
         <div class="os-row">
             <div class="os-schedule-main">
@@ -174,87 +129,15 @@ $start = microtime(true);
                                 </button>
                             </div>
                         <?php } ?>
+                        <?php do_action('os_before_schedule'); ?>
                         <div id="schedule"
                              style="display:none; --os-sticky-top-offset:<?php echo esc_attr($sticky_offsets['desktop']); ?>px; --os-sticky-mobile-top-offset:<?php echo esc_attr($sticky_offsets['mobile']); ?>px;"
                              class="<?php echo esc_attr($cssClass); ?>">
-                            <ul class="os-tabs schedule-tabs" role="tablist">
-                                <li role="presentation" class="os-tabs__item os-tabs__item--active"><a href="#programming"
-                                                                          aria-controls="programming"
-                                                                          role="tab" data-os-tab="programming"
-                                                                          data-os-pane="programming"
-                                                                          onclick="setFilterEvents(true);"><span
-                                                class="os-hide-mobile"><?php echo esc_html($programming_tab_label); ?></span><span
-                                                class="os-show-mobile"><?php echo esc_html($programming_mobile_label); ?></span></a>
-                                </li>
-                                <li role="presentation" class="os-tabs__item"><a href="#essentials" aria-controls="programming" role="tab"
-                                                           data-os-tab="essentials"
-                                                           data-os-pane="programming"
-                                                           onclick="setFilterEvents(false);"><?php echo esc_html($essentials_tab_name); ?></a>
-                                </li>
-                                <?php if ($theming != "schedule") { ?>
-                                    <li role="presentation" class="os-tabs__item"><a href="#hours" aria-controls="hours" role="tab"
-                                                                data-os-tab="hours"
-                                                                id="hours-tab" onclick="scrollTopMenu()"><?php echo esc_html($hours_tab_label); ?></a></li>
-                                <?php } else { ?>
-                                    <li role="presentation" class="os-tabs__item"><a href="#map" aria-controls="map" role="tab"
-                                                                data-os-tab="map"
-                                                                id="map-tab" onclick="scrollTopMenu()"><?php echo esc_html($map_tab_label); ?></a></li>
-                                    <?php
-                                } ?>
-                            </ul>
+                            <?php onlinesched_get_template_part('schedule-tabs', compact('theming', 'programming_tab_label', 'programming_mobile_label', 'essentials_tab_name', 'hours_tab_label', 'map_tab_label')); ?>
 
                             <div class="os-tab-content">
-                                <div role="tabpanel" class="os-tab-pane os-tab-pane--active" id="programming">                                    <div class="schedule-sort os-well">
-                                        <div class="os-row">
-                                            <div class="os-col-sm-3">
-                                                <div class="schedule-search">
-                                                    <input class="os-form-control" type="text"
-                                                           placeholder="Type to search..."
-                                                           id="schedule-search-text" value=""
-                                                           autocomplete='off' <?php if ($theming == 'schedule') {
-                                                        echo " style='display:none;'";
-                                                    } ?>>
-                                                </div>
-                                            </div>
-                                            <div class="os-col-sm-2">
-                                                <select class="os-form-control" id="schedule-select-tags">
-                                                    <option selected value="all">All Tags</option>
-                                                </select>
-                                            </div>
-                                            <div class="os-col-sm-2">
-                                                <select class="os-form-control" id="schedule-select-days">
-                                                    <option value="all">All Days</option>
-                                                    <option selected value="Current">Now and Future</option>
-                                                </select>
-                                            </div>
-                                            <div class="os-col-sm-2">
-                                                <select class="os-form-control" id="schedule-select-rooms">
-                                                    <option selected value="all">All Rooms</option>
-                                                </select>
-                                            </div>
-                                            <?php if (!$liveStreaming && $theming != "schedule") { ?>
-                                                <div class="os-col-sm-1 schedule-favorites-filter"
-                                                     style="display: flex; align-items: center;">
-                                                    <button class="os-btn os-btn--default os-btn--sm os-btn--block schedule-favorites-toggle"
-                                                            id="schedule-favorites-toggle" title="Show Favorites Only"
-                                                            aria-pressed="false"
-                                                            style="display: flex; align-items: center; justify-content: center; height: 34px;">
-                                                        <span class="favorite-label-mobile"
-                                                              style="margin-right: 4px; display: none;">Favorite</span>
-                                                        <i class="far fa-star" aria-hidden="true"
-                                                           style="color: var(--os-gold, #f6c700);"></i>
-                                                        <span class="os-sr-only">Show Favorites Only</span>
-                                                    </button>
-                                                </div>
-                                            <?php } ?>
-                                            <div class="os-col-sm-2 schedule-reset">
-                                                <button class="os-btn os-btn--primary os-btn--sm os-btn--block" disabled
-                                                        id="schedule-reset"><i
-                                                            class="fa fa-refresh" aria-hidden="true"></i> Reset
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div role="tabpanel" class="os-tab-pane os-tab-pane--active" id="programming">
+                                    <?php onlinesched_get_template_part('schedule-filters', compact('theming', 'liveStreaming')); ?>
                                     <?php
 
                                     $dayofweek = 'none';
@@ -282,6 +165,13 @@ $start = microtime(true);
                                     }
 
                                     // THis allows us to sort more effectively so we don't need multiple loops
+                                    $filtered_args = apply_filters('os_schedule_query_args', $args);
+                                    if (is_array($filtered_args)) {
+                                        $args = $filtered_args;
+                                    } else {
+                                        _doing_it_wrong('os_schedule_query_args', 'The os_schedule_query_args filter must return an array.', '1.0.0');
+                                    }
+
                                     add_filter('posts_clauses', 'modify_wp_query_clauses', 10, 2);
                                     $loop = new WP_Query($args);
                                     // Bulk prefetch post meta for all queried posts
@@ -470,99 +360,33 @@ $start = microtime(true);
 
                                                 $hourduration = ($sorttime != 0) ? $prettyDuration : "Unscheduled";
 
-                                                // Build the row container
-                                                $row_style = $row_highlight_color ? ' style="background-color: ' . esc_attr($row_highlight_color) . ';"' : '';
-                                                echo '<div id="onlineevt-' . get_the_ID() . '" class="os-row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-end-time="' . $sortEndTimeGMT . '"' . $row_style . '>';
-
-                                                $hiddenLg = $liveStreaming ? ' os-hide-desktop' : '';
-                                                $titleLg = $liveStreaming ? ' os-col-lg-7' : '';
-
-                                                // Build badges using the exact case type
-                                                $badgeSpans = '';
-                                                foreach ($badge_types_present as $type => $terms) {
-                                                    $type_lc = strtolower($type);
-                                                    $show_badge = true;
-                                                    if (isset($badge_types_display[$type])) {
-                                                        $show_badge = $badge_types_display[$type];
-                                                    }
-                                                    $color = isset($badge_types_colors[$type]) ? $badge_types_colors[$type] : '';
-                                                    $style = ($color !== '') ? "background-color: $color;" : '';
-                                                    $fg_color = isset($badge_types_fg_colors[$type]) && $badge_types_fg_colors[$type] ? $badge_types_fg_colors[$type] : '';
-                                                    $fg_style = ($fg_color !== '') ? "color: $fg_color;" : '';
-
-                                                    if ($show_badge) {
-                                                        if (!empty($badge_types_icons[$type])) {
-                                                            $icon_class_raw = $badge_types_icons[$type];
-                                                            $icon_class = esc_attr($icon_class_raw);
-                                                            $label = esc_html(ucwords($type));
-                                                            // If the icon class contains 'fa-', use it as-is. Otherwise, prepend 'fa-classic fa-'
-                                                            if (strpos($icon_class_raw, 'fa-') !== false) {
-                                                                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> <span class='os-sr-only'>" . $label . "</span></span>";
-                                                            } else {
-                                                                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='fa-classic fa-" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> <span class='os-sr-only'>" . $label . "</span></span>";
-                                                            }
-                                                        } elseif (isset($canonical_badges[$type_lc])) {
-                                                            $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
-                                                            $badgeSpans .= str_replace("'>", "'" . $span_style . ">", $canonical_badges[$type_lc]);
-                                                        } else {
-                                                            $class = 'os-badge--' . sanitize_title_with_dashes($type);
-                                                            $label = esc_html(ucwords($type));
-                                                            $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
-                                                            $badgeSpans .= " <span class='os-badge $class'$span_style>$label</span>";
-                                                        }
-                                                    }
-                                                }
-
-                                                echo '<div class="os-col-md-3 os-col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule">' . get_the_title(get_the_ID()) . '</a>' . $badgeSpans . '</div>';
-                                                echo '<hr class="visible-sm">';
-                                                $filterLinkClass = ($theming != 'schedule') ? ' schedule-filter-link' : '';
-                                                echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . '">';
-                                                echo '<dt><i class="fa ' . $roomClassMarker . '" aria-hidden="true"></i></dt>';
-                                                echo '<dd class="schedule-room' . $filterLinkClass . '">' . $rooms . '</dd>';
-                                                echo '</dl>';
-                                                echo '<dl class="os-col-md-2 os-col-sm-3' . $hideTime . '">';
-                                                echo '<dt><i class="far fa-clock" aria-hidden="true"></i></dt>';
-                                                echo '<dd class="schedule-time"><span class="os-sr-only">' . date('g:i A', $sorttime) . '</span>' . esc_html($hourduration) . '</dd>';
-                                                echo '</dl>';
-                                                echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . ' os-hide-mobile">';
-                                                if ($tags != 'None') {
-                                                    echo '<dt><i class="fa fa-tags" aria-hidden="true"></i></dt>';
-                                                    echo '<dd class="schedule-tags' . $filterLinkClass . '">' . $tags . '</dd>';
-                                                }
-                                                echo '</dl>';
-                                                echo '<dl class="os-col-md-2 os-col-sm-3 os-hide-mobile">';
-                                                if ($panelists != 'None') {
-                                                    echo '<dt><i class="fa fa-user" aria-hidden="true"></i></dt>';
-                                                    echo '<dd class="schedule-panelists">' . $panelists . '</dd>';
-                                                }
-                                                echo '</dl>';
-                                                echo '<div class="schedule-calendar' . $hiddenLg . '">';
-                                                if (!$eventCancelled) {
-                                                    if ($theming != "schedule") {
-                                                        // Star toggle button (favorite)
-                                                        echo '<button class="schedule-favorite-toggle" title="Mark as favorite" data-event-id="' . get_the_ID() . '"><i class="far fa-star" aria-hidden="true"></i></button>';
-                                                        $ical_base_url = ONLINESCHED_PLUGIN_URL;
-                                                        $ical_base_url = preg_replace('/^https?:\/\//', '', $ical_base_url); // Remove http:// or https://
-                                                        $ical_link = 'webcal://' . $ical_base_url . 'ical.php?cal-id=' . get_the_ID();
-                                                        echo '<button title="copy to clipboard" class="schedule-clipboard"><i class="fas fa-copy" aria-hidden="true"></i></button>';
-                                                        echo '<a href="' . $ical_link . '" title="Add to Apple Calendar" class="schedule-ical" target="_blank" onclick="return confirmCalendarAppleSubscription(this);"><i class="fab fa-apple" aria-hidden="true"></i></a>';
-                                                        $googleLink = 'https://calendar.google.com/calendar/r?cid=' . urlencode($ical_link);
-                                                        echo '<a href="' . $googleLink . '" title="Add to Google Calendar" class="schedule-google" target="_blank" onclick="return confirmCalendarGoogleSubscription(this);"><i class="fab fa-google" aria-hidden="true"></i></a>';
-                                                    }
-                                                }
-                                                echo '</div>';
-                                                if (!$eventCancelled) {
-
-                                                    $eventDescription = get_the_content();
-                                                    if ($filterLINKS) {
-                                                        $eventDescription = strip_tags(preg_replace('/<a href="(.*)">/', '$1', $eventDescription));
-                                                    }
-
-
-                                                    echo '<div class="schedule-description">' . $eventDescription . '</div>';
-                                                }
-
-                                                echo '</div>';
+                                                onlinesched_get_template_part('schedule-event-row', compact(
+                                                    'addCanceledClass',
+                                                    'addGOHClass',
+                                                    'addScheduleRoom',
+                                                    'addScheduleTags',
+                                                    'addSpecialGuestClass',
+                                                    'addVIPClass',
+                                                    'badge_types_colors',
+                                                    'badge_types_display',
+                                                    'badge_types_fg_colors',
+                                                    'badge_types_icons',
+                                                    'badge_types_present',
+                                                    'canonical_badges',
+                                                    'eventCancelled',
+                                                    'filterLINKS',
+                                                    'hideTime',
+                                                    'hourduration',
+                                                    'liveStreaming',
+                                                    'panelists',
+                                                    'roomClassMarker',
+                                                    'rooms',
+                                                    'row_highlight_color',
+                                                    'sortEndTimeGMT',
+                                                    'sorttime',
+                                                    'tags',
+                                                    'theming'
+                                                ));
                                             endwhile;
                                             $html = ob_get_clean();
                                             echo $html;
@@ -572,114 +396,23 @@ $start = microtime(true);
                                     <?php if ($theming != "schedule" && !$liveStreaming) {
 
                                         ?>
-                                        <script>
-                                            var scheduleMasterRooms = <?php echo json_encode(decode_array_keys($masterRooms));?>;
-                                            var scheduleMasterTags = <?php echo json_encode(decode_array_keys($masterTags));?>;
-                                        </script>
-                                        <div id="schedule-add-to-calendar">
-                                            <div class="os-row" id="schedule-add-to-calendar-div">
-                                                <div class="os-col-xs-12 os-col-md-7 schedule-add-to-calendar-blurb d-flex align-items-center">
-                                                    Do you like what you see?<br/><span
-                                                            id="schedule-add-to-calendar-message">Add this filtered list to your calendar!</span>
-                                                </div>
-                                                <div class="os-col-xs-12 os-col-md-5 schedule-add-to-calendar-buttons">
-                                                    <button onclick="open_calendar_google()"
-                                                            aria-label="Add subscription"><i class="fab fa-google"
-                                                                                             aria-hidden="true"></i><br/>
-                                                        Add to Google
-                                                    </button>
-                                                    <button onclick="open_calendar_apple()"
-                                                            aria-label="Add subscription"><i class="fab fa-apple"
-                                                                                             aria-hidden="true"></i><br/>
-                                                        Add To Apple<br/>(WebCal)
-                                                    </button>
-                                                    <button onclick="open_calendar_outlook()"
-                                                            aria-label="Add subscription"><i class="fas fa-calendar-alt"
-                                                                                             aria-hidden="true"></i><br/>
-                                                        Add To Outlook
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div id="schedule-key">
-
-
-                                            <div class="os-row">
-                                                <div class="os-col-xs-12">
-                                                    <h3>Key</h3>
-                                                    <p>
-                                                        <span style="display: flex; align-items: flex-start;">
-                                                        <i class="fab fa-apple"
-                                                           aria-label="Apple Symbol used to represent Apple's Calendar"
-                                                           style="margin-right:10px;"></i>
-                                                        Webcal/ICS file and feeds that work with all iCal-compatible and
-                                                        web calendars. If your browser isn't set up with application
-                                                        shortcuts for webcal://, it will download an ICS file that can
-                                                            be used by any calendar app.<br/>
-                                                        </span>
-                                                        <span style="display: flex; align-items: flex-start;">
-                                                        <i class="fab fa-google"
-                                                           aria-label="Google Symbol used to represent Google's Calendar"
-                                                           style="margin-right:10px;"></i>
-                                                        Native support for adding event entries directly to Google
-                                                            Calendar.<br/>
-                                                            </span>
-                                                        <span style="display: flex; align-items: flex-start;">
-                                                        <i class="fas fa-calendar-alt"
-                                                           aria-label="Calendar Symbol used to represent Outlook Web Calendar"
-                                                           style="margin-right:10px;"></i>
-                                                        Native support for adding events to the Outlook web calendar
-                                                            feed.<br/>
-                                                        </span>
-                                                        <span style="display: flex; align-items: flex-start;">
-                                                        <i class="fas fa-copy"
-                                                           aria-label="Copy symbol to represent copy to clipboard"
-                                                           style="margin-right:10px;"></i>
-                                                        Copies the specific programming event URL to the clipboard. It
-                                                        can be used to copy and paste through social media, email, and
-                                                            any other direct linking.</span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div class="os-row">
-                                                <div class="os-col-xs-12">
-                                                    <h2>Important Notes About Calendar Feeds</h2>
-                                                    <p>Please be aware that calendar feeds may not always reflect
-                                                        real-time updates and are controlled by calendar client. The
-                                                        website will always have the most up-to-date information. Update
-                                                        frequencies can vary:</p>
-                                                    <ul>
-                                                        <li>Apple updates upon app/program startup and every 1-3 hours.
-                                                            (I&rsquo;ve seen some default to as much as 1 week on my
-                                                            Mac)
-                                                        </li>
-                                                        <li>Google normally updates every 24 hours.</li>
-                                                        <li>Outlook updates upon app/program startup &amp; every 1-3
-                                                            hours.
-                                                        </li>
-                                                        <li>Outlook.com updates every 3 hours.</li>
-                                                        <li>Yahoo updates every 8-12 hours.</li>
-                                                    </ul>
-                                                    <p>Once the convention is over, please consider removing the feed
-                                                        from your calendar.</p>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <?php onlinesched_get_template_part('schedule-calendar-actions', compact('masterRooms', 'masterTags')); ?>
                                     <?php } ?>
                                 </div><!-- end of tab -->
 
                                 <div role="tabpanel" class="os-tab-pane" id="hours">
-                                    <?php echo onlinesched_get_page_content('hours', 'schedule'); ?>
+                                    <?php echo apply_filters('os_tab_hours_content', onlinesched_get_page_content('hours', 'schedule')); ?>
                                 </div>
 
                                 <!-- map for kiosk -->
                                 <div role="tabpanel" class="os-tab-pane" id="map">
-                                    <?php echo onlinesched_get_page_content('map', 'kiosk-schedule'); ?>
+                                    <?php echo apply_filters('os_tab_map_content', onlinesched_get_page_content('map', 'kiosk-schedule')); ?>
                                 </div>
 
                             </div><!-- end of tab container -->
 
                         </div>
+                        <?php do_action('os_after_schedule'); ?>
                     </div>
                 </div>
                 <?php if ($liveStreaming) {
@@ -687,125 +420,11 @@ $start = microtime(true);
         </div>
         <?php } ?>
     </div>
-    <dialog id="modal-schedule" class="os-modal" aria-modal="true">
-        <div class="os-modal__header">
-            <h3 id="modal-schedule-title"></h3>
-            <button type="button" class="os-close" aria-label="Close">&times;</button>
-        </div>
-        <div class="os-modal__body">
-            <p id="modal-schedule-description">&nbsp;</p>
-            <hr>
-            <div class="os-row">
-                <div class="os-col-sm-6">
-                    <dl class="schedule-meta">
-                        <dt><i class="fa fa-calendar" aria-hidden="true"></i></dt>
-                        <dd id="modal-schedule-date">&nbsp;</dd>
-                        <dt><i class="far fa-clock" aria-hidden="true"></i></dt>
-                        <dd id="modal-schedule-time">&nbsp;</dd>
-                        <dt><i class="fa fa-map-marker" aria-hidden="true"></i></dt>
-                        <dd id="modal-schedule-room">&nbsp;</dd>
-                    </dl>
-                </div>
-                <div class="os-col-sm-6">
-                    <dl class="schedule-meta">
-                        <dt><i class="fa fa-tags" aria-hidden="true"></i></dt>
-                        <dd id="modal-schedule-tags">&nbsp;</dd>
-                        <dt><i class="fa fa-user" aria-hidden="true"></i></dt>
-                        <dd id="modal-schedule-panelists">&nbsp;</dd>
-                    </dl>
-                </div>
-            </div>
-        </div>
-        <?php if ($theming != "schedule") { ?>
-            <div class="os-modal__footer"><a href="#" class="os-btn os-btn--default" id="modal-schedule-ical"
-                                             target="_blank"><i class="fab fa-apple" aria-hidden="true"></i> Apple
-                    Calendar</a> <a href="#" class="os-btn os-btn--default" id="modal-schedule-google" target="_blank"><i
-                            class="fab fa-google" aria-hidden="true"></i> Google Calendar</a>
-                <button href="#" class="os-btn os-btn--default" id="modal-copy-url">
-                    <i class="fas fa-copy" aria-hidden="true"></i> Copy
-                </button>
-            </div>
-        <?php } ?>
-    </dialog>
-    <!-- Info Modal -->
-    <dialog id="info-modal" class="os-modal info-modal" aria-modal="true">
-        <div class="os-modal__header">
-            <h3>How Favorites, Login, Calendar, and Sharing Work</h3>
-            <button type="button" class="os-close" id="info-modal-close" aria-label="Close">&times;</button>
-        </div>
-        <div class="os-modal__body">
-            <div style="font-size:1.1em;">
-                <p><strong><i class="far fa-star" aria-hidden="true"></i> Favorites:</strong> Mark events as favorites to keep track of your schedule. If you're not logged in, your favorites are saved only on this device. If you log in, your favorites are saved to your account and sync across devices.</p>
-                <p><strong><i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login:</strong> Logging in lets you save your schedule and favorites to your account, so you can access them from any device. Your login info is only used to identify you, nothing more! And won't be kept past the convention.</p>
-                <p><strong><i class="far fa-calendar-alt" aria-hidden="true"></i> Calendar:</strong> Add events or your whole schedule to your calendar (Google, Apple, Outlook). You can add individual events by tapping the calendar icons, or add everything at once from the bottom of the page. Calendar feeds update periodically, but may not always reflect real-time changes. For the latest info, check this website.</p>
-                <p><strong><i class="fas fa-copy" aria-hidden="true"></i> Share:</strong> Want to share an event with a friend? Tap the copy icon to grab the event link and paste it anywhere like social media, email, chat, on side of your car, Rico's hand, or stiched on your fursuit. No tech wizardry required!</p>
-            </div>
-        </div>
-    </dialog>
-
-    <!-- Android Google Calendar Modal -->
-    <dialog id="android-google-calendar-modal" class="os-modal android-gcal-options-four" aria-modal="true">
-        <div class="os-modal__header">
-            <h3>Google Calendar on Android</h3>
-            <button type="button" class="os-close" id="android-google-calendar-modal-close" aria-label="Close">&times;</button>
-        </div>
-        <div class="os-modal__body">
-            <p><strong>Google Calendar on Android does not support direct calendar subscriptions via webcal/ics links.</strong></p>
-            <div class="android-gcal-apology">
-                <i class="fa fa-exclamation-triangle" aria-hidden="true" style="margin-right:6px;"></i>
-                We apologize for the inconvenience.... Google Calendar on Android does not support direct calendar subscriptions. We hope Google or our team can improve this in the future!
-            </div>
-            <p class="android-gcal-options-text">You have these options below:</p>
-            <ol class="android-gcal-options-list">
-                <li class="android-gcal-onetime-section">
-                    <span class="android-gcal-option-icon"><i class="fa fa-calendar-plus" aria-hidden="true"></i></span>
-                    <strong>One Time Google Event:</strong>
-                    <span class="android-gcal-onetime-desc">Create a single event in your Google Calendar for this session. This does not subscribe you to future updates, changes, or cancellations.</span>
-                    <div class="android-gcal-buttons">
-                        <button class="os-btn os-btn--default os-btn--block android-gcal-onetime-btn"><i class="fab fa-google"></i> <i class="fa fa-calendar"></i> One-Time Google Event</button>
-                    </div>
-                </li>
-                <li>
-                    <span class="android-gcal-option-icon"><i class="fab fa-google" aria-hidden="true"></i></span>
-                    <strong>Try the official Google Calendar link:</strong> This may not work on Android, but you can try. It's been spotty for 15+ years.
-                    <div class="android-gcal-buttons">
-                        <button class="os-btn os-btn--primary os-btn--block" id="android-gcal-try-link"><i class="fab fa-google"></i> Try Google Calendar (may not work)</button>
-                    </div>
-                </li>
-                <li>
-                    <span class="android-gcal-option-icon"><i class="fa fa-download" aria-hidden="true"></i></span>
-                    <strong>Download the calendar file (.ics):</strong> You can manually import this file into Google Calendar by double clicking it. Those will not sync from the web.
-                    <div class="android-gcal-buttons">
-                        <a class="os-btn os-btn--default os-btn--block" id="android-gcal-download" href="#" download>
-                            <i class="fa fa-download"></i> Download calendar file (.ics)
-                        </a>
-                    </div>
-                </li>
-                <li>
-                    <span class="android-gcal-option-icon"><i class="fa fa-copy" aria-hidden="true"></i></span>
-                    <strong>Copy the calendar subscription link:</strong> You can add this link manually in Google Calendar settings.
-                    <div class="android-gcal-buttons">
-                        <button class="os-btn os-btn--default os-btn--block" id="android-gcal-copy"><i class="fa fa-copy"></i> Copy calendar link</button>
-                    </div>
-                    <div id="android-gcal-copy-confirm" style="display:none;"><i class="fa fa-check"></i> Link copied!</div>
-                    <div class="android-gcal-manual-instructions">
-                        <strong>Manual Add Instructions:</strong>
-                        <ol>
-                            <li>Click the <b>Copy calendar link</b> button above.</li>
-                            <li>Go to <a href="https://calendar.google.com" target="_blank" rel="noopener">Google Calendar</a> on a computer.</li>
-                            <li>In the left sidebar, click the <b>+</b> next to <b>Other calendars</b> and choose <b>From URL</b>.</li>
-                            <li>Paste the copied link and click <b>Add calendar</b>.</li>
-                            <li>Your calendar will appear under "Other calendars" and update automatically.</li>
-                        </ol>
-                    </div>
-                </li>
-                <li>
-                    <span class="android-gcal-option-icon"><i class="fa fa-desktop" aria-hidden="true"></i></span>
-                    <strong>Subscribe on a computer:</strong> Google recommends this, <a href="https://support.google.com/calendar/answer/37118?hl=en&co=GENIE.Platform%3DAndroid&oco=1" target="_blank" rel="noopener">Seriously</a>. If you are on the computer and you hit the icon and it will subscribe to Google calendar.
-                </li>
-            </ol>
-        </div>
-    </dialog>
+    <?php
+    onlinesched_get_template_part('schedule-event-modal', compact('theming'));
+    onlinesched_get_template_part('info-modal');
+    onlinesched_get_template_part('android-google-calendar-modal');
+    ?>
 <?php
 // Only use custom provider/cookie/session for login state
 $social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
