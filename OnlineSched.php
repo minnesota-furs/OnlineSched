@@ -22,6 +22,18 @@ Todo List:
 - Check into github.com repo and update "Plugin URI:"
 */
 
+if (!defined('ONLINESCHED_PLUGIN_FILE')) {
+	define('ONLINESCHED_PLUGIN_FILE', __FILE__);
+}
+
+if (!defined('ONLINESCHED_PLUGIN_DIR')) {
+	define('ONLINESCHED_PLUGIN_DIR', plugin_dir_path(__FILE__));
+}
+
+if (!defined('ONLINESCHED_PLUGIN_URL')) {
+	define('ONLINESCHED_PLUGIN_URL', plugin_dir_url(__FILE__));
+}
+
 include_once("lib/config.php");
 include_once("lib/theme.php");
 include_once("lib/help.php");

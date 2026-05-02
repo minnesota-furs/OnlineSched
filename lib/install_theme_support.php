@@ -1,4 +1,8 @@
 <?php
+if (!defined('ABSPATH')) {
+	exit;
+}
+
 function online_schedule_register_plugin_page_template($page_templates, $theme, $post)
 {
 	$page_templates['page-schedule.php'] = 'Online Schedule';
@@ -23,11 +27,18 @@ function online_schedule_load_plugin_template($template)
 	$template_name = get_post_meta($post->ID, '_wp_page_template', true);
 	$is_os_template = ('page-schedule.php' === $template_name);
 
-	if ($is_os_page || $is_os_template) {
-		$template_path = plugin_dir_path(dirname(__FILE__)) . 'templates/page-schedule.php';
-		if (file_exists($template_path)) {
-			return $template_path;
-		}
+	if (!$is_os_page && !$is_os_template) {
+		return $template;
+	}
+
+	$theme_template = locate_template(array('onlinesched/page-schedule.php'), false, false);
+	if ($theme_template) {
+		return $theme_template;
+	}
+
+	$plugin_template = ONLINESCHED_PLUGIN_DIR . 'templates/page-schedule.php';
+	if (file_exists($plugin_template)) {
+		return $plugin_template;
 	}
 
 	return $template;

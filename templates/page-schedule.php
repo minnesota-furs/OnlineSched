@@ -20,14 +20,14 @@ if (!defined('ABSPATH')) {
  * @filesource     wp-content/plugins/OnlineSched/grid.php
  */
 
-wp_enqueue_style('online-schedule-css', plugin_dir_url(dirname(__FILE__)) . "build/main.css", array(), filemtime(plugin_dir_path(dirname(__FILE__)) . "build/main.css"));
+wp_enqueue_style('online-schedule-css', ONLINESCHED_PLUGIN_URL . "build/main.css", array(), filemtime(ONLINESCHED_PLUGIN_DIR . "build/main.css"));
 onlinesched_add_color_inline_style('online-schedule-css');
-wp_enqueue_script('online-schedule-js', plugin_dir_url(dirname(__FILE__)) . "build/bundle.js", array(), filemtime(plugin_dir_path(dirname(__FILE__)) . 'build/bundle.js'));
+wp_enqueue_script('online-schedule-js', ONLINESCHED_PLUGIN_URL . "build/bundle.js", array(), filemtime(ONLINESCHED_PLUGIN_DIR . 'build/bundle.js'));
 wp_localize_script('online-schedule-js', 'OnlineSchedPublic', array(
     'nonce' => wp_create_nonce('onlinesched_public'),
-    'saveFavoritesUrl' => plugin_dir_url(dirname(__FILE__)) . 'includes/save_favorites.php',
-    'loginStateUrl' => plugin_dir_url(dirname(__FILE__)) . 'includes/login_state.php',
-    'getFavoritesUrl' => plugin_dir_url(dirname(__FILE__)) . 'includes/get_favorites.php',
+    'saveFavoritesUrl' => ONLINESCHED_PLUGIN_URL . 'includes/save_favorites.php',
+    'loginStateUrl' => ONLINESCHED_PLUGIN_URL . 'includes/login_state.php',
+    'getFavoritesUrl' => ONLINESCHED_PLUGIN_URL . 'includes/get_favorites.php',
 ));
 
 
@@ -88,7 +88,7 @@ $masterTags = array();
 $masterRooms = array();
 
 if (!empty($theming)) {
-    include plugin_dir_path(__FILE__) . $theming_filename;
+    include ONLINESCHED_PLUGIN_DIR . 'templates/' . $theming_filename;
 } else {
     get_header();
 }
@@ -107,7 +107,7 @@ $start = microtime(true);
             <p>Login with your account:</p>
             <div class="login-provider-list">
             <?php
-            $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
+            $social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
             if (isset($social_config['providers']) && is_array($social_config['providers'])) {
                 foreach ($social_config['providers'] as $provider => $providerData) {
                     $showProvider = function_exists('onlinesched_social_provider_is_enabled')
@@ -541,7 +541,7 @@ $start = microtime(true);
                                                     if ($theming != "schedule") {
                                                         // Star toggle button (favorite)
                                                         echo '<button class="schedule-favorite-toggle" title="Mark as favorite" data-event-id="' . get_the_ID() . '"><i class="far fa-star" aria-hidden="true"></i></button>';
-                                                        $ical_base_url = plugin_dir_url(dirname(__FILE__));
+                                                        $ical_base_url = ONLINESCHED_PLUGIN_URL;
                                                         $ical_base_url = preg_replace('/^https?:\/\//', '', $ical_base_url); // Remove http:// or https://
                                                         $ical_link = 'webcal://' . $ical_base_url . 'ical.php?cal-id=' . get_the_ID();
                                                         echo '<button title="copy to clipboard" class="schedule-clipboard"><i class="fas fa-copy" aria-hidden="true"></i></button>';
@@ -808,7 +808,7 @@ $start = microtime(true);
     </dialog>
 <?php
 // Only use custom provider/cookie/session for login state
-$social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
+$social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
 $valid_providers = array_keys($social_config['providers']);
 $provider = isset($_SESSION['provider']) ? $_SESSION['provider'] : '';
 $identifier = isset($_COOKIE['onlinesched_identifier']) ? $_COOKIE['onlinesched_identifier'] : '';
