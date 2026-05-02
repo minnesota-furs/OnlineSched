@@ -92,7 +92,7 @@ class iCalGen {
 
 $filename='-all';
 $args = array( 
-	'post_type' => 'event_schedule',
+	'post_type' => 'os_event',
 #	'orderby' => 'title',		## XX Think this is wrong
 	'meta_key' => 'onlinesched_sorttime',
 	'orderby' => 'meta_value',
@@ -111,7 +111,7 @@ if (!empty($_REQUEST['room'] || !empty($_REQUEST['rooms']))) {
 	if (strtolower($clean_slug) !== 'all') {
 		$args['tax_query'] = array(
 			array(
-				'taxonomy' => 'event_schedule_room_type',
+				'taxonomy' => 'os_room',
 				'field' => 'slug',
 				'terms' => $sanitized_slugs,
 			)
@@ -133,7 +133,7 @@ if (!empty($_REQUEST['tag']) || !empty($_REQUEST['tags'])) {
 		}
 		$args['tax_query'][] =
 			array(
-				'taxonomy' => 'event_schedule_tags_type',
+				'taxonomy' => 'os_tag',
 				'field' => 'slug',
 				'terms' => $sanitized_slugs,
 			);
@@ -173,7 +173,7 @@ foreach ($postsArr as $item) {
 	}
 
 	## If the current onlinesched_year is not our current year, skip event
-	if ( $year != get_option( 'event_schedule_year' ) ) {
+	if ( $year != get_option( 'onlinesched_year' ) ) {
 		continue;
 	}
 
@@ -205,10 +205,10 @@ foreach ($postsArr as $item) {
 	$limit--;
 
 
-	$rooms = OnlineSched_terms_list2('event_schedule_room_type', $postId);
+	$rooms = OnlineSched_terms_list2('os_room', $postId);
 	$rooms = html_entity_decode($rooms);
 
-	$tags = OnlineSched_terms_list2('event_schedule_tags_type', $postId);
+	$tags = OnlineSched_terms_list2('os_tag', $postId);
 	$tagsArray   = array_map( 'trim', explode( ",", $tags ) );
 	$eventCancelled = array_reduce($tagsArray, function($carry, $item) {
 		$lowercaseItem = strtolower($item);
@@ -241,7 +241,7 @@ foreach ($postsArr as $item) {
 		   $rooms,
 		   html_entity_decode($item->post_title . $addAdultTag),
 		   $content,
-		   getEscapedCategoriesForICal($postId, 'event_schedule_tags_type'),
+		   getEscapedCategoriesForICal($postId, 'os_tag'),
 		$eventCancelled
 	);
 }
@@ -250,7 +250,7 @@ header('Content-type: text/calendar');
 header('Content-Disposition: attachment; filename="mnfm'.$filename.'.ics"');
 echo $iCal->display();
 
-function getEscapedCategoriesForICal($post_id, $tag = 'event_schedule_tags_type') {
+function getEscapedCategoriesForICal($post_id, $tag = 'os_tag') {
 	// Get the terms for the specified custom taxonomy
 	$terms = wp_get_post_terms($post_id, $tag, array('fields' => 'names'));
 

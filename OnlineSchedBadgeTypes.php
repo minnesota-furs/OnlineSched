@@ -17,7 +17,7 @@ add_action('admin_enqueue_scripts', function($hook) {
 
 function onlinesched_badge_types_page() {
 	// Handle add/edit/delete/restore
-	if (!current_user_can('manage_event_schedule_tags_type')) {
+	if (!current_user_can('manage_os_tag')) {
 		wp_die('You do not have permission to manage badge types.');
 	}
 
@@ -166,7 +166,7 @@ function onlinesched_badge_types_page() {
 			update_option($row_colors_option_name, $badge_types_row_colors);
 			// Remove badge_type meta from all tags referencing this badge type
 			$tags = get_terms([
-				'taxonomy' => 'event_schedule_tags_type',
+				'taxonomy' => 'os_tag',
 				'hide_empty' => false,
 			]);
 			foreach ($tags as $tag) {
@@ -486,7 +486,7 @@ function onlinesched_badge_types_page() {
 }
 
 // Add badge type field to ADD tag screen
-add_action('event_schedule_tags_type_add_form_fields', function() {
+add_action('os_tag_add_form_fields', function() {
     $badge_types = get_option('onlinesched_badge_types', array());
     if (!empty($badge_types)) {
         natcasesort($badge_types);
@@ -506,7 +506,7 @@ add_action('event_schedule_tags_type_add_form_fields', function() {
 });
 
 // Add badge type field to EDIT tag screen
-add_action('event_schedule_tags_type_edit_form_fields', function($term) {
+add_action('os_tag_edit_form_fields', function($term) {
     $badge_types = get_option('onlinesched_badge_types', array());
     if (!empty($badge_types)) {
         natcasesort($badge_types);
@@ -529,13 +529,13 @@ add_action('event_schedule_tags_type_edit_form_fields', function($term) {
 }, 10, 1);
 
 // Save badge type on tag CREATE
-add_action('created_event_schedule_tags_type', function($term_id) {
+add_action('created_os_tag', function($term_id) {
     $badge_type = isset($_POST['badge_type']) ? sanitize_text_field($_POST['badge_type']) : '';
     if ($badge_type) {
         update_term_meta($term_id, 'badge_type', $badge_type);
     } else {
         // Auto-assign badge type based on slug if not set
-        $term = get_term($term_id, 'event_schedule_tags_type');
+        $term = get_term($term_id, 'os_tag');
         $slug = $term ? $term->slug : '';
         $name = $term ? strtolower($term->name) : '';
         $default_slug_to_badge_type = [
@@ -558,7 +558,7 @@ add_action('created_event_schedule_tags_type', function($term_id) {
 }, 10, 1);
 
 // Save badge type on tag EDIT
-add_action('edited_event_schedule_tags_type', function($term_id) {
+add_action('edited_os_tag', function($term_id) {
     $badge_type = isset($_POST['badge_type']) ? sanitize_text_field($_POST['badge_type']) : '';
     if ($badge_type) {
         update_term_meta($term_id, 'badge_type', $badge_type);
@@ -567,7 +567,7 @@ add_action('edited_event_schedule_tags_type', function($term_id) {
 }, 10, 1);
 
 function onlinesched_assign_default_badge_types_ajax() {
-    if (!current_user_can('manage_event_schedule_tags_type')) {
+    if (!current_user_can('manage_os_tag')) {
         wp_send_json_error('Permission denied');
     }
     $default_slug_to_badge_type = [
@@ -582,7 +582,7 @@ function onlinesched_assign_default_badge_types_ajax() {
         'canceled' => 'Cancelled',
     ];
     $tags = get_terms([
-        'taxonomy' => 'event_schedule_tags_type',
+        'taxonomy' => 'os_tag',
         'hide_empty' => false,
     ]);
     $updated = 0;

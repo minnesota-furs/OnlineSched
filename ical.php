@@ -109,7 +109,7 @@ if (!is_numeric($duration) || $duration < 0) {
 }
 $endTime = $startTime + ($duration * 60);
 
-$rooms = OnlineSched_terms_list2('event_schedule_room_type', $_post->ID);
+$rooms = OnlineSched_terms_list2('os_room', $_post->ID);
 $rooms = html_entity_decode($rooms);
 
 $dst = new DateTime('@'.$startTime);
@@ -120,7 +120,7 @@ $det = new DateTime('@'.$endTime);
 $det->setTimeZone(new DateTimeZone(date_default_timezone_get()));
 $det->setTimeZone(new DateTimeZone('UTC'));
 
-$tags = OnlineSched_terms_list2('event_schedule_tags_type', $id);
+$tags = OnlineSched_terms_list2('os_tag', $id);
 $tagsArray   = array_map( 'trim', explode( ",", $tags ) );
 $eventCancelled = array_reduce($tagsArray, function($carry, $item) {
 	$lowercaseItem = strtolower($item);
@@ -140,7 +140,7 @@ $iCal->add('cal-fm-'.$id,
 		   $rooms,
 	       html_entity_decode($_post->post_title),
 		   $content,
-		   getEscapedCategoriesForICal($id, 'event_schedule_tags_type'),
+		   getEscapedCategoriesForICal($id, 'os_tag'),
 			$eventCancelled
 		  );
 
@@ -149,7 +149,7 @@ header('Content-Disposition: attachment; filename="mnfm'.$id.'.ics"');
 echo $iCal->display();
 
 
-function getEscapedCategoriesForICal($post_id, $tag = 'event_schedule_tags_type') {
+function getEscapedCategoriesForICal($post_id, $tag = 'os_tag') {
 	// Get the terms for the specified custom taxonomy
 	$terms = wp_get_post_terms($post_id, $tag, array('fields' => 'names'));
 

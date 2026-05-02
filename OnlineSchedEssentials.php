@@ -3,13 +3,13 @@
 // Admin page for managing Essentials tags
 
 function onlinesched_essentials_page() {
-	if (!current_user_can('manage_event_schedule_tags_type')) {
+	if (!current_user_can('manage_os_tag')) {
 		wp_die('You do not have permission to manage Essentials settings.');
 	}
 	$option_name = 'onlinesched_essentials_tags';
 	$essentials_tags = get_option($option_name, array());
 	$tags = get_terms([
-		'taxonomy' => 'event_schedule_tags_type',
+		'taxonomy' => 'os_tag',
 		'hide_empty' => false,
 	]);
 	$option_tab_name = 'onlinesched_essentials_tab_name';

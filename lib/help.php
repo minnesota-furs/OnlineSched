@@ -3,7 +3,7 @@
 function OnlineSched_add_help_page() {
 	$screen = get_current_screen();
 
-	if ($screen->post_type == 'event_schedule' && $screen->taxonomy == '') {
+	if ($screen->post_type == 'os_event' && $screen->taxonomy == '') {
 
 		$screen->add_help_tab(array(
 			'id' => 'OnlineSched_general', 
@@ -26,7 +26,7 @@ function OnlineSched_add_help_page() {
 				'<li>Room - Name of the room in which the primary entrance should be defined.</li></ul></p>'.
 				'<p>Note: Please keep events within the physical day period.  As the system doesn\'t handle long multi-day events at this moment.</p>'
 		));
-	} else if ($screen->post_type == 'event_schedule' && $screen->taxonomy == 'event_schedule_room_type') {
+	} else if ($screen->post_type == 'os_event' && $screen->taxonomy == 'os_room') {
 
 		$screen->add_help_tab(array(
 			'id' => 'OnlineSched_general', 
@@ -38,7 +38,7 @@ function OnlineSched_add_help_page() {
 				'<li>Slug - Not used (auto assigned if left blank)</li></ul></p>' .
 				'<p>Note: As the system is designed there can be only one room assigned to an event. If multi-section rooms exists they should be addressed by the primary doorway that should be entered.</p>'
 		));
-	} else if ($screen->post_type == 'event_schedule' && $screen->taxonomy == 'event_schedule_tags_type') {
+	} else if ($screen->post_type == 'os_event' && $screen->taxonomy == 'os_tag') {
 
 		$screen->add_help_tab(array(
 			'id' => 'OnlineSched_general', 
@@ -51,7 +51,7 @@ function OnlineSched_add_help_page() {
 				'<li>Parent - Not used</li></ul></p>' .
 				'<p>Note: As the system is designed there can be only one room assigned to an event. If multi-section rooms exists they should be addressed by the primary doorway that should be entered.</p>'
 		));
-	} else if ($screen->post_type == 'event_schedule' && $screen->taxonomy == 'event_schedule_day_type') {
+	} else if ($screen->post_type == 'os_event' && $screen->taxonomy == 'os_day') {
 
 		$screen->add_help_tab(array(
 			'id' => 'OnlineSched_general', 
@@ -63,7 +63,7 @@ function OnlineSched_add_help_page() {
 				'<li>Slug - Not used (auto-assigned if left blank)</li>'.
 				'<p>Note: If Description is 0 or an invalid date, the software will mark it as "unknown" in the interface.</p>'
 		));
-	} else if ($screen->post_type == 'event_schedule' && $screen->taxonomy == 'event_schedule_panelist_type') {
+	} else if ($screen->post_type == 'os_event' && $screen->taxonomy == 'os_panelist') {
 
 		$screen->add_help_tab(array(
 			'id' => 'OnlineSched_general', 

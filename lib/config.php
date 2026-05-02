@@ -335,7 +335,7 @@ function onlinesched_get_schedule_page_url()
 function onlinesched_get_calendar_name()
 {
     $site_name = get_bloginfo('name');
-    $year = trim((string) get_option('event_schedule_year', wp_date('Y')));
+    $year = trim((string) get_option('onlinesched_year', wp_date('Y')));
 
     if ('' === $year || 'Event Schedule Year' === $year) {
         $year = wp_date('Y');

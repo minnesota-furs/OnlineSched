@@ -34,7 +34,7 @@ wp_localize_script('online-schedule-js', 'OnlineSchedPublic', array(
 $theming_filename = $theming = "";
 $badge_type_meta_cache = array();
 $gmt_offset = floatval(get_option('gmt_offset'));
-$event_schedule_year = get_option('event_schedule_year');
+$onlinesched_year = get_option('onlinesched_year');
 $essentials_tab_name = get_option('onlinesched_essentials_tab_name', 'Essentials');
 $programming_tab_label = onlinesched_get_config('tab_programming_label', 'Programming');
 $programming_mobile_label = onlinesched_get_config('tab_programming_mobile_label', 'Events');
@@ -144,7 +144,7 @@ $start = microtime(true);
                                     $hour = 'none';
 
                                     $args = array(
-                                            'post_type' => 'event_schedule',
+                                            'post_type' => 'os_event',
                                             'meta_key' => 'onlinesched_sorttime',
                                             'orderby' => array(
                                                     'onlinesched_sorttime' => 'ASC', // Order by meta_time first
@@ -158,7 +158,7 @@ $start = microtime(true);
                                         $args['tax_query']['relation'] = 'AND';
                                         $args['tax_query'][] =
                                                 array(
-                                                        'taxonomy' => 'event_schedule_tags_type',
+                                                        'taxonomy' => 'os_tag',
                                                         'field' => 'slug',
                                                         'terms' => 'streaming',
                                                 );
@@ -219,16 +219,16 @@ $start = microtime(true);
                                             while ($loop->have_posts()) : $loop->the_post();
                                                 // Reset per-event variables to defaults
                                                 $eventCancelled = false;
-                                                $rooms = OnlineSched_terms_list('event_schedule_room_type', $masterRooms);
-                                                $tags = OnlineSched_terms_list('event_schedule_tags_type', $masterTags);
+                                                $rooms = OnlineSched_terms_list('os_room', $masterRooms);
+                                                $tags = OnlineSched_terms_list('os_tag', $masterTags);
                                                 $tagsArray = array_map('trim', explode(",", $tags));
                                                 $roomClassMarker = 'fa-map-marker';
-                                                $panelists = OnlineSched_terms_list('event_schedule_panelist_type');
+                                                $panelists = OnlineSched_terms_list('os_panelist');
                                                 $hideTime = '';
 
-                                                // Use cached $event_schedule_year and $gmt_offset
+                                                // Use cached $onlinesched_year and $gmt_offset
                                                 $year = get_post_meta(get_the_ID(), 'onlinesched_year', true);
-                                                if ($year != $event_schedule_year) {
+                                                if ($year != $onlinesched_year) {
                                                     continue;
                                                 }
 
@@ -237,8 +237,8 @@ $start = microtime(true);
                                                     continue;
                                                 }
 
-                                                $tags_slugs = OnlineSched_terms_slug_array('event_schedule_tags_type');
-                                                $tag_terms = wp_get_post_terms(get_the_ID(), 'event_schedule_tags_type');
+                                                $tags_slugs = OnlineSched_terms_slug_array('os_tag');
+                                                $tag_terms = wp_get_post_terms(get_the_ID(), 'os_tag');
                                                 $badge_types_present = [];
                                                 $row_highlight_color = '';
                                                 
@@ -451,7 +451,7 @@ function modify_wp_query_clauses($clauses, $wp_query)
         // Join the term relationships and taxonomy tables
         $clauses['join'] .= " LEFT JOIN {$wpdb->term_relationships} AS tr ON ({$wpdb->posts}.ID = tr.object_id)";
         $clauses['join'] .= " LEFT JOIN {$wpdb->term_taxonomy} AS tt ON (tr.term_taxonomy_id = tt.term_taxonomy_id)";
-        $clauses['join'] .= " LEFT JOIN {$wpdb->terms} AS t ON (tt.term_id = t.term_id AND tt.taxonomy = 'event_schedule_room_type')";
+        $clauses['join'] .= " LEFT JOIN {$wpdb->terms} AS t ON (tt.term_id = t.term_id AND tt.taxonomy = 'os_room')";
 
         // Add the taxonomy term to the ORDER BY clause
         $clauses['orderby'] = "{$wpdb->postmeta}.meta_value ASC, t.name ASC, {$wpdb->posts}.post_title ASC";

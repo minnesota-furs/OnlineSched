@@ -10,37 +10,46 @@ function onlinesched_settings_capability()
     return 'edit_onlinesched_event_schedules';
 }
 
+// Settings groups are admin-form internals: only settings_fields($group) and options.php
+// see them. Nothing outside this plugin's own code references them, so they need no legacy
+// aliases. If we ever rename a group again, add a one-line migration that maps any saved
+// state — do not introduce dual-group registration. See OPEN_SOURCE_PLAN.md Phase 4.
 add_filter('option_page_capability_onlinesched_option_group', 'onlinesched_settings_capability');
 add_filter('option_page_capability_onlinesched_social_login_group', 'onlinesched_settings_capability');
-add_filter('option_page_capability_event_schedule_option_group', 'onlinesched_settings_capability');
-add_filter('option_page_capability_event_schedule_social_login_group', 'onlinesched_settings_capability');
 
-function onlinesched_register_setting_alias($primary_group, $legacy_group, $option_name, $sanitize_callback = null)
-{
-    if ($sanitize_callback) {
-        register_setting($primary_group, $option_name, $sanitize_callback);
-        register_setting($legacy_group, $option_name, $sanitize_callback);
-        return;
-    }
-
-    register_setting($primary_group, $option_name);
-    register_setting($legacy_group, $option_name);
-}
-
+/**
+ * Register an OnlineSched plugin option in the main settings group.
+ *
+ * Thin wrapper around register_setting() that routes every option through one chokepoint
+ * with a sanitize callback. Use this instead of calling register_setting() directly so
+ * the group name lives in exactly one place.
+ */
 function onlinesched_register_main_setting($option_name, $sanitize_callback = null)
 {
-    onlinesched_register_setting_alias('onlinesched_option_group', 'event_schedule_option_group', $option_name, $sanitize_callback);
+    if ($sanitize_callback) {
+        register_setting('onlinesched_option_group', $option_name, $sanitize_callback);
+    } else {
+        register_setting('onlinesched_option_group', $option_name);
+    }
 }
 
+/**
+ * Register an OnlineSched social-login option in the social-login settings group.
+ * Same rationale as onlinesched_register_main_setting() but for the SSO admin page.
+ */
 function onlinesched_register_social_login_setting($option_name, $sanitize_callback = null)
 {
-    onlinesched_register_setting_alias('onlinesched_social_login_group', 'event_schedule_social_login_group', $option_name, $sanitize_callback);
+    if ($sanitize_callback) {
+        register_setting('onlinesched_social_login_group', $option_name, $sanitize_callback);
+    } else {
+        register_setting('onlinesched_social_login_group', $option_name);
+    }
 }
 
 function onlinesched_settings_admin_styles()
 {
     $screen = function_exists('get_current_screen') ? get_current_screen() : null;
-    if (!$screen || 'event_schedule_page_onlinesched-settings' !== $screen->id) {
+    if (!$screen || 'os_event_page_onlinesched-settings' !== $screen->id) {
         return;
     }
     ?>
@@ -83,15 +92,15 @@ function OnlineSched_admin_init()
         'OnlineSched_timeslot',
         'Event Information',
         'OnlineSched_timeslot_metabox',
-        'event_schedule',
+        'os_event',
         'normal',
         'high'
     );
 
-    add_option('event_schedule_year', 'Event Schedule Year');
+    add_option('onlinesched_year', 'Event Schedule Year');
     onlinesched_auto_detect_pages();
 
-    onlinesched_register_main_setting('event_schedule_year', 'sanitize_text_field');
+    onlinesched_register_main_setting('onlinesched_year', 'sanitize_text_field');
     onlinesched_register_main_setting('onlinesched_schedule_page_id', 'absint');
     onlinesched_register_main_setting('onlinesched_kiosk_page_id', 'absint');
     onlinesched_register_main_setting('onlinesched_live_page_id', 'absint');
@@ -111,7 +120,7 @@ function OnlineSched_admin_init()
 function OnlineSched_register_options_page()
 {
     add_submenu_page(
-        'edit.php?post_type=event_schedule',
+        'edit.php?post_type=os_event',
         'Event Schedule Settings',
         'Event Settings',
         'edit_onlinesched_event_schedules',
@@ -123,7 +132,7 @@ function OnlineSched_register_options_page()
 function OnlineSched_register_config_status_page()
 {
     add_submenu_page(
-        'edit.php?post_type=event_schedule',
+        'edit.php?post_type=os_event',
         'Configuration Status',
         'Configuration Status',
         'edit_onlinesched_event_schedules',
@@ -250,10 +259,10 @@ function OnlineSched_options_page()
             <h2>Basic Setup</h2>
             <table class="form-table" role="presentation">
                 <tr>
-                    <th scope="row"><label for="event_schedule_year">Event Schedule Year</label></th>
+                    <th scope="row"><label for="onlinesched_year">Event Schedule Year</label></th>
                     <td>
-                        <input type="text" id="event_schedule_year" name="event_schedule_year"
-                               value="<?php echo esc_attr(get_option('event_schedule_year')); ?>" class="regular-text" />
+                        <input type="text" id="onlinesched_year" name="onlinesched_year"
+                               value="<?php echo esc_attr(get_option('onlinesched_year')); ?>" class="regular-text" />
                         <p class="description">Only events matching this year are shown on the public schedule.</p>
                     </td>
                 </tr>

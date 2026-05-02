@@ -44,10 +44,10 @@ if (!empty($_REQUEST['programming'] )) {
 }
 
 $args = array(
-	'post_type' => 'event_schedule',
+	'post_type' => 'os_event',
 	'tax_query' => array(
 		array(
-			'taxonomy' => 'event_schedule_room_type',
+			'taxonomy' => 'os_room',
 			'field'    => 'slug',
 			'terms'    => $slug,
 		)
@@ -83,7 +83,7 @@ if ( $request == 'programming') {
 	);
 	$args['tax_query'] = array(
 		array(
-			'taxonomy' => 'event_schedule_room_type',
+			'taxonomy' => 'os_room',
 			'field'    => 'slug',
 			'terms'    => $slug,
 			'operator' => 'IN'
@@ -120,14 +120,14 @@ if ( $request == 'gaming') {
 	$args['tax_query'] = array(
 		'relation' => 'AND',
 		array(
-			'taxonomy' => 'event_schedule_room_type',
+			'taxonomy' => 'os_room',
 			'field'    => 'slug',
 			'terms'    => $slug,
 			'operator' => 'NOT IN'
 
 		),
 		array(
-			'taxonomy' => 'event_schedule_tags_type',
+			'taxonomy' => 'os_tag',
 			'field'    => 'slug',
 			'terms'    => 'open-gaming',
 			'operator' => 'NOT IN',
@@ -165,7 +165,7 @@ foreach ( $postsArr as $item ) {
 	}
 
 	## If the current onlinesched_year is not our current year, skip event
-	if ( $year != get_option( 'event_schedule_year' ) ) {
+	if ( $year != get_option( 'onlinesched_year' ) ) {
 		continue;
 	}
 
@@ -200,9 +200,9 @@ foreach ( $postsArr as $item ) {
 	}
 	$limit --;
 
-	$rooms = OnlineSched_terms_list2( 'event_schedule_room_type', $postId );
+	$rooms = OnlineSched_terms_list2( 'os_room', $postId );
 
-	$tags           = OnlineSched_terms_list2( 'event_schedule_tags_type', $postId );
+	$tags           = OnlineSched_terms_list2( 'os_tag', $postId );
 	$tagsArray      = array_map( 'trim', explode( ",", $tags ) );
 	$eventCancelled = in_array( "canceled", array_map( 'strtolower', $tagsArray ) ) ? true : false;
 	if ( $eventCancelled ) {

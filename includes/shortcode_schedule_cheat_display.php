@@ -14,25 +14,25 @@ add_shortcode('ical_schedule_cheat_display', function() {
 
     // Get all room slugs
     $rooms = get_terms(array(
-        'taxonomy' => 'event_schedule_room_type',
+        'taxonomy' => 'os_room',
         'hide_empty' => false,
         'fields' => 'slugs',
     ));
     // Get all tag slugs
     $tags = get_terms(array(
-        'taxonomy' => 'event_schedule_tags_type',
+        'taxonomy' => 'os_tag',
         'hide_empty' => false,
         'fields' => 'slugs',
     ));
 
     // Get all room terms (objects)
     $room_terms = get_terms(array(
-        'taxonomy' => 'event_schedule_room_type',
+        'taxonomy' => 'os_room',
         'hide_empty' => false,
     ));
     // Get all tag terms (objects)
     $tag_terms = get_terms(array(
-        'taxonomy' => 'event_schedule_tags_type',
+        'taxonomy' => 'os_tag',
         'hide_empty' => false,
     ));
 

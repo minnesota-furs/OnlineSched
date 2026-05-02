@@ -40,7 +40,7 @@ div.os_timelen	 { color: black; font-size: 12px; font-style: italic; }
 
 <?php
 $args = array( 
-	'post_type' => 'event_schedule',
+	'post_type' => 'os_event',
 	'meta_key' => 'onlinesched_sorttime',
 	'orderby' => 'meta_value_num',
 	'order' => 'ASC',
@@ -51,11 +51,11 @@ $loop = new WP_Query($args);
 $dayofweek = 'none';
 $hour = 'none';
 while ( $loop->have_posts() ) : $loop->the_post();
-	$rooms = OnlineSched_terms_list('event_schedule_room_type');
-	$tags = OnlineSched_terms_list('event_schedule_tags_type');
-	$panelists = OnlineSched_terms_list('event_schedule_panelist_type');
+	$rooms = OnlineSched_terms_list('os_room');
+	$tags = OnlineSched_terms_list('os_tag');
+	$panelists = OnlineSched_terms_list('os_panelist');
 	$sorttime = get_post_meta(get_the_ID(), 'onlinesched_sorttime', true);
-	$room = get_terms('event_schedule_room_type', array('search' => $rooms));
+	$room = get_terms('os_room', array('search' => $rooms));
 	$roomsort = 0;
 	if (count($room) == 1) {
 		$roomsort = $room[0]->description;

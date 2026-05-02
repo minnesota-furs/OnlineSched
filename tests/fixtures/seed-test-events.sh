@@ -39,7 +39,7 @@ echo "✓ Dates verified as future."
 
 # Idempotency: check by title (NOT total count — real DB may already have 100+ events)
 EXISTING=$(docker exec $CONTAINER $WP post list \
-  --post_type=event_schedule --post_status=publish \
+  --post_type=os_event --post_status=publish \
   --fields=post_title --format=csv 2>/dev/null \
   | grep -c "Opening Howl Ceremony" || true)
 
@@ -61,7 +61,7 @@ if [ "$EXISTING" -ge 1 ]; then
     "Quiet Paws Chill Zone" \
     "VIP Tail Grooming Lounge"; do
     IDS=$(docker exec $CONTAINER $WP post list \
-      --post_type=event_schedule --post_status=publish \
+      --post_type=os_event --post_status=publish \
       --fields=ID,post_title --format=csv 2>/dev/null \
       | grep "\"$TITLE\"" | cut -d',' -f1)
     if [ -n "$IDS" ]; then
@@ -71,8 +71,8 @@ if [ "$EXISTING" -ge 1 ]; then
   done
 fi
 
-docker exec $CONTAINER $WP option update event_schedule_year "$YEAR"
-echo "Set event_schedule_year to $YEAR"
+docker exec $CONTAINER $WP option update onlinesched_year "$YEAR"
+echo "Set onlinesched_year to $YEAR"
 
 # Ensure the Essentials tab filter knows which tag slugs are "essentials".
 # The JS checks window.essentialsTags (array of slugs) via this WP option.
@@ -117,7 +117,7 @@ echo "Badge type options set."
 assign_badge_type() {
   local TAG_SLUG="$1"
   local BADGE_TYPE="$2"
-  TERM_ID=$(docker exec $CONTAINER $WP term list event_schedule_tags_type \
+  TERM_ID=$(docker exec $CONTAINER $WP term list os_tag \
     --slug="$TAG_SLUG" --field=term_id --format=csv 2>/dev/null | tail -1)
   if [ -n "$TERM_ID" ] && [ "$TERM_ID" != "term_id" ]; then
     docker exec $CONTAINER $WP term meta update "$TERM_ID" badge_type "$BADGE_TYPE" 2>/dev/null || true
@@ -135,7 +135,7 @@ create_event() {
   local CONTENT="$7"
 
   POST_ID=$(docker exec $CONTAINER $WP post create \
-    --post_type=event_schedule \
+    --post_type=os_event \
     --post_title="$TITLE" \
     --post_content="$CONTENT" \
     --post_status=publish \
@@ -145,11 +145,11 @@ create_event() {
   docker exec $CONTAINER $WP post meta update $POST_ID onlinesched_timelen "$DURATION"
   docker exec $CONTAINER $WP post meta update $POST_ID onlinesched_year "$YEAR"
 
-  docker exec $CONTAINER $WP term create event_schedule_room_type "$ROOM" --porcelain 2>/dev/null || true
-  docker exec $CONTAINER $WP post term set $POST_ID event_schedule_room_type "$ROOM"
+  docker exec $CONTAINER $WP term create os_room "$ROOM" --porcelain 2>/dev/null || true
+  docker exec $CONTAINER $WP post term set $POST_ID os_room "$ROOM"
 
-  docker exec $CONTAINER $WP term create event_schedule_tags_type "$TAG" --porcelain 2>/dev/null || true
-  docker exec $CONTAINER $WP post term set $POST_ID event_schedule_tags_type "$TAG"
+  docker exec $CONTAINER $WP term create os_tag "$TAG" --porcelain 2>/dev/null || true
+  docker exec $CONTAINER $WP post term set $POST_ID os_tag "$TAG"
 
   if [ -n "$PANELIST" ]; then
     # Split by comma and trim
@@ -157,10 +157,10 @@ create_event() {
     CLEAN_NAMES=()
     for NAME in "${NAMES[@]}"; do
       TRIMMED=$(echo "$NAME" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-      docker exec $CONTAINER $WP term create event_schedule_panelist_type "$TRIMMED" --porcelain 2>/dev/null || true
+      docker exec $CONTAINER $WP term create os_panelist "$TRIMMED" --porcelain 2>/dev/null || true
       CLEAN_NAMES+=("$TRIMMED")
     done
-    docker exec $CONTAINER $WP post term set $POST_ID event_schedule_panelist_type "${CLEAN_NAMES[@]}"
+    docker exec $CONTAINER $WP post term set $POST_ID os_panelist "${CLEAN_NAMES[@]}"
   fi
 
   echo "  Created: $TITLE (ID: $POST_ID)"

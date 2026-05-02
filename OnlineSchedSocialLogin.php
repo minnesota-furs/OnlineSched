@@ -45,7 +45,7 @@ function onlinesched_social_provider_is_enabled($provider, $providerData)
 function OnlineSched_register_social_login_page()
 {
     add_submenu_page(
-        'edit.php?post_type=event_schedule',
+        'edit.php?post_type=os_event',
         'Social Login Settings',
         'Social Login',
         'edit_onlinesched_event_schedules',

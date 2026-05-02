@@ -46,25 +46,28 @@ require_once('includes/shortcode_schedule_cheat_display.php');
 require_once("OnlineSchedBadgeTypes.php");
 require_once('OnlineSchedEssentials.php');
 require_once('OnlineSchedSocialLogin.php');
+require_once('includes/class-os-migration.php');
 
 // Define Actions
 add_action('init', 'OnlineSched_init');
 add_action('admin_init', 'OnlineSched_admin_init');
 add_action('save_post', 'OnlineSched_add_timeslot_fields', 10, 2);
-add_action('manage_event_schedule_posts_custom_column', 'OnlineSched_columns_content', 10, 2);
+add_action('manage_os_event_posts_custom_column', 'OnlineSched_columns_content', 10, 2);
 add_action('admin_head', 'OnlineSched_add_help_page');
 add_action('admin_head', 'onlinesched_settings_admin_styles');
-add_action('edited_event_schedule_day_type', 'custom_edit_day_type', 2, 10);
+add_action('edited_os_day', 'custom_edit_day_type', 2, 10);
 add_action('admin_menu', 'onlinesched_register_submenus', 10);
 
 // Define Filter
-add_filter('manage_event_schedule_posts_columns', 'OnlineSched_columns_head');
+add_filter('manage_os_event_posts_columns', 'OnlineSched_columns_head');
 add_filter('post_row_actions', 'OnlineSched_remove_row_actions', 10, 2);
 
 // Define Register
 register_activation_hook(__FILE__, 'OnlineSched_plugin_activate');
 register_activation_hook(__FILE__, 'onlinesched_create_favorites_table');
 register_activation_hook(__FILE__, 'onlinesched_auto_detect_pages');
+register_activation_hook(__FILE__, array('OS_Migration', 'maybe_migrate'));
+add_action('admin_init', array('OS_Migration', 'maybe_migrate'));
 //
 // Changing Taxonomy - If change update all the dates
 //
@@ -73,16 +76,16 @@ function custom_edit_day_type($term_id, $taxonomy)
 {
 	// Upodating it all!
 
-	$types = get_terms('event_schedule_day_type', array('term_taxonomy_id' => $taxonomy));
+	$types = get_terms('os_day', array('term_taxonomy_id' => $taxonomy));
 
 	if (count($types) == 1) {
 		$type = $types[0];
 
 		$args = array(
-			'post_type' => 'event_schedule',
+			'post_type' => 'os_event',
 			'tax_query' => array(
 				array(
-					'taxonomy' => 'event_schedule_day_type',
+					'taxonomy' => 'os_day',
 					'field' => 'term_taxonomy_id',
 					'terms' => $taxonomy,
 
@@ -93,8 +96,8 @@ function custom_edit_day_type($term_id, $taxonomy)
 
 		$posts = get_posts($args);
 		foreach ($posts as $post) {
-			$event_schedule_id = $post->ID;
-			$meta = get_post_meta($event_schedule_id);
+			$os_event_id = $post->ID;
+			$meta = get_post_meta($os_event_id);
 			$convert = $type->description . " " .
 				$meta['onlinesched_time_hr'][0] .
 				":" .
@@ -102,7 +105,7 @@ function custom_edit_day_type($term_id, $taxonomy)
 			$sorttime = strtotime($convert);
 
 
-			update_post_meta($event_schedule_id, 'onlinesched_sorttime', $sorttime);
+			update_post_meta($os_event_id, 'onlinesched_sorttime', $sorttime);
 		}
 	}
 
@@ -112,7 +115,7 @@ function OnlineSched_remove_row_actions($actions, $post)
 {
 	global $current_screen;
 
-	if ($current_screen->post_type == 'event_schedule') {
+	if ($current_screen->post_type == 'os_event') {
 
 		// Remove View & Quick Edit
 		unset($actions['view']);
@@ -140,28 +143,28 @@ function OnlineSched_plugin_activate()
 			'delete_onlinesched_event_schedules',
 
 			// Room Types
-			//'manage_event_schedule_room_type',
-			//'edit_event_schedule_room_type',
-			//'delete_event_schedule_room_type',
-			'assign_event_schedule_room_type',
+			//'manage_os_room',
+			//'edit_os_room',
+			//'delete_os_room',
+			'assign_os_room',
 
 			// Tags Types
-			//'manage_event_schedule_tags_type',
-			//'edit_event_schedule_tags_type',
-			//'delete_event_schedule_tags_type',
-			'assign_event_schedule_tags_type',
+			//'manage_os_tag',
+			//'edit_os_tag',
+			//'delete_os_tag',
+			'assign_os_tag',
 
 			// Manage day Types
-			//'manage_event_schedule_day_type',
-			//'edit_event_schedule_day_type',
-			//'delete_event_schedule_day_type',
-			'assign_event_schedule_day_type',
+			//'manage_os_day',
+			//'edit_os_day',
+			//'delete_os_day',
+			'assign_os_day',
 
 			// Manage panelist Types
-			'manage_event_schedule_panelist_type',
-			'edit_event_schedule_panelist_type',
-			'delete_event_schedule_panelist_type',
-			'assign_event_schedule_panelist_type',
+			'manage_os_panelist',
+			'edit_os_panelist',
+			'delete_os_panelist',
+			'assign_os_panelist',
 		));
 	}
 
@@ -181,28 +184,28 @@ function OnlineSched_plugin_activate()
 			'delete_onlinesched_event_schedules',
 
 			// Room Types
-			'manage_event_schedule_room_type',
-			'edit_event_schedule_room_type',
-			'delete_event_schedule_room_type',
-			'assign_event_schedule_room_type',
+			'manage_os_room',
+			'edit_os_room',
+			'delete_os_room',
+			'assign_os_room',
 
 			// Tags Types
-			'manage_event_schedule_tags_type',
-			'edit_event_schedule_tags_type',
-			'delete_event_schedule_tags_type',
-			'assign_event_schedule_tags_type',
+			'manage_os_tag',
+			'edit_os_tag',
+			'delete_os_tag',
+			'assign_os_tag',
 
 			// Manage day Types
-			'manage_event_schedule_day_type',
-			'edit_event_schedule_day_type',
-			'delete_event_schedule_day_type',
-			'assign_event_schedule_day_type',
+			'manage_os_day',
+			'edit_os_day',
+			'delete_os_day',
+			'assign_os_day',
 
 			// Manage panelist Types
-			'manage_event_schedule_panelist_type',
-			'edit_event_schedule_panelist_type',
-			'delete_event_schedule_panelist_type',
-			'assign_event_schedule_panelist_type',
+			'manage_os_panelist',
+			'edit_os_panelist',
+			'delete_os_panelist',
+			'assign_os_panelist',
 		));
 	}
 
@@ -218,28 +221,28 @@ function OnlineSched_plugin_activate()
 		$role_administrator->add_cap('delete_onlinesched_event_schedules');
 
 		// Manage room Types
-		$role_administrator->add_cap('manage_event_schedule_room_type');
-		$role_administrator->add_cap('edit_event_schedule_room_type');
-		$role_administrator->add_cap('delete_event_schedule_room_type');
-		$role_administrator->add_cap('assign_event_schedule_room_type');
+		$role_administrator->add_cap('manage_os_room');
+		$role_administrator->add_cap('edit_os_room');
+		$role_administrator->add_cap('delete_os_room');
+		$role_administrator->add_cap('assign_os_room');
 
 		// Manage tags Types
-		$role_administrator->add_cap('manage_event_schedule_tags_type');
-		$role_administrator->add_cap('edit_event_schedule_tags_type');
-		$role_administrator->add_cap('delete_event_schedule_tags_type');
-		$role_administrator->add_cap('assign_event_schedule_tags_type');
+		$role_administrator->add_cap('manage_os_tag');
+		$role_administrator->add_cap('edit_os_tag');
+		$role_administrator->add_cap('delete_os_tag');
+		$role_administrator->add_cap('assign_os_tag');
 
 		// Manage day Types
-		$role_administrator->add_cap('manage_event_schedule_day_type');
-		$role_administrator->add_cap('edit_event_schedule_day_type');
-		$role_administrator->add_cap('delete_event_schedule_day_type');
-		$role_administrator->add_cap('assign_event_schedule_day_type');
+		$role_administrator->add_cap('manage_os_day');
+		$role_administrator->add_cap('edit_os_day');
+		$role_administrator->add_cap('delete_os_day');
+		$role_administrator->add_cap('assign_os_day');
 
 		// Manage panelist Types
-		$role_administrator->add_cap('manage_event_schedule_panelist_type');
-		$role_administrator->add_cap('edit_event_schedule_panelist_type');
-		$role_administrator->add_cap('delete_event_schedule_panelist_type');
-		$role_administrator->add_cap('assign_event_schedule_panelist_type');
+		$role_administrator->add_cap('manage_os_panelist');
+		$role_administrator->add_cap('edit_os_panelist');
+		$role_administrator->add_cap('delete_os_panelist');
+		$role_administrator->add_cap('assign_os_panelist');
 	}
 }
 
@@ -286,9 +289,9 @@ function OnlineSched_columns_head($defaults)
 		'title' => 'Event',
 		'xdate' => 'Date/Time',
 		'length' => 'Length',
-		'taxonomy-event_schedule_room_type' => 'Room',
-		'taxonomy-event_schedule_tags_type' => 'Tag(s)',
-		'taxonomy-event_schedule_panelist_type' => 'Panelist(s)',
+		'taxonomy-os_room' => 'Room',
+		'taxonomy-os_tag' => 'Tag(s)',
+		'taxonomy-os_panelist' => 'Panelist(s)',
 	);
 }
 
@@ -312,6 +315,153 @@ function OnlineSched_columns_content($column, $post_ID)
 
 function OnlineSched_init()
 {
+	register_post_type(
+		'os_event',
+		array(
+			'labels' => array(
+				'name' => 'Event Scheduling',
+				'singular_name' => 'Event Schedule Entry',
+				'add_new' => 'Add Event',
+				'add_new_item' => 'Add New Event',
+				'edit' => 'Edit',
+				'edit_item' => 'Edit Event',
+				'new_item' => 'New Event',
+				'view' => 'View',
+				'view_item' => 'View Event',
+				'search_items' => 'Search Event',
+				'not_found' => 'No Events found',
+				'not_found_in_trash' => 'No Events found in Trash',
+				'parent' => 'Parent Event'
+			),
+			'public' => false,
+			'show_in_nav_menus' => true,
+			'show_ui' => true,
+			'menu_position' => 20,
+			'supports' => array(
+				'title',
+				'editor',
+			),
+			'taxonomies' => array(''),
+			//		'menu_icon' => plugins_url('event-16x16.png', __FILE__),	// XXX - Generate an icon some day
+			'has_archive' => false,
+			'publicly_queryable' => false,
+			'capability_type' => 'onlinesched_event_schedule',
+			'capabilities' => array(
+				'edit_post' => 'edit_onlinesched_event_schedules',
+				'read_post' => 'read_onlinesched_event_schedules',
+				'delete_post' => 'delete_onlinesched_event_schedules',
+				'edit_posts' => 'edit_onlinesched_event_schedules',
+				'edit_others_posts' => 'edit_onlinesched_event_schedules',
+				'publish_posts' => 'publish_onlinesched_event_schedules',
+				'read_private_posts' => 'read_onlinesched_event_schedules',
+				'delete_posts' => 'delete_onlinesched_event_schedules',
+				'delete_private_posts' => 'delete_onlinesched_event_schedules',
+				'delete_published_posts' => 'delete_onlinesched_event_schedules',
+				'delete_others_posts' => 'delete_onlinesched_event_schedules',
+				'edit_private_posts' => 'edit_onlinesched_event_schedules',
+				'edit_published_posts' => 'edit_onlinesched_event_schedules',
+				'create_posts' => 'publish_onlinesched_event_schedules',
+			),
+		)
+	);
+
+	register_taxonomy(
+		'os_room',
+		'os_event',
+		array(
+			'labels' => array(
+				'name' => 'Room Type',
+				'add_new_item' => 'Add New Room Type',
+				'new_item_name' => "New Room Type Name"
+			),
+			'show_ui' => true,
+			'show_tagcloud' => false,
+			'publicly_queryable' => false,
+			'hierarchical' => false,
+			'show_admin_column' => true,
+			'meta_box_cb' => false,
+			'capabilities' => array(
+				'manage_terms' => 'manage_os_room',
+				'edit_terms' => 'edit_os_room',
+				'delete_terms' => 'delete_os_room',
+				'assign_terms' => 'assign_os_room',
+			)
+		)
+	);
+
+	register_taxonomy(
+		'os_tag',
+		'os_event',
+		array(
+			'labels' => array(
+				'name' => 'Tag Type',
+				'add_new_item' => 'Add New Tag Type',
+				'new_item_name' => "New Tag Type Name"
+			),
+			'show_ui' => true,
+			'hierarchical' => false, // Remove parent category field
+			'show_admin_column' => true,
+			'publicly_queryable' => false,
+			'capabilities' => array(
+				'manage_terms' => 'manage_os_tag',
+				'edit_terms' => 'edit_os_tag',
+				'delete_terms' => 'delete_os_tag',
+				'assign_terms' => 'assign_os_tag',
+			)
+		)
+	);
+
+	register_taxonomy(
+		'os_day',
+		'os_event',
+		array(
+			'labels' => array(
+				'name' => 'Day Type',
+				'add_new_item' => 'Add Day Tag Type',
+				'new_item_name' => "New Day Type Name"
+			),
+			'show_ui' => true,
+			'show_tagcloud' => false,
+			'hierarchical' => false,
+			'show_admin_column' => true,
+			'publicly_queryable' => false,
+			'meta_box_cb' => false,
+			'capabilities' => array(
+				'manage_terms' => 'manage_os_day',
+				'edit_terms' => 'edit_os_day',
+				'delete_terms' => 'delete_os_day',
+				'assign_terms' => 'assign_os_day',
+			)
+		)
+	);
+
+	register_taxonomy(
+		'os_panelist',
+		'os_event',
+		array(
+			'labels' => array(
+				'name' => 'Panelist Type',
+				'add_new_item' => 'Add New Panelist Type',
+				'new_item_name' => "New Panelist Type Name"
+			),
+			'show_ui' => true,
+			'show_tagcloud' => false,
+			'hierarchical' => false,
+			'show_admin_column' => true,
+			'publicly_queryable' => false,
+			'capabilities' => array(
+				'manage_terms' => 'manage_os_panelist',
+				'edit_terms' => 'edit_os_panelist',
+				'delete_terms' => 'delete_os_panelist',
+				'assign_terms' => 'assign_os_panelist',
+			)
+		)
+	);
+
+	// Legacy registrations for grace period.
+	// Per OPEN_SOURCE_PLAN.md Phase 4: this entire block is removed in 1.1.0. Track as
+	// a `1.1.0-cleanup` issue the day 1.0.0 ships.
+
 	register_post_type(
 		'event_schedule',
 		array(
@@ -454,43 +604,20 @@ function OnlineSched_init()
 			)
 		)
 	);
-
-	register_taxonomy(
-		'event_schedule_panelist_type',
-		'event_schedule',
-		array(
-			'labels' => array(
-				'name' => 'Panelist Type',
-				'add_new_item' => 'Add New Panelist Type',
-				'new_item_name' => "New Panelist Type Name"
-			),
-			'show_ui' => true,
-			'show_tagcloud' => false,
-			'hierarchical' => false,
-			'show_admin_column' => true,
-			'publicly_queryable' => false,
-			'capabilities' => array(
-				'manage_terms' => 'manage_event_schedule_panelist_type',
-				'edit_terms' => 'edit_event_schedule_panelist_type',
-				'delete_terms' => 'delete_event_schedule_panelist_type',
-				'assign_terms' => 'assign_event_schedule_panelist_type',
-			)
-		)
-	);
 }
 
-// Remove Description field ONLY from event_schedule_tags_type taxonomy add/edit screens
+// Remove Description field ONLY from os_tag taxonomy add/edit screens
 add_action('admin_head', function() {
     $screen = get_current_screen();
-    if ($screen && $screen->taxonomy === 'event_schedule_tags_type') {
+    if ($screen && $screen->taxonomy === 'os_tag') {
         echo '<style>
             .term-description-wrap, .form-field.term-description-wrap, #tag-description, label[for="tag-description"], .column-description { display: none !important; }
         </style>';
     }
 });
-// Optionally remove Excerpt meta box from event_schedule post type
+// Optionally remove Excerpt meta box from os_event post type
 add_action('admin_init', function() {
-    remove_meta_box('postexcerpt', 'event_schedule', 'normal');
+    remove_meta_box('postexcerpt', 'os_event', 'normal');
 });
 
 function OnlineSched_taxonomy_dropdown($id, $taxonomy)
@@ -520,17 +647,17 @@ function OnlineSched_select_num($name, $value, $start, $end, $step = 1)
 	return $ret;
 }
 
-function OnlineSched_timeslot_metabox($event_schedule)
+function OnlineSched_timeslot_metabox($os_event)
 {
-	$time_hr = esc_html(get_post_meta($event_schedule->ID, 'onlinesched_time_hr', true));
-	$time_min = esc_html(get_post_meta($event_schedule->ID, 'onlinesched_time_min', true));
-	$timelen = esc_html(get_post_meta($event_schedule->ID, 'onlinesched_timelen', true));
-	$year = esc_html(get_post_meta($event_schedule->ID, 'onlinesched_year', true));
+	$time_hr = esc_html(get_post_meta($os_event->ID, 'onlinesched_time_hr', true));
+	$time_min = esc_html(get_post_meta($os_event->ID, 'onlinesched_time_min', true));
+	$timelen = esc_html(get_post_meta($os_event->ID, 'onlinesched_timelen', true));
+	$year = esc_html(get_post_meta($os_event->ID, 'onlinesched_year', true));
 	if (strlen($timelen) == 0) {
 		$timelen = "60";
 	}
 
-	$sorttime = esc_html(get_post_meta($event_schedule->ID, 'onlinesched_sorttime', true));
+	$sorttime = esc_html(get_post_meta($os_event->ID, 'onlinesched_sorttime', true));
 	?>
 
     <table width="100%">
@@ -542,27 +669,27 @@ function OnlineSched_timeslot_metabox($event_schedule)
         </tr>
         <tr>
             <td>
-				<?php OnlineSched_taxonomy_dropdown($event_schedule->ID, 'event_schedule_day_type') ?>
+				<?php OnlineSched_taxonomy_dropdown($os_event->ID, 'os_day') ?>
             </td>
             <td>
 				<?php
-				echo OnlineSched_select_num('event_schedule_time_hr', $time_hr, 1, 24) .
+				echo OnlineSched_select_num('os_event_time_hr', $time_hr, 1, 24) .
 					":" .
-					OnlineSched_select_num('event_schedule_time_min', $time_min, 0, 59, 30);
+					OnlineSched_select_num('os_event_time_min', $time_min, 0, 59, 30);
 				?>
             </td>
             <td>
-                <input type="text" size="10" name="event_schedule_timelen" value="<?php echo $timelen ?>">
+                <input type="text" size="10" name="os_event_timelen" value="<?php echo $timelen ?>">
             </td>
             <td>
-				<?php OnlineSched_taxonomy_dropdown($event_schedule->ID, 'event_schedule_room_type') ?>
+				<?php OnlineSched_taxonomy_dropdown($os_event->ID, 'os_room') ?>
             </td>
         </tr>
     </table>
     Event Year: <?php echo $year ?>
     <style>
-        #newevent_schedule_panelist_type_parent,
-        #newevent_schedule_tags_type_parent,
+        #newos_panelist_parent,
+        #newos_tag_parent,
         div#wp-content-media-buttons,
         div#edit-slug-box,
         div#gdd_page_redirect,
@@ -593,28 +720,28 @@ function OnlineSched_update_post_terms($id, $postname, $name)
 	}
 }
 
-function OnlineSched_add_timeslot_fields($event_schedule_id, $event_schedule)
+function OnlineSched_add_timeslot_fields($os_event_id, $os_event)
 {
 
-	if ($event_schedule->post_type == 'event_schedule') {
-		OnlineSched_update_post_meta($event_schedule_id, 'event_schedule_day', 'onlinesched_day');
-		OnlineSched_update_post_meta($event_schedule_id, 'event_schedule_panelists', 'onlinesched_panelists');
-		OnlineSched_update_post_terms($event_schedule_id, 'event_schedule_room_type', 'event_schedule_room_type');
-		OnlineSched_update_post_terms($event_schedule_id, 'event_schedule_day_type', 'event_schedule_day_type');
-		OnlineSched_update_post_meta($event_schedule_id, 'event_schedule_time_hr', 'onlinesched_time_hr');
-		OnlineSched_update_post_meta($event_schedule_id, 'event_schedule_time_min', 'onlinesched_time_min');
-		OnlineSched_update_post_meta($event_schedule_id, 'event_schedule_timelen', 'onlinesched_timelen');
-		update_post_meta($event_schedule_id, 'onlinesched_year', get_option('event_schedule_year'));
+	if ($os_event->post_type == 'os_event') {
+		OnlineSched_update_post_meta($os_event_id, 'os_event_day', 'onlinesched_day');
+		OnlineSched_update_post_meta($os_event_id, 'os_event_panelists', 'onlinesched_panelists');
+		OnlineSched_update_post_terms($os_event_id, 'os_room', 'os_room');
+		OnlineSched_update_post_terms($os_event_id, 'os_day', 'os_day');
+		OnlineSched_update_post_meta($os_event_id, 'os_event_time_hr', 'onlinesched_time_hr');
+		OnlineSched_update_post_meta($os_event_id, 'os_event_time_min', 'onlinesched_time_min');
+		OnlineSched_update_post_meta($os_event_id, 'os_event_timelen', 'onlinesched_timelen');
+		update_post_meta($os_event_id, 'onlinesched_year', get_option('onlinesched_year'));
 
 		$sorttime = -99;
-		$types = get_terms('event_schedule_day_type', array('search' => $_POST['event_schedule_day_type']));
+		$types = get_terms('os_day', array('search' => $_POST['os_day']));
 		if (count($types) == 1) {
 			$sorttime = strtotime($types[0]->description . " " .
-				$_POST['event_schedule_time_hr'] .
+				$_POST['os_event_time_hr'] .
 				":" .
-				$_POST['event_schedule_time_min']);
+				$_POST['os_event_time_min']);
 		}
-		update_post_meta($event_schedule_id, 'onlinesched_sorttime', $sorttime);
+		update_post_meta($os_event_id, 'onlinesched_sorttime', $sorttime);
 	}
 }
 
@@ -628,17 +755,17 @@ function OnlineSched_posts_filter($query)
 		$type = $_GET['post_type'];
 	}
 
-	if ($type == 'event_schedule' && is_admin() && $pagenow == 'edit.php') {
+	if ($type == 'os_event' && is_admin() && $pagenow == 'edit.php') {
 		$query->query_vars['meta_key'] = 'onlinesched_year';
-		$query->query_vars['meta_value'] = get_option('event_schedule_year');
+		$query->query_vars['meta_value'] = get_option('onlinesched_year');
 	}
 }
 
-function warn_before_deleting_event_schedule() {
+function warn_before_deleting_os_event() {
 	global $post_type;
 
-	// Only apply to event_schedule post type
-	if ($post_type === 'event_schedule') {
+	// Only apply to os_event post type
+	if ($post_type === 'os_event') {
 		?>
         <script type="text/javascript">
             document.addEventListener('DOMContentLoaded', function() {
@@ -654,42 +781,42 @@ function warn_before_deleting_event_schedule() {
 		<?php
 	}
 }
-add_action('admin_footer', 'warn_before_deleting_event_schedule');
+add_action('admin_footer', 'warn_before_deleting_os_event');
 
 function onlinesched_register_submenus() {
     add_submenu_page(
-        'edit.php?post_type=event_schedule',
+        'edit.php?post_type=os_event',
         'Badge Types',
         'Badge Types',
-        'manage_event_schedule_tags_type',
+        'manage_os_tag',
         'onlinesched-badge-types',
         'onlinesched_badge_types_page'
     );
     add_submenu_page(
-        'edit.php?post_type=event_schedule',
+        'edit.php?post_type=os_event',
         'Essential Tab Settings',
         'Essential Tab Settings',
-        'manage_event_schedule_tags_type',
+        'manage_os_tag',
         'onlinesched-essentials',
         'onlinesched_essentials_page'
     );
     add_submenu_page(
-        'edit.php?post_type=event_schedule',
+        'edit.php?post_type=os_event',
         'CSV Uploader',
         'CSV Uploader',
-        'manage_event_schedule_room_type',
+        'manage_os_room',
         'event-schedule-csv-uploader',
-        'event_schedule_csv_uploader_page'
+        'os_event_csv_uploader_page'
     );
     OnlineSched_register_options_page(); // Event Settings
     OnlineSched_register_config_status_page(); // Configuration Status
     OnlineSched_register_social_login_page(); // Social Login
     add_submenu_page(
-        'edit.php?post_type=event_schedule',
+        'edit.php?post_type=os_event',
         'Hints & Help',
         'Hints & Help',
-        'manage_event_schedule_room_type',
+        'manage_os_room',
         'event-schedule-help',
-        'event_schedule_help_page'
+        'os_event_help_page'
     );
 }
