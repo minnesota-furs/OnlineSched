@@ -12,10 +12,10 @@
    Template Name:  Panel Grid - iCal page
  *
  * @file           icalbyroom.php
- * @package        FM-2018 
+ * @package        OnlineSched
  * @author         Ben Lindstrom, Brian Mogged
  * @copyright      2014, 2016, 2018, 2020, 2021, 2022, 2023, 2024
- * @license        license.txt
+ * @license        GPL-2.0-or-later
  * @version        Release: 2.0
  * @filesource     wp-content/plugins/OnlineSched/icalbyroom.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29

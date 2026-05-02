@@ -11,6 +11,9 @@ add_action('admin_enqueue_scripts', function($hook) {
     
     wp_enqueue_style('onlinesched-badge-types-admin', plugin_dir_url(__FILE__) . 'build/admin-badge-types.css', [], $css_version);
     wp_enqueue_script('onlinesched-badge-types-admin', plugin_dir_url(__FILE__) . 'admin-badge-types.js', [], $js_version, true);
+    wp_localize_script('onlinesched-badge-types-admin', 'OnlineSchedBadgeTypes', array(
+        'nonce' => wp_create_nonce('onlinesched_badge_types'),
+    ));
 
     // Removed direct enqueue of Font Awesome. It will be imported via admin-badge-types.scss and compiled by webpack
 });
@@ -27,6 +30,9 @@ function onlinesched_badge_types_page() {
 	$badge_types_display = get_option($display_option_name, array());
 	$action = isset($_POST['badge_action']) ? $_POST['badge_action'] : '';
 	$message = '';
+    if ($action) {
+        check_admin_referer('onlinesched_badge_types');
+    }
 
 	$icons_option_name = 'onlinesched_badge_types_icons';
 	$badge_types_icons = get_option($icons_option_name, array());
@@ -98,7 +104,7 @@ function onlinesched_badge_types_page() {
 		update_option($icons_option_name, $new_badge_types_icons);
 		update_option($colors_option_name, $new_badge_types_colors);
 		update_option($fg_colors_option_name, $new_badge_types_fg_colors);
-		update_option($row_colors_option_name, $badge_types_row_colors);
+		update_option($row_colors_option_name, $new_badge_types_row_colors);
 		
 		$message = 'Default badge types restored and custom badge types preserved (' . $updated_count . ' defaults updated).';
 	}
@@ -274,7 +280,8 @@ function onlinesched_badge_types_page() {
 		<!-- Add Badge Type Form (hidden by default, fallback to visible if no JS) -->
 		<div class="badge-add-form-card" id="badge-add-form-card" style="display:none; margin-bottom:2em; border:2px solid #e5e5e5; background:#f7fbff; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px 24px; border-radius:8px; max-width:900px;">
 			<h3 style="margin-top:0; margin-bottom:18px; font-weight:600; color:#1890ff;">Add New Badge Type</h3>
-			<form method="post" id="add-badge-type-form" aria-label="Add New Badge Type">
+		<form method="post" id="add-badge-type-form" aria-label="Add New Badge Type">
+            <?php wp_nonce_field('onlinesched_badge_types'); ?>
 				<input type="hidden" name="badge_action" value="add">
 				<div style="display:flex; flex-wrap:wrap; gap:18px; align-items:center;">
 					<label for="badge_type_name" style="min-width:180px;">Name:<br>
@@ -396,6 +403,7 @@ function onlinesched_badge_types_page() {
     <td class="actions">
         <button type="button" class="badge-action-btn edit" title="Edit Badge Type" aria-label="Edit <?php echo esc_attr($badge); ?>" onclick="showEditFormOS('<?php echo esc_js($badge_slug); ?>')"><i class="fa fa-edit"></i> Edit</button>
         <form method="post" id="badge-delete-form-<?php echo esc_attr($badge_slug); ?>" style="display:inline;">
+            <?php wp_nonce_field('onlinesched_badge_types'); ?>
             <input type="hidden" name="badge_action" value="delete">
             <input type="hidden" name="badge_type_delete" value="<?php echo esc_attr($badge); ?>">
             <button type="button" class="badge-action-btn delete" title="Delete Badge Type" aria-label="Delete <?php echo esc_attr($badge); ?>" onclick="confirmDelete('<?php echo esc_js($badge_slug); ?>')"><i class="fa fa-trash"></i> Delete</button>
@@ -405,6 +413,7 @@ function onlinesched_badge_types_page() {
 <tr id="badge-edit-row-<?php echo esc_attr($badge_slug); ?>" class="badge-edit-row" style="display:none;">
     <td colspan="7" style="padding:0;">
         <form method="post" class="badge-edit-form active" id="badge-edit-form-<?php echo esc_attr($badge_slug); ?>" style="margin:10px; border:2px solid #e5e5e5; background:#f7fbff; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px 24px; border-radius:8px;">
+            <?php wp_nonce_field('onlinesched_badge_types'); ?>
             <h4 style="margin-top:0; margin-bottom:18px; font-weight:600; color:#1890ff;">Edit Badge Type: <?php echo esc_html($badge); ?></h4>
             <input type="hidden" name="badge_action" value="edit">
             <input type="hidden" name="badge_type_edit_old" value="<?php echo esc_attr($badge); ?>">
@@ -473,6 +482,7 @@ function onlinesched_badge_types_page() {
 		</table>
 	<div style="margin-top:32px; display:flex; gap:24px;">
 		<form method="post" style="margin-bottom:1em;">
+            <?php wp_nonce_field('onlinesched_badge_types'); ?>
 			<input type="hidden" name="badge_action" value="restore_defaults">
 			<?php submit_button('Restore Defaults', 'secondary', 'restore_defaults_badge_type', false, ['onclick' => 'return confirm("Are you sure you want to restore default badge types? This will overwrite settings for default badges and preserve custom ones.");']); ?>
 		</form>
@@ -567,6 +577,8 @@ add_action('edited_os_tag', function($term_id) {
 }, 10, 1);
 
 function onlinesched_assign_default_badge_types_ajax() {
+    check_ajax_referer('onlinesched_badge_types', 'nonce');
+
     if (!current_user_can('manage_os_tag')) {
         wp_send_json_error('Permission denied');
     }

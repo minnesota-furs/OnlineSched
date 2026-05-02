@@ -1,18 +1,18 @@
 {
-  "name": "furry-migration",
+  "name": "onlinesched",
   "version": "1.0.0",
-  "description": "Furry Migration website",
+  "description": "A flexible event scheduling plugin for WordPress",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/minnesota-furs/furry-migration-theme.git"
+    "url": "git+https://github.com/onlinesched/OnlineSched.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "BL, BM, AL & Contributors",
+  "license": "GPL-2.0-or-later",
   "bugs": {
-    "url": "https://github.com/minnesota-furs/furry-migration-theme/issues"
+    "url": "https://github.com/onlinesched/OnlineSched/issues"
   },
-  "homepage": "https://github.com/minnesota-furs/furry-migration-theme#readme",
+  "homepage": "https://github.com/onlinesched/OnlineSched#readme",
   "devDependencies": {
     "@babel/core": "^7.23.3",
     "@babel/preset-env": "^7.23.3",
@@ -47,7 +47,7 @@
     "test:setup": "npm run test:seed && npx playwright install chromium msedge firefox webkit"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "keywords": [],
   "dependencies": {

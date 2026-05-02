@@ -1,15 +1,56 @@
 <?php
-// OnlineSchedSocialLogin.php
-// Social Login settings page for OnlineSched plugin
+/**
+ * Social Login settings page for OnlineSched.
+ *
+ * @package    OnlineSched
+ * @author     BL, BM, AL & Contributors
+ * @copyright  2016-2026 Original Authors
+ * @license    GPL-2.0-or-later
+ *
+ * Revised by: Kurst Hyperyote for Furry Migration
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 function onlinesched_social_provider_option_prefix($provider)
 {
-    return 'onlinesched_social_' . strtolower($provider);
+    return 'onlinesched_social_' . strtolower(sanitize_key($provider));
 }
 
 function onlinesched_social_provider_enabled_option($provider)
 {
     return onlinesched_social_provider_option_prefix($provider) . '_enabled';
+}
+
+function onlinesched_social_provider_key_option($provider, $key)
+{
+    return onlinesched_social_provider_option_prefix($provider) . '_' . strtolower(sanitize_key($key));
+}
+
+function onlinesched_social_provider_key_constant($provider, $key)
+{
+    $provider = strtoupper(preg_replace('/[^A-Za-z0-9_]/', '_', $provider));
+    $key = strtolower($key) === 'id' ? 'CLIENT_ID' : strtoupper(preg_replace('/[^A-Za-z0-9_]/', '_', $key));
+    $key = 'SECRET' === $key ? 'CLIENT_SECRET' : $key;
+
+    return 'ONLINESCHED_' . $provider . '_' . $key;
+}
+
+function onlinesched_social_provider_key_is_code_managed($provider, $key)
+{
+    return defined(onlinesched_social_provider_key_constant($provider, $key));
+}
+
+function onlinesched_social_provider_get_key($provider, $key)
+{
+    $constant = onlinesched_social_provider_key_constant($provider, $key);
+    if (defined($constant)) {
+        return (string) constant($constant);
+    }
+
+    return (string) get_option(onlinesched_social_provider_key_option($provider, $key), '');
 }
 
 function onlinesched_social_provider_has_required_keys($provider, $providerData)
@@ -19,8 +60,7 @@ function onlinesched_social_provider_has_required_keys($provider, $providerData)
     }
 
     foreach ((array) ($providerData['keys'] ?? array()) as $key => $unused) {
-        $option_name = onlinesched_social_provider_option_prefix($provider) . '_' . strtolower($key);
-        if ('' === trim((string) get_option($option_name, ''))) {
+        if ('' === trim(onlinesched_social_provider_get_key($provider, $key))) {
             return false;
         }
     }
@@ -30,16 +70,24 @@ function onlinesched_social_provider_has_required_keys($provider, $providerData)
 
 function onlinesched_social_provider_is_enabled($provider, $providerData)
 {
-    $option_name = onlinesched_social_provider_enabled_option($provider);
-    $missing = '__onlinesched_missing__';
-    $enabled_option = get_option($option_name, $missing);
-    $has_keys = onlinesched_social_provider_has_required_keys($provider, $providerData);
+    $enabled = (bool) absint(get_option(onlinesched_social_provider_enabled_option($provider), 0));
 
-    if ($missing === $enabled_option) {
-        return !empty($providerData['enabled']) && $has_keys;
+    return $enabled && onlinesched_social_provider_has_required_keys($provider, $providerData);
+}
+
+function onlinesched_social_sanitize_text($value)
+{
+    return sanitize_text_field($value);
+}
+
+function onlinesched_social_sanitize_secret($value, $option_name)
+{
+    $value = trim(sanitize_text_field($value));
+    if ('' === $value) {
+        return (string) get_option($option_name, '');
     }
 
-    return (bool) absint($enabled_option) && $has_keys;
+    return $value;
 }
 
 function OnlineSched_register_social_login_page()
@@ -56,36 +104,71 @@ function OnlineSched_register_social_login_page()
 
 function OnlineSched_social_login_page()
 {
-    $social_config = require dirname(__FILE__) . '/includes/social_providers_config.php';
+    $social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
     ?>
-    <div>
-        <h2>Social Login Providers</h2>
+    <div class="wrap">
+        <h1>Social Login Providers</h1>
+        <p>Providers appear in the public login modal only when enabled here and configured with required credentials.</p>
         <form method="post" action="options.php">
             <?php settings_fields('onlinesched_social_login_group'); ?>
-            <table>
-            <?php
-            if (isset($social_config['providers']) && is_array($social_config['providers'])) {
-                foreach ($social_config['providers'] as $provider => $providerData) {
-                    $enabled_option = onlinesched_social_provider_enabled_option($provider);
-                    echo '<tr><th colspan="2" style="padding-top:20px;"><strong>' . esc_html($provider) . '</strong></th></tr>';
-                    echo '<tr>';
-                    echo '<th scope="row"><label for="' . esc_attr($enabled_option) . '">Enable ' . esc_html($provider) . '</label></th>';
-                    echo '<td><input type="hidden" name="' . esc_attr($enabled_option) . '" value="0" /><label><input type="checkbox" id="' . esc_attr($enabled_option) . '" name="' . esc_attr($enabled_option) . '" value="1" ' . checked(onlinesched_social_provider_is_enabled($provider, $providerData), true, false) . ' /> Allow visitors to log in with ' . esc_html($provider) . '</label></td>';
-                    echo '</tr>';
-                    if (!empty($providerData['no_keys'])) {
-                        echo '<tr><td colspan="2" style="color: #666; padding-bottom: 10px;">No settings are needed for this provider.</td></tr>';
-                    } else if (isset($providerData['keys']) && is_array($providerData['keys'])) {
-                        foreach ($providerData['keys'] as $key => $val) {
-                            $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
-                            echo '<tr>';
-                            echo '<th scope="row"><label for="' . esc_attr($option_name) . '">' . esc_html(ucfirst($provider) . ' ' . ucfirst($key)) . '</label></th>';
-                            echo '<td><input type="text" id="' . esc_attr($option_name) . '" name="' . esc_attr($option_name) . '" value="' . esc_attr(get_option($option_name)) . '" size="50"/>'.$option_name.'</td>';
-                            echo '</tr>';
-                        }
-                    }
-                }
-            }
-            ?>
+            <table class="form-table" role="presentation">
+            <?php foreach ((array) ($social_config['providers'] ?? array()) as $provider => $providerData) : ?>
+                <?php $enabled_option = onlinesched_social_provider_enabled_option($provider); ?>
+                <tr>
+                    <th colspan="2"><h2><?php echo esc_html($provider); ?></h2></th>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="<?php echo esc_attr($enabled_option); ?>">Enable <?php echo esc_html($provider); ?></label></th>
+                    <td>
+                        <input type="hidden" name="<?php echo esc_attr($enabled_option); ?>" value="0" />
+                        <label>
+                            <input type="checkbox" id="<?php echo esc_attr($enabled_option); ?>" name="<?php echo esc_attr($enabled_option); ?>" value="1" <?php checked((bool) absint(get_option($enabled_option, 0))); ?> />
+                            Allow visitors to log in with <?php echo esc_html($provider); ?>
+                        </label>
+                        <p class="description">
+                            Status:
+                            <?php echo onlinesched_social_provider_is_enabled($provider, $providerData) ? 'configured and enabled' : 'not active'; ?>
+                        </p>
+                    </td>
+                </tr>
+                <?php if (!empty($providerData['no_keys'])) : ?>
+                    <tr>
+                        <td colspan="2"><p class="description">No credentials are needed for this provider.</p></td>
+                    </tr>
+                <?php else : ?>
+                    <?php foreach ((array) ($providerData['keys'] ?? array()) as $key => $unused) : ?>
+                        <?php
+                        $option_name = onlinesched_social_provider_key_option($provider, $key);
+                        $constant = onlinesched_social_provider_key_constant($provider, $key);
+                        $managed_in_code = defined($constant);
+                        $saved_value = (string) get_option($option_name, '');
+                        $is_secret = strtolower($key) === 'secret';
+                        ?>
+                        <tr>
+                            <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html($provider . ' ' . ucfirst($key)); ?></label></th>
+                            <td>
+                                <?php if ($managed_in_code) : ?>
+                                    <input type="text" id="<?php echo esc_attr($option_name); ?>" class="regular-text" value="Managed in code" disabled />
+                                    <p class="description">Managed by <code><?php echo esc_html($constant); ?></code>.</p>
+                                <?php else : ?>
+                                    <input
+                                        type="<?php echo $is_secret ? 'password' : 'text'; ?>"
+                                        id="<?php echo esc_attr($option_name); ?>"
+                                        name="<?php echo esc_attr($option_name); ?>"
+                                        value="<?php echo $is_secret ? '' : esc_attr($saved_value); ?>"
+                                        class="regular-text"
+                                        autocomplete="off"
+                                        placeholder="<?php echo $is_secret && $saved_value ? esc_attr('Saved secret hidden; enter a new value to replace it') : ''; ?>"
+                                    />
+                                    <?php if ($is_secret && $saved_value) : ?>
+                                        <p class="description">A secret is saved but hidden. Leave blank to keep it.</p>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            <?php endforeach; ?>
             </table>
             <?php submit_button(); ?>
         </form>
@@ -95,18 +178,19 @@ function OnlineSched_social_login_page()
 
 add_action('admin_init', 'OnlineSched_social_login_save_settings');
 
-// This function should only register settings for the Social Login form.
-// Saving/updating happens only via options.php when the form is submitted.
-function OnlineSched_social_login_save_settings() {
-    $social_config = require dirname(__FILE__) . '/includes/social_providers_config.php';
-    if (isset($social_config['providers']) && is_array($social_config['providers'])) {
-        foreach ($social_config['providers'] as $provider => $providerData) {
-            onlinesched_register_social_login_setting(onlinesched_social_provider_enabled_option($provider), 'absint');
-            if (isset($providerData['keys']) && is_array($providerData['keys'])) {
-                foreach ($providerData['keys'] as $key => $val) {
-                    $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
-                    onlinesched_register_social_login_setting($option_name);
-                }
+function OnlineSched_social_login_save_settings()
+{
+    $social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
+    foreach ((array) ($social_config['providers'] ?? array()) as $provider => $providerData) {
+        onlinesched_register_social_login_setting(onlinesched_social_provider_enabled_option($provider), 'absint');
+        foreach ((array) ($providerData['keys'] ?? array()) as $key => $unused) {
+            $option_name = onlinesched_social_provider_key_option($provider, $key);
+            if (strtolower($key) === 'secret') {
+                onlinesched_register_social_login_setting($option_name, function ($value) use ($option_name) {
+                    return onlinesched_social_sanitize_secret($value, $option_name);
+                });
+            } else {
+                onlinesched_register_social_login_setting($option_name, 'onlinesched_social_sanitize_text');
             }
         }
     }

@@ -1,10 +1,14 @@
 <?php
 /*
 Plugin Name: OnlineSched
-Plugin URI: 
-Description: Online Event Scheduling
-Version: 0.8
-License: BSD 2-Clause
+Plugin URI: https://github.com/onlinesched/OnlineSched
+Description: A flexible event scheduling plugin for conventions and organizations.
+Version: 1.0.0
+Requires at least: 6.4
+Requires PHP: 8.2
+License: GPL-2.0-or-later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Author: BL, BM, AL & Contributors
 Text Domain: onlinesched
 Domain Path: /languages
 
@@ -43,6 +47,8 @@ require_once('lib/install_theme_support.php');
 require_once('lib/schedule.php');
 require_once('OnlineSchedSettings.php');
 require_once('includes/shortcode_schedule_cheat_display.php');
+require_once('includes/favorites.php');
+require_once('includes/privacy.php');
 require_once("OnlineSchedBadgeTypes.php");
 require_once('OnlineSchedEssentials.php');
 require_once('OnlineSchedSocialLogin.php');
@@ -263,22 +269,6 @@ function onlinesched_create_favorites_table() {
         KEY provider_identifier (provider, identifier)
     ) $charset_collate;";
     dbDelta($sql);
-}
-
-function OnlineSched_social_login_activate() {
-    $social_config = require dirname(__FILE__) . '/OnlineSched/includes/social_providers_config.php';
-    if (isset($social_config['providers']) && is_array($social_config['providers'])) {
-        foreach ($social_config['providers'] as $provider => $providerData) {
-            if (isset($providerData['keys']) && is_array($providerData['keys'])) {
-                foreach ($providerData['keys'] as $key => $val) {
-                    $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
-                    if (get_option($option_name) === false) {
-                        add_option($option_name, '');
-                    }
-                }
-            }
-        }
-    }
 }
 
 function OnlineSched_columns_head($defaults)
@@ -649,6 +639,8 @@ function OnlineSched_select_num($name, $value, $start, $end, $step = 1)
 
 function OnlineSched_timeslot_metabox($os_event)
 {
+    wp_nonce_field('onlinesched_save_timeslot', 'onlinesched_timeslot_nonce');
+
 	$time_hr = esc_html(get_post_meta($os_event->ID, 'onlinesched_time_hr', true));
 	$time_min = esc_html(get_post_meta($os_event->ID, 'onlinesched_time_min', true));
 	$timelen = esc_html(get_post_meta($os_event->ID, 'onlinesched_timelen', true));
@@ -708,7 +700,7 @@ function OnlineSched_update_post_meta($id, $postname, $name)
 {
 
 	if (isset($_POST[$postname]) && $_POST[$postname] != '') {
-		update_post_meta($id, $name, $_POST[$postname]);
+		update_post_meta($id, $name, sanitize_text_field(wp_unslash($_POST[$postname])));
 	}
 }
 
@@ -716,7 +708,7 @@ function OnlineSched_update_post_terms($id, $postname, $name)
 {
 
 	if (isset($_POST[$postname]) && $_POST[$postname] != '') {
-		wp_set_post_terms($id, $_POST[$postname], $name);
+		wp_set_post_terms($id, sanitize_text_field(wp_unslash($_POST[$postname])), $name);
 	}
 }
 
@@ -724,6 +716,22 @@ function OnlineSched_add_timeslot_fields($os_event_id, $os_event)
 {
 
 	if ($os_event->post_type == 'os_event') {
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
+        if (wp_is_post_revision($os_event_id) || wp_is_post_autosave($os_event_id)) {
+            return;
+        }
+
+        if (!isset($_POST['onlinesched_timeslot_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['onlinesched_timeslot_nonce'])), 'onlinesched_save_timeslot')) {
+            return;
+        }
+
+        if (!current_user_can('edit_onlinesched_event_schedules')) {
+            return;
+        }
+
 		OnlineSched_update_post_meta($os_event_id, 'os_event_day', 'onlinesched_day');
 		OnlineSched_update_post_meta($os_event_id, 'os_event_panelists', 'onlinesched_panelists');
 		OnlineSched_update_post_terms($os_event_id, 'os_room', 'os_room');
@@ -734,12 +742,15 @@ function OnlineSched_add_timeslot_fields($os_event_id, $os_event)
 		update_post_meta($os_event_id, 'onlinesched_year', get_option('onlinesched_year'));
 
 		$sorttime = -99;
-		$types = get_terms('os_day', array('search' => $_POST['os_day']));
+        $posted_day = isset($_POST['os_day']) ? sanitize_text_field(wp_unslash($_POST['os_day'])) : '';
+        $posted_hour = isset($_POST['os_event_time_hr']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_hr'])) : '';
+        $posted_min = isset($_POST['os_event_time_min']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_min'])) : '';
+		$types = get_terms('os_day', array('search' => $posted_day));
 		if (count($types) == 1) {
 			$sorttime = strtotime($types[0]->description . " " .
-				$_POST['os_event_time_hr'] .
+				$posted_hour .
 				":" .
-				$_POST['os_event_time_min']);
+				$posted_min);
 		}
 		update_post_meta($os_event_id, 'onlinesched_sorttime', $sorttime);
 	}

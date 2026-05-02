@@ -9,12 +9,12 @@ if ( !defined('ABSPATH')) exit;
  * Template Name:  Online Schedule
  *
  * @file           grid.php
- * @package        FM-2105 
- * @author         Ben Lindstrom 
- * @copyright      2015 - Ben Lindstrom
- * @license        BSD 2-Clause
+ * @package        OnlineSched
+ * @author         BL, BM, AL & Contributors
+ * @copyright      2016-2026 Original Authors
+ * @license        GPL-2.0-or-later
  * @version        Release: 1.0
- * @filesource     wp-content/themes/fm-2015/grid.php
+ * @filesource     wp-content/plugins/OnlineSched/grid.php
  */
 
 get_header();

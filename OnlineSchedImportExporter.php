@@ -6,6 +6,7 @@ include("lib/YoastPauser.php");
 function os_event_csv_export_handler()
 {
 	if (isset($_POST['export_csv'])) {
+        check_admin_referer('onlinesched_csv_export');
 		export_os_event_csv();
 		exit(); // Kit is after
 	}
@@ -51,6 +52,7 @@ function os_event_csv_uploader_page()
     <div class="wrap">
         <h2>Upload Event Schedule CSV</h2>
         <form method="post" enctype="multipart/form-data">
+            <?php wp_nonce_field('onlinesched_csv_upload'); ?>
             <input type="file" name="os_event_csv" accept=".csv" required>
 			<?php submit_button('Upload CSV'); ?>
             <br/>
@@ -64,6 +66,7 @@ function os_event_csv_uploader_page()
         <hr/>
         <h2>Export Current Schedule CSV</h2>
         <form method="post">
+            <?php wp_nonce_field('onlinesched_csv_export'); ?>
 			<?php submit_button('Export CSV', 'primary', 'export_csv'); ?>
         </form>
 
@@ -71,19 +74,23 @@ function os_event_csv_uploader_page()
         <br/>
         <h2>Clean Up Tasks</h2>
         <form method="post">
+            <?php wp_nonce_field('onlinesched_csv_delete_posts'); ?>
 			<?php submit_button('Delete All Event Schedule Posts', 'delete', 'delete_all_os_event_posts'); ?>
             <br/>This will delete <strong>ALL YEARS</strong> posts even hidden ones.
         </form>
         <form method="post">
+            <?php wp_nonce_field('onlinesched_csv_delete_panelists'); ?>
 			<?php submit_button('Delete Unused Panelists', 'delete', 'delete_unused_panelists'); ?>
         </form>
 
         <form method="post">
+            <?php wp_nonce_field('onlinesched_csv_delete_days'); ?>
 			<?php submit_button('Delete Unused Days', 'delete', 'delete_unused_days'); ?>
         </form>
     </div>
 	<?php
 	if (isset($_FILES['os_event_csv'])) {
+        check_admin_referer('onlinesched_csv_upload');
 
 		handle_os_event_csv_upload($_FILES['os_event_csv']);
 
@@ -91,14 +98,17 @@ function os_event_csv_uploader_page()
 
 
 	if (isset($_POST['delete_all_os_event_posts'])) {
+        check_admin_referer('onlinesched_csv_delete_posts');
 		delete_all_os_event_posts();
 	}
 
 	if (isset($_POST['delete_unused_panelists'])) {
+        check_admin_referer('onlinesched_csv_delete_panelists');
 		delete_unused_tax('os_panelist', 'Panalists');
 	}
 
 	if (isset($_POST['delete_unused_days'])) {
+        check_admin_referer('onlinesched_csv_delete_days');
 		delete_unused_tax('os_day', "Days");
 	}
 }

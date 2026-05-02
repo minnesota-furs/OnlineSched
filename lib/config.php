@@ -341,7 +341,41 @@ function onlinesched_get_calendar_name()
         $year = wp_date('Y');
     }
 
-    return sanitize_text_field(onlinesched_get_config('calendar_name', trim($site_name . ' ' . $year)));
+    $calendar_name = sanitize_text_field(onlinesched_get_config('calendar_name', trim($site_name . ' ' . $year)));
+
+    return apply_filters('os_calendar_name', $calendar_name);
+}
+
+function onlinesched_get_ical_prodid()
+{
+    $site_name = sanitize_text_field(get_bloginfo('name'));
+    $prodid = '-//OnlineSched//' . ($site_name ? $site_name : 'Event Schedule') . '//EN';
+
+    return apply_filters('os_ical_prodid', onlinesched_get_config('ical_prodid', $prodid));
+}
+
+function onlinesched_get_ical_filename_prefix()
+{
+    $prefix = sanitize_title(onlinesched_get_config('ical_filename_prefix', 'onlinesched'));
+    $prefix = $prefix ? $prefix : 'onlinesched';
+
+    return apply_filters('os_ical_filename_prefix', $prefix);
+}
+
+function onlinesched_get_room_sort_priority()
+{
+    $raw = onlinesched_get_config('room_sort_priority', '');
+    if (is_string($raw)) {
+        $rooms = array_map('trim', explode(',', $raw));
+    } elseif (is_array($raw)) {
+        $rooms = $raw;
+    } else {
+        $rooms = array();
+    }
+
+    $rooms = array_values(array_filter(array_map('sanitize_text_field', $rooms)));
+
+    return apply_filters('os_room_sort_priority', $rooms);
 }
 
 function onlinesched_get_page_content($key, $fallback_slug = '')

@@ -112,6 +112,9 @@ function OnlineSched_admin_init()
     onlinesched_register_main_setting('onlinesched_tab_map_label', 'sanitize_text_field');
     onlinesched_register_main_setting('onlinesched_sticky_offset_desktop', 'absint');
     onlinesched_register_main_setting('onlinesched_sticky_offset_mobile', 'absint');
+    onlinesched_register_main_setting('onlinesched_calendar_name', 'sanitize_text_field');
+    onlinesched_register_main_setting('onlinesched_ical_filename_prefix', 'sanitize_title');
+    onlinesched_register_main_setting('onlinesched_room_sort_priority', 'sanitize_text_field');
     foreach (onlinesched_get_color_defaults() as $key => $unused) {
         onlinesched_register_main_setting(onlinesched_get_option_name($key), 'onlinesched_sanitize_color_option');
     }
@@ -285,6 +288,9 @@ function OnlineSched_options_page()
                 onlinesched_text_input_row('onlinesched_tab_map_label', 'Map Tab Label', 'Map', 'Label for the kiosk Map tab.');
                 onlinesched_number_input_row('onlinesched_sticky_offset_desktop', 'Desktop Sticky Offset', 0, 'Height in pixels of any fixed theme header above schedule tabs on desktop.');
                 onlinesched_number_input_row('onlinesched_sticky_offset_mobile', 'Mobile Sticky Offset', 0, 'Height in pixels of any fixed theme header above schedule tabs on mobile.');
+                onlinesched_text_input_row('onlinesched_calendar_name', 'Calendar Name', onlinesched_get_calendar_name(), 'Name shown by calendar clients for full-schedule subscriptions.');
+                onlinesched_text_input_row('onlinesched_ical_filename_prefix', 'iCal Filename Prefix', 'onlinesched', 'Short lowercase prefix for downloaded .ics files.');
+                onlinesched_text_input_row('onlinesched_room_sort_priority', 'Room Sort Priority', '', 'Optional comma-separated room names that should sort before the normal alphabetical room order.');
                 ?>
             </table>
 

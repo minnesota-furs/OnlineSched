@@ -11,10 +11,17 @@ import { initModal } from "./js/osModal";
 
 // Initialize everything when the schedule DOM is ready.
 document.addEventListener('DOMContentLoaded', () => {
+    const config = window.OS_SCHEDULE_CONFIG || {};
+
     ['login-modal', 'modal-schedule', 'info-modal', 'android-google-calendar-modal'].forEach(initModal);
     initTabs();
     scheduleCalendar();
-    scheduleFavorites();
-    loginHelpers();
+
+    // Kiosk is a shared display -- no login, no per-user favorites, no wasted fetches.
+    if (!config.isKiosk) {
+        scheduleFavorites();
+        loginHelpers();
+    }
+
     new_schedule();
 });

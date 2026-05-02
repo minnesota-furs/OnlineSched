@@ -21,18 +21,15 @@ gaming=shows all room not programming, consuite, etc
  * Template Name:  Panel Grid - iCal page
  *
  * @file           icalbyroom.php
- * @package        FM-2018
+ * @package        OnlineSched
  * @author         Ben Lindstrom, Brian Mogged
  * @copyright      2014, 2016, 2018
- * @license        license.txt
+ * @license        GPL-2.0-or-later
  * @version        Release: 3.0
  * @filesource     wp-content/themes/fm-2018/icalbyroom.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29
  * @since          available since Release 1.0
  */
-
-
-date_default_timezone_set( 'America/Chicago' );
 
 
 $slug = empty($_REQUEST['room']) ? 'main-stage' : $_REQUEST['room'];
@@ -150,7 +147,8 @@ if ( empty( $loop->posts ) ) {
 $postsArr = $loop->posts;
 
 $dnt = new DateTime();
-$dnt->setTimeZone( new DateTimeZone( date_default_timezone_get() ) );
+$dnt->setTimestamp(current_time('timestamp', true));
+$dnt->setTimeZone(wp_timezone());
 $dnt->setTimeZone( new DateTimeZone( 'UTC' ) );
 #$dnt->add(new DateInterval('P10D'));
 $json_out = array();
@@ -171,20 +169,14 @@ foreach ( $postsArr as $item ) {
 
 	## Figure out Times
 	$startTime = get_post_meta( $postId, 'onlinesched_sorttime', true );
-	// time zone bug
-
 	$endTime   = $startTime + ( get_post_meta( $postId, 'onlinesched_timelen', true ) * 60 );
 
-	//timezone bug
-	// hacked to do the time zone need to fix for real
-	$endTime += (60*60*5);
-
 	$dst = new DateTime('@'.$startTime);
-	$dst->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+	$dst->setTimeZone(wp_timezone());
 	$dst->setTimeZone(new DateTimeZone('UTC'));
 
 	$det = new DateTime('@'.$endTime);
-	$det->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+	$det->setTimeZone(wp_timezone());
 	$det->setTimeZone(new DateTimeZone('UTC'));
 
 
@@ -212,7 +204,7 @@ foreach ( $postsArr as $item ) {
 	$addAdultTag = in_array( "restricted", array_map( 'strtolower', $tagsArray ) ) ? " [Adult]" : "";
 
 
-	/*	$iCal->add('cal-fm-'.$postId,
+	/*	$iCal->add('onlinesched-'.$postId,
 		   $dst->format("m/d/Y H:i"),
 		   $det->format("m/d/Y H:i"),
 		   $rooms,
@@ -231,4 +223,3 @@ foreach ( $postsArr as $item ) {
 
 header( 'Content-type: application/json' );
 echo json_encode( $json_out );
-

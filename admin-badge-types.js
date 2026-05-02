@@ -60,7 +60,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				method: 'POST',
 				credentials: 'same-origin',
 				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-				body: new URLSearchParams({ action: 'onlinesched_assign_default_badge_types' })
+				body: new URLSearchParams({
+					action: 'onlinesched_assign_default_badge_types',
+					nonce: window.OnlineSchedBadgeTypes ? window.OnlineSchedBadgeTypes.nonce : ''
+				})
 			})
 				.then(function(response) {
 					if (!response.ok) throw new Error('HTTP ' + response.status);

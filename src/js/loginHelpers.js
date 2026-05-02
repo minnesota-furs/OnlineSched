@@ -1,7 +1,6 @@
 export function loginHelpers() {
     const endpoints = window.OnlineSchedPublic || {};
     const loginStateUrl = endpoints.loginStateUrl || '/wp-content/plugins/OnlineSched/includes/login_state.php';
-    const getFavoritesUrl = endpoints.getFavoritesUrl || '/wp-content/plugins/OnlineSched/includes/get_favorites.php';
 
     function openLoginWithProvider(provider, event) {
         if (event) event.preventDefault();
@@ -34,7 +33,7 @@ export function loginHelpers() {
             if (window.ONLINESCHED_USER) {
                 window.ONLINESCHED_USER.loggedIn = false;
                 window.ONLINESCHED_USER.provider = '';
-                window.ONLINESCHED_USER.identifier = '';
+                window.ONLINESCHED_USER.favoritesToken = '';
             }
             if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
             window.location.reload();
@@ -47,7 +46,7 @@ export function loginHelpers() {
                     if (window.ONLINESCHED_USER) {
                         window.ONLINESCHED_USER.loggedIn = false;
                         window.ONLINESCHED_USER.provider = '';
-                        window.ONLINESCHED_USER.identifier = '';
+                        window.ONLINESCHED_USER.favoritesToken = '';
                     }
                     if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
                     window.location.reload();
@@ -69,7 +68,7 @@ export function loginHelpers() {
     window.updateLoginLogoutUI = updateLoginLogoutUI;
 
 // Fetch login state via AJAX and update UI
-    window.ONLINESCHED_USER = {loggedIn: false, provider: '', identifier: ''};
+    window.ONLINESCHED_USER = window.ONLINESCHED_USER || {loggedIn: false, provider: '', favoritesToken: ''};
 
 // Hide login/logout buttons until state is loaded
     function hideLoginButtons() {
@@ -81,36 +80,26 @@ export function loginHelpers() {
     window.hideLoginButtons = hideLoginButtons;
 
     function fetchLoginStateAndInit() {
-        fetch(loginStateUrl, {credentials: 'same-origin'})
-            .then(function (resp) {
+        const statePromise = window.fetchOnlineSchedLoginState
+            ? window.fetchOnlineSchedLoginState()
+            : fetch(loginStateUrl, {
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(function (resp) {
                 return resp.json();
-            })
+            });
+
+        statePromise
             .then(function (data) {
                 window.ONLINESCHED_USER = data;
                 if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
-                // If logged in, fetch favorites from DB and sync cookie/UI
-                if (window.ONLINESCHED_USER && window.ONLINESCHED_USER.loggedIn && window.ONLINESCHED_USER.provider && window.ONLINESCHED_USER.identifier) {
-                    fetch(getFavoritesUrl + '?provider=' + encodeURIComponent(window.ONLINESCHED_USER.provider) + '&identifier=' + encodeURIComponent(window.ONLINESCHED_USER.identifier), {credentials: 'same-origin'})
-                        .then(function (resp) {
-                            return resp.json();
-                        })
-                        .then(function (favData) {
-                            if (favData.favorites) {
-                                // Set cookie as raw JSON string, not encodeURIComponent
-                                document.cookie = 'schedule_favorites=' + favData.favorites + ';path=/;max-age=' + (60 * 60 * 24 * 30);
-                            }
-                            // Always call restoreFavoritesFromCookie after updating the cookie
-                            if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
-                        })
-                        .catch(function () {
-                            if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
-                        });
-                } else {
-                    if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
-                }
+                if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
             })
             .catch(function () {
-                window.ONLINESCHED_USER = {loggedIn: false, provider: '', identifier: ''};
+                window.ONLINESCHED_USER = {loggedIn: false, provider: '', favoritesToken: ''};
                 if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
                 if (window.restoreFavoritesFromCookie) window.restoreFavoritesFromCookie();
             });

@@ -12,10 +12,10 @@ if (!defined('ABSPATH')) {
  * Template Name:  Online Schedule
  *
  * @file           page-schedule.php
- * @package        FM-2023
- * @author         BL, BM, AL
- * @copyright      2016-current Furry Migration
- * @license        BSD 2-Clause
+ * @package        OnlineSched
+ * @author         BL, BM, AL & Contributors
+ * @copyright      2016-2026 Original Authors
+ * @license        GPL-2.0-or-later
  * @version        Release: 4.0
  * @filesource     wp-content/plugins/OnlineSched/grid.php
  */
@@ -24,10 +24,8 @@ wp_enqueue_style('online-schedule-css', ONLINESCHED_PLUGIN_URL . "build/main.css
 onlinesched_add_color_inline_style('online-schedule-css');
 wp_enqueue_script('online-schedule-js', ONLINESCHED_PLUGIN_URL . "build/bundle.js", array(), filemtime(ONLINESCHED_PLUGIN_DIR . 'build/bundle.js'));
 wp_localize_script('online-schedule-js', 'OnlineSchedPublic', array(
-    'nonce' => wp_create_nonce('onlinesched_public'),
-    'saveFavoritesUrl' => ONLINESCHED_PLUGIN_URL . 'includes/save_favorites.php',
+    'saveFavoritesUrl' => add_query_arg('action', 'onlinesched_save_favorites', admin_url('admin-ajax.php')),
     'loginStateUrl' => ONLINESCHED_PLUGIN_URL . 'includes/login_state.php',
-    'getFavoritesUrl' => ONLINESCHED_PLUGIN_URL . 'includes/get_favorites.php',
 ));
 
 
@@ -426,15 +424,6 @@ $start = microtime(true);
     onlinesched_get_template_part('android-google-calendar-modal');
     ?>
 <?php
-// Only use custom provider/cookie/session for login state
-$social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
-$valid_providers = array_keys($social_config['providers']);
-$provider = isset($_SESSION['provider']) ? $_SESSION['provider'] : '';
-$identifier = isset($_COOKIE['onlinesched_identifier']) ? $_COOKIE['onlinesched_identifier'] : '';
-$is_logged_in = in_array($provider, $valid_providers) && !empty($identifier);
-?>
-<?php
-
 $end = microtime(true);
 $creationtime = ($end - $start);
 // printf("Page created in %.6f seconds.", $creationtime);
@@ -453,8 +442,19 @@ function modify_wp_query_clauses($clauses, $wp_query)
         $clauses['join'] .= " LEFT JOIN {$wpdb->term_taxonomy} AS tt ON (tr.term_taxonomy_id = tt.term_taxonomy_id)";
         $clauses['join'] .= " LEFT JOIN {$wpdb->terms} AS t ON (tt.term_id = t.term_id AND tt.taxonomy = 'os_room')";
 
+        $room_priority = function_exists('onlinesched_get_room_sort_priority') ? onlinesched_get_room_sort_priority() : array();
+        $room_order = '';
+        if (!empty($room_priority)) {
+            $quoted_rooms = array();
+            foreach ($room_priority as $room_name) {
+                $quoted_rooms[] = "'" . esc_sql($room_name) . "'";
+            }
+            $field_sql = 'FIELD(t.name, ' . implode(',', $quoted_rooms) . ')';
+            $room_order = "({$field_sql} = 0) ASC, {$field_sql} ASC, ";
+        }
+
         // Add the taxonomy term to the ORDER BY clause
-        $clauses['orderby'] = "{$wpdb->postmeta}.meta_value ASC, t.name ASC, {$wpdb->posts}.post_title ASC";
+        $clauses['orderby'] = "{$wpdb->postmeta}.meta_value ASC, {$room_order}t.name ASC, {$wpdb->posts}.post_title ASC";
     }
 
     return $clauses;
