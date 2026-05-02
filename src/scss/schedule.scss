@@ -238,25 +238,16 @@ dl.schedule-meta:after {
 }
 
 
-.page-id-8669 #body {
-  margin-top: 0px;
-  padding-top: 0px;
-}
-
-.page-id-8669 #body .os-container {
-  padding-top: 0px;
-}
-
 /* header being dynamic */
 .schedule-day > h2 {
   position: -webkit-sticky;
   position: sticky;
-  top: 50px;
+  top: calc(var(--os-sticky-top-offset, 0px) + var(--os-tabs-height, 40px));
   z-index: 1;
 }
 
-body.page-id-9880 .schedule-day > h2 {
-  top: 0px;
+.kiosk-schedule .schedule-day > h2 {
+  top: calc(var(--os-sticky-top-offset, 0px) + 50px);
 }
 
 
@@ -267,27 +258,19 @@ body.page-id-9880 .schedule-day > h2 {
   }
 }
 
-/* Kiosk page id */
 @media screen and (min-width: 991px) {
-  body.page-id-9880 .schedule-day > h2 {
-    top: 50px;
-  }
-
-  body.page-id-8669 .schedule-tabs {
+  .standard-schedule .schedule-tabs {
     position: -webkit-sticky;
     position: sticky;
-    top: 0px;
+    top: var(--os-sticky-top-offset, 0px);
     z-index: 1;
-  }
-
-  body.page-id-8669 .schedule-day > h2 {
-    top: 40px;
   }
 }
 
 @media screen and (max-width: 991px) {
-  .schedule-day > h2, body.page-id-8669 .schedule-day > h2 {
-    top: 40px;
+  .schedule-day > h2,
+  .kiosk-schedule .schedule-day > h2 {
+    top: calc(var(--os-sticky-mobile-top-offset, var(--os-sticky-top-offset, 0px)) + var(--os-tabs-height, 40px));
   }
 }
 

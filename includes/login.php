@@ -11,6 +11,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $plugin_url = plugins_url( 'includes/login.php', dirname(__FILE__, 1) );
+$schedule_url = function_exists('onlinesched_get_schedule_page_url') ? onlinesched_get_schedule_page_url() : home_url('/schedule/');
 
 // Load shared social providers config
 $social_config = require __DIR__ . '/social_providers_config.php';
@@ -19,9 +20,7 @@ if (isset($social_config['providers']) && is_array($social_config['providers']))
     foreach ($social_config['providers'] as $provider => &$providerData) {
         if (!empty($providerData['no_keys'])) {
             // For providers with no_keys, allow usage even if no key is set
-            continue;
-        }
-        if (isset($providerData['keys']) && is_array($providerData['keys'])) {
+        } else if (isset($providerData['keys']) && is_array($providerData['keys'])) {
             foreach ($providerData['keys'] as $key => $val) {
                 $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
                 $wp_val = get_option($option_name);
@@ -29,6 +28,10 @@ if (isset($social_config['providers']) && is_array($social_config['providers']))
                     $providerData['keys'][$key] = $wp_val;
                 }
             }
+        }
+
+        if (function_exists('onlinesched_social_provider_is_enabled') && !onlinesched_social_provider_is_enabled($provider, $providerData)) {
+            unset($social_config['providers'][$provider]);
         }
     }
     unset($providerData);
@@ -89,7 +92,7 @@ try {
 			echo "<script>\n";
 			echo "document.cookie = 'schedule_favorites=; Max-Age=0; path=/;';\n";
 			echo "document.cookie = 'onlinesched_identifier=; Max-Age=0; path=/;';\n";
-			echo "if (window.opener && !window.opener.closed) { window.opener.location.reload(); window.close(); } else { window.location.href = '/schedule'; }\n";
+			echo "if (window.opener && !window.opener.closed) { window.opener.location.reload(); window.close(); } else { window.location.href = '" . esc_js($schedule_url) . "'; }\n";
 			echo "</script>\n";
 			exit;
 		} else {
@@ -205,7 +208,7 @@ try {
 		echo "  if (window.opener.location) window.opener.location.reload();\n";
 		echo "  window.close();\n";
 		echo "} else {\n";
-		echo "  document.body.innerHTML = '<div style=\'text-align:center;margin-top:2em;font-size:1.2em\'>Login successful. <a href=\'/schedule\'>Return to schedule</a>.</div>';\n";
+			echo "  document.body.innerHTML = '<div style=\'text-align:center;margin-top:2em;font-size:1.2em\'>Login successful. <a href=\'" . esc_url($schedule_url) . "\'>Return to schedule</a>.</div>';\n";
 		echo "}\n";
 		echo "</script>\n";
 		exit;

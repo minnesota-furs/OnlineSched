@@ -5,8 +5,8 @@ return [
         'Google' => [
             'enabled' => true,
             'keys' => [
-                'id' => '1085930528382-26pbncpv1161eil6gj82i7qd51ji67uo.apps.googleusercontent.com',
-                'secret' => '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',
+                'id' => '',
+                'secret' => '',
             ],
             'scope' => 'email',
 	        'use-favicon' => [
@@ -19,8 +19,8 @@ return [
 	    'Telegram' => [
 				'enabled' => true,
 		    'keys' => [
-				'id' => 'xx',
-			    'secret' => 'xx',
+				'id' => '',
+			    'secret' => '',
 		    ],
 			'scope' => 'email',
 		    'use-favicon' => [
@@ -45,13 +45,13 @@ return [
 	    'Facebook'  => [
             'enabled' => true,
             'keys' => [
-                'id' => 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-                'secret' => 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+                'id' => '',
+                'secret' => '',
             ],
             'scope' => 'email',
         ],
         'Steam' => [
-            'enabled' => true,
+            'enabled' => false,
             'no_keys' => true, // Steam does not require keys
             'scope' => '', // Steam does not use scopes
             'use-favicon' => [

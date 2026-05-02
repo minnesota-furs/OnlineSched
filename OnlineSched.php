@@ -5,6 +5,8 @@ Plugin URI:
 Description: Online Event Scheduling
 Version: 0.8
 License: BSD 2-Clause
+Text Domain: onlinesched
+Domain Path: /languages
 
 Todo List:
 - Write deactivation hook (prompt user)
@@ -20,6 +22,7 @@ Todo List:
 - Check into github.com repo and update "Plugin URI:"
 */
 
+include_once("lib/config.php");
 include_once("lib/theme.php");
 include_once("lib/help.php");
 require_once("OnlineSchedImportExporter.php");
@@ -38,6 +41,7 @@ add_action('admin_init', 'OnlineSched_admin_init');
 add_action('save_post', 'OnlineSched_add_timeslot_fields', 10, 2);
 add_action('manage_event_schedule_posts_custom_column', 'OnlineSched_columns_content', 10, 2);
 add_action('admin_head', 'OnlineSched_add_help_page');
+add_action('admin_head', 'onlinesched_settings_admin_styles');
 add_action('edited_event_schedule_day_type', 'custom_edit_day_type', 2, 10);
 add_action('admin_menu', 'onlinesched_register_submenus', 10);
 
@@ -48,6 +52,7 @@ add_filter('post_row_actions', 'OnlineSched_remove_row_actions', 10, 2);
 // Define Register
 register_activation_hook(__FILE__, 'OnlineSched_plugin_activate');
 register_activation_hook(__FILE__, 'onlinesched_create_favorites_table');
+register_activation_hook(__FILE__, 'onlinesched_auto_detect_pages');
 //
 // Changing Taxonomy - If change update all the dates
 //
@@ -665,6 +670,7 @@ function onlinesched_register_submenus() {
         'event_schedule_csv_uploader_page'
     );
     OnlineSched_register_options_page(); // Event Settings
+    OnlineSched_register_config_status_page(); // Configuration Status
     OnlineSched_register_social_login_page(); // Social Login
     add_submenu_page(
         'edit.php?post_type=event_schedule',

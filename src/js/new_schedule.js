@@ -42,21 +42,23 @@ function dispatchChange(el) {
 }
 
 export function new_schedule() {
-    let header_top = 60;
-    let header_mobile_top = 0;
-    let tablet_width = 900;
+    const scheduleConfig = window.OS_SCHEDULE_CONFIG || {};
+    const header_top = Number.parseInt(scheduleConfig.stickyOffsetDesktop ?? 0, 10) || 0;
+    const header_mobile_top = Number.parseInt(scheduleConfig.stickyOffsetMobile ?? header_top, 10) || 0;
+    const tablet_width = Number.parseInt(scheduleConfig.stickyBreakpoint ?? 991, 10) || 991;
+    const fixed_tabs_height = Number.parseInt(scheduleConfig.fixedTabsHeight ?? 40, 10) || 40;
+
+    function currentStickyOffset(includeTabs = false) {
+        const width = document.body ? document.body.getBoundingClientRect().width : window.innerWidth;
+        const offset = width <= tablet_width ? header_mobile_top : header_top;
+        return includeTabs ? offset + fixed_tabs_height : offset;
+    }
 
     window.scrollTopMenu = function () {
         const schedule = $('#schedule');
         if (!schedule) return;
 
-        const width = document.body ? document.body.getBoundingClientRect().width : window.innerWidth;
-        let offsetDiv = header_top;
-        if (width <= tablet_width) {
-            offsetDiv = header_mobile_top;
-        }
-
-        let offset = schedule.getBoundingClientRect().top + window.pageYOffset - offsetDiv;
+        let offset = schedule.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset();
         if (offset < 0) {
             offset = 0;
         }
@@ -161,10 +163,7 @@ export function new_schedule() {
             let isFavorite = parent.getAttribute('data-favorite') === 'true';
             const evt_id = parent.getAttribute('id');
             let favBtn = '';
-            if (
-                window.location.href.indexOf('schedule') !== -1 &&
-                window.location.href.indexOf('kiosk-schedule') === -1
-            ) {
+            if (!scheduleConfig.isKiosk && !scheduleConfig.isLive) {
                 favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
             }
 
@@ -712,13 +711,7 @@ export function new_schedule() {
                     scheduleSort();
                 }
 
-                const width = document.body ? document.body.getBoundingClientRect().width : window.innerWidth;
-                let offsetDiv = header_top * 2;
-                if (width <= tablet_width) {
-                    offsetDiv = header_mobile_top;
-                }
-
-                let offset = event.getBoundingClientRect().top + window.pageYOffset - offsetDiv;
+                let offset = event.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset(true);
                 if (offset < 0) offset = 0;
 
                 window.scrollTo({ top: offset, behavior: 'smooth' });

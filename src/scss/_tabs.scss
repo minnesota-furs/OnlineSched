@@ -97,7 +97,7 @@
   .schedule-fixed .os-tabs {
     position: fixed;
     left: 0;
-    top: 0;
+    top: var(--os-sticky-mobile-top-offset, var(--os-sticky-top-offset, 0px));
     width: 100%;
     margin: 0;
     z-index: 999;

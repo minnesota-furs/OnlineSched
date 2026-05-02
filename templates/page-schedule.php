@@ -35,6 +35,15 @@ $badge_type_meta_cache = array();
 $gmt_offset = floatval(get_option('gmt_offset'));
 $event_schedule_year = get_option('event_schedule_year');
 $essentials_tab_name = get_option('onlinesched_essentials_tab_name', 'Essentials');
+$programming_tab_label = onlinesched_get_config('tab_programming_label', 'Programming');
+$programming_mobile_label = onlinesched_get_config('tab_programming_mobile_label', 'Events');
+$hours_tab_label = onlinesched_get_config('tab_hours_label', 'Hours');
+$map_tab_label = onlinesched_get_config('tab_map_label', 'Map');
+$programming_tab_label = $programming_tab_label !== '' ? $programming_tab_label : 'Programming';
+$programming_mobile_label = $programming_mobile_label !== '' ? $programming_mobile_label : 'Events';
+$hours_tab_label = $hours_tab_label !== '' ? $hours_tab_label : 'Hours';
+$map_tab_label = $map_tab_label !== '' ? $map_tab_label : 'Map';
+$sticky_offsets = onlinesched_get_sticky_offsets();
 
 $cssClass = 'standard-schedule';
 $filterLINKS = false;
@@ -43,7 +52,25 @@ global $post;
 if (!isset($post) || !is_object($post)) {
     $post = get_post();
 }
-if ($post->post_name === "kiosk-schedule") {
+
+$is_kiosk_schedule = onlinesched_is_configured_page($post, 'kiosk', 'kiosk-schedule');
+$is_live_schedule = onlinesched_is_configured_page($post, 'live', 'live');
+
+wp_add_inline_script(
+    'online-schedule-js',
+    'window.OS_SCHEDULE_CONFIG = ' . wp_json_encode(array(
+        'stickyOffsetDesktop' => $sticky_offsets['desktop'],
+        'stickyOffsetMobile' => $sticky_offsets['mobile'],
+        'stickyBreakpoint' => 991,
+        'fixedTabsHeight' => 40,
+        'isKiosk' => $is_kiosk_schedule,
+        'isLive' => $is_live_schedule,
+        'calendarName' => onlinesched_get_calendar_name(),
+    )) . ';',
+    'before'
+);
+
+if ($is_kiosk_schedule) {
     $theming = "schedule";
     $cssClass = 'kiosk-schedule';
     $filterLINKS = true;
@@ -51,7 +78,7 @@ if ($post->post_name === "kiosk-schedule") {
 }
 
 $liveStreaming = false;
-if ($post->post_name == 'live') {
+if ($is_live_schedule) {
     $liveStreaming = true;
     $cssClass = 'live-schedule';
 }
@@ -82,19 +109,9 @@ $start = microtime(true);
             $social_config = require dirname(__DIR__) . '/includes/social_providers_config.php';
             if (isset($social_config['providers']) && is_array($social_config['providers'])) {
                 foreach ($social_config['providers'] as $provider => $providerData) {
-                    $showProvider = false;
-                    if (!empty($providerData['no_keys'])) {
-                        $showProvider = !empty($providerData['enabled']);
-                    } else if (isset($providerData['keys']) && is_array($providerData['keys'])) {
-                        foreach ($providerData['keys'] as $key => $val) {
-                            $option_name = 'onlinesched_social_' . strtolower($provider) . '_' . strtolower($key);
-                            $option_val = get_option($option_name);
-                            if (!empty($option_val)) {
-                                $showProvider = true;
-                                break;
-                            }
-                        }
-                    }
+                    $showProvider = function_exists('onlinesched_social_provider_is_enabled')
+                        ? onlinesched_social_provider_is_enabled($provider, $providerData)
+                        : false;
                     if ($showProvider) {
                         $icon = '';
                         if (isset($providerData['use-favicon']) && !empty($providerData['use-favicon']['enabled'])) {
@@ -130,7 +147,7 @@ $start = microtime(true);
                 <h1><?php the_title(); ?></h1>
                 <?php if (!empty($post->post_excerpt)) : ?><p
                         class="os-lead"><?php echo get_the_excerpt(); ?></p><?php endif; ?>
-                <?php edit_post_link(__('Edit', 'mnfm'), '<div class="edit-link">', '</div>'); ?>
+                <?php edit_post_link(__('Edit', 'onlinesched'), '<div class="edit-link">', '</div>'); ?>
 
                 <?php if ($liveStreaming) {
                 ?>
@@ -156,15 +173,17 @@ $start = microtime(true);
                                 </button>
                             </div>
                         <?php } ?>
-                        <div id="schedule" style="display:none" class="<?php echo $cssClass; ?>">
+                        <div id="schedule"
+                             style="display:none; --os-sticky-top-offset:<?php echo esc_attr($sticky_offsets['desktop']); ?>px; --os-sticky-mobile-top-offset:<?php echo esc_attr($sticky_offsets['mobile']); ?>px;"
+                             class="<?php echo esc_attr($cssClass); ?>">
                             <ul class="os-tabs schedule-tabs" role="tablist">
                                 <li role="presentation" class="os-tabs__item os-tabs__item--active"><a href="#programming"
                                                                           aria-controls="programming"
                                                                           role="tab" data-os-tab="programming"
                                                                           data-os-pane="programming"
                                                                           onclick="setFilterEvents(true);"><span
-                                                class="os-hide-mobile">Programming</span><span
-                                                class="os-show-mobile">Events</span></a>
+                                                class="os-hide-mobile"><?php echo esc_html($programming_tab_label); ?></span><span
+                                                class="os-show-mobile"><?php echo esc_html($programming_mobile_label); ?></span></a>
                                 </li>
                                 <li role="presentation" class="os-tabs__item"><a href="#essentials" aria-controls="programming" role="tab"
                                                            data-os-tab="essentials"
@@ -174,11 +193,11 @@ $start = microtime(true);
                                 <?php if ($theming != "schedule") { ?>
                                     <li role="presentation" class="os-tabs__item"><a href="#hours" aria-controls="hours" role="tab"
                                                                 data-os-tab="hours"
-                                                                id="hours-tab" onclick="scrollTopMenu()">Hours</a></li>
+                                                                id="hours-tab" onclick="scrollTopMenu()"><?php echo esc_html($hours_tab_label); ?></a></li>
                                 <?php } else { ?>
                                     <li role="presentation" class="os-tabs__item"><a href="#map" aria-controls="map" role="tab"
                                                                 data-os-tab="map"
-                                                                id="map-tab" onclick="scrollTopMenu()">Map</a></li>
+                                                                id="map-tab" onclick="scrollTopMenu()"><?php echo esc_html($map_tab_label); ?></a></li>
                                     <?php
                                 } ?>
                             </ul>
@@ -649,53 +668,12 @@ $start = microtime(true);
                                 </div><!-- end of tab -->
 
                                 <div role="tabpanel" class="os-tab-pane" id="hours">
-
-
-                                    <?php
-                                    $hours = new WP_Query(array(
-                                            'posts_per_page' => 1,
-                                            'name' => 'schedule',
-                                            'post_type' => 'page'
-                                    ));
-
-                                    if ($hours->have_posts()) {
-                                        while ($hours->have_posts()) : $hours->the_post();
-
-                                            echo apply_filters('the_content', get_the_content());
-
-                                        endwhile;
-
-                                        if (!empty($loop)) {
-                                            $loop->reset_postdata();
-                                        }
-                                    }
-
-                                    ?>
-
+                                    <?php echo onlinesched_get_page_content('hours', 'schedule'); ?>
                                 </div>
 
                                 <!-- map for kiosk -->
                                 <div role="tabpanel" class="os-tab-pane" id="map">
-                                    <?php
-                                    $hours = new WP_Query(array(
-                                            'posts_per_page' => 1,
-                                            'name' => 'kiosk-schedule',
-                                            'post_type' => 'page'
-                                    ));
-
-                                    if ($hours->have_posts()) {
-                                        while ($hours->have_posts()) : $hours->the_post();
-
-                                            echo apply_filters('the_content', get_the_content());
-
-                                        endwhile;
-
-                                        if (!empty($loop)) {
-                                            $loop->reset_postdata();
-                                        }
-                                    }
-
-                                    ?>
+                                    <?php echo onlinesched_get_page_content('map', 'kiosk-schedule'); ?>
                                 </div>
 
                             </div><!-- end of tab container -->

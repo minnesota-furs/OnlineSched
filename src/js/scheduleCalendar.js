@@ -234,7 +234,8 @@ export function scheduleCalendar() {
     window.open_calendar_outlook = function () {
         const date = new Date();
         const year = date.getFullYear();
-        let calendarName = 'Furry Migration ' + year;
+        const scheduleConfig = window.OS_SCHEDULE_CONFIG || {};
+        let calendarName = scheduleConfig.calendarName || `Event Schedule ${year}`;
         let webcalUrl = generate_ical_url();
         let outlookUrl = 'https://outlook.office.com/owa/?path=/calendar/action/compose&rru=addsubscription';
         outlookUrl += '&url=' + encodeURIComponent(webcalUrl);
