@@ -33,6 +33,54 @@ If you are developing the plugin or want to build it yourself:
 
 If you want to package a release zip locally, run `npm run release`. This will generate a clean installation zip in the `dist/` directory.
 
+## Embedding the Schedule (Shortcode)
+
+You can easily embed the schedule on any post or page using the shortcode:
+
+```text
+[onlinesched_schedule]
+```
+
+**Optional Attributes:**
+* `mode` - Set to `standard` (default), `kiosk` (hides favorites/login), or `live`. Example: `[onlinesched_schedule mode="kiosk"]`
+* `tabs` - A comma-separated list of tabs to display. Default is `programming,essentials,hours`. Example: `[onlinesched_schedule tabs="programming,hours"]`
+* `tag` - Pre-filter the schedule to only show events with a specific tag slug. Example: `[onlinesched_schedule tag="fursuiting"]`
+* `room` - Pre-filter the schedule to only show events in a specific room slug. Example: `[onlinesched_schedule room="mainstage"]`
+
+### Limitations
+
+**Only one `[onlinesched_schedule]` per page.**
+
+The schedule renders with a fixed set of element IDs that the JavaScript, the URL hash
+router, and the modal layer all depend on:
+
+* `#schedule` — the main wrapper.
+* `#programming`, `#essentials`, `#hours`, `#map` — tab panes.
+* `#evt-{post_id}` — one per event row, used by deep links such as `/schedule/#evt-123`.
+* `#modal-schedule`, `#login-modal`, `#info-modal`, `#android-google-calendar-modal` —
+  appended to the page once per render.
+
+Embedding the shortcode twice on the same page produces duplicate IDs, which is invalid
+HTML. In practice, the symptoms are:
+
+* Clicking an event in the second schedule opens the event modal pointing at the first
+  schedule.
+* Tab clicks in the second schedule scroll the first schedule.
+* `/your-page/#evt-123` always resolves to the first schedule, regardless of which
+  schedule contains the event.
+* Deep links to `#hours` or `#tag-something` activate the tab in the first schedule
+  only.
+
+If a host page genuinely needs two schedule views (for example, a "today" filter and an
+"all week" filter side by side), use a single shortcode and a tag/room/`tabs`
+attribute, or split the views across two separate pages and link between them. Multi-
+instance shortcode rendering is not on the 1.0 roadmap; it would require namespacing
+every emitted ID and rewriting the JS to scope its DOM queries within a parent
+container.
+
+The dedicated page-template path (assigning the "Online Schedule" template to a Page)
+has the same constraint for the same reason — only one schedule lives in the DOM at a
+time.
 
 ========================================================================
 HOW TO RUN THE AUTOMATED TESTS
