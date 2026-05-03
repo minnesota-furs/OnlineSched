@@ -82,6 +82,11 @@ module.exports = {
   scheduleIcalLink:     '.schedule-ical',
   scheduleGoogleLink:   '.schedule-google',
   tabMap:               '#map',
+  hoursBlock:           '.os-hours',
+  hoursRow:             '.os-hours__row',
+  hoursDepartment:      '.os-hours__dept',
+  hoursDay:             '.os-hours__days dt',
+  hoursTimes:           '.os-hours__days dd',
 
   // Clickable inline filters (room/tag text in event rows)
   filterLink:           '.schedule-filter-link',

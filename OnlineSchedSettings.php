@@ -253,11 +253,28 @@ function onlinesched_color_input_row($key, $label, $description)
 
 function OnlineSched_options_page()
 {
+    $hours_page_id = (int) get_option('onlinesched_hours_page_id', 0);
+    $can_migrate_hours = $hours_page_id
+        && function_exists('onlinesched_page_has_native_hours')
+        && function_exists('onlinesched_page_has_acf_hours')
+        && !onlinesched_page_has_native_hours($hours_page_id)
+        && onlinesched_page_has_acf_hours($hours_page_id);
     ?>
     <div class="wrap">
         <h1>Event Schedule Settings</h1>
+        <?php if (!empty($_GET['onlinesched_hours_migrated'])) : ?>
+            <div class="notice notice-success is-dismissible">
+                <p><?php echo esc_html(sprintf('Migrated %d Hours departments to OnlineSched blocks.', absint($_GET['onlinesched_hours_migrated']))); ?></p>
+            </div>
+        <?php endif; ?>
+        <?php if (!empty($_GET['onlinesched_hours_migration_error'])) : ?>
+            <div class="notice notice-error is-dismissible">
+                <p><?php echo esc_html(wp_unslash($_GET['onlinesched_hours_migration_error'])); ?></p>
+            </div>
+        <?php endif; ?>
         <form method="post" action="options.php">
             <?php settings_fields('onlinesched_option_group'); ?>
+            <?php wp_nonce_field('onlinesched_migrate_hours_from_acf', 'onlinesched_hours_migration_nonce'); ?>
 
             <h2>Basic Setup</h2>
             <table class="form-table" role="presentation">
@@ -277,6 +294,22 @@ function OnlineSched_options_page()
                 onlinesched_page_dropdown_row('onlinesched_map_page_id', 'Map Tab Content Page', 'Page content rendered inside the kiosk Map tab.');
                 ?>
             </table>
+
+            <?php if ($can_migrate_hours) : ?>
+                <h2>Hours Migration</h2>
+                <p>This Hours page still has legacy ACF Hours data and no native OnlineSched Hours block yet.</p>
+                <p>
+                    <button
+                        type="submit"
+                        name="action"
+                        value="onlinesched_migrate_hours_from_acf"
+                        formaction="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+                        formmethod="post"
+                        class="button button-secondary"
+                    >Migrate from ACF</button>
+                </p>
+                <p class="description">The migration keeps existing page content, appends the new Hours block, and saves the original content to <code>_onlinesched_hours_premigration</code>.</p>
+            <?php endif; ?>
 
             <h2>Advanced Display</h2>
             <p>These defaults are fine for most sites. Keep them boring unless your theme needs a custom nudge.</p>

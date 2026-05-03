@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "onlinesched/hours-day",
+  "version": "1.0.0",
+  "title": "Hours: Day",
+  "category": "widgets",
+  "icon": "calendar-alt",
+  "description": "A day row inside an Hours department.",
+  "textdomain": "onlinesched",
+  "parent": [
+    "onlinesched/hours-department"
+  ],
+  "supports": {
+    "html": false
+  },
+  "attributes": {
+    "day": {
+      "type": "string",
+      "default": "Friday"
+    }
+  },
+  "allowedBlocks": [
+    "onlinesched/hours-time"
+  ],
+  "template": [
+    [
+      "onlinesched/hours-time"
+    ]
+  ]
+}

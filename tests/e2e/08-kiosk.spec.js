@@ -124,7 +124,27 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     // Bootstrap adds 'active' class to the tab pane on switch.
     // Use class check rather than toBeVisible() as kiosk CSS may use
     // non-standard show/hide that Playwright's visibility heuristic misses.
-    await expect(page.locator(S.tabMap)).toHaveClass(/active/);
+    await expect(page.locator(S.tabMap)).toHaveClass(/os-tab-pane--active/);
+  });
+
+  test('tabs: clicking kiosk tabs snaps back to page top', async ({ page }) => {
+    const mapTab = page.locator(`${S.tabList} a[href="#map"]`);
+    const tabCount = await mapTab.count();
+    if (tabCount === 0) return test.skip(true, 'Map tab not present in kiosk');
+
+    await page.evaluate(() => window.scrollTo(0, 900));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+
+    await mapTab.click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(5);
+
+    await page.locator(`${S.tabList} a[href="#programming"]`).click();
+
+    await page.evaluate(() => window.scrollTo(0, 900));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+
+    await page.locator(`${S.tabList} a[href="#essentials"]`).click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(5);
   });
 
   test('search input filters items', async ({ page }) => {
@@ -249,4 +269,3 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     expect(hasHScroll).toBe(false);
   });
 });
-

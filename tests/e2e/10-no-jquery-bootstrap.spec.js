@@ -49,7 +49,6 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
   // hits on os-col-xs-* etc. (class* substring match would catch those too).
   // Excluded from scope (not plugin-owned):
   //   .schedule-description / #modal-schedule-description — user-generated WP post content
-  //   .hours-of-operations — theme-injected Hours tab content (theme uses Bootstrap grid)
   //   #footer — theme footer rendered inside #schedule by get_footer()
   test('no Bootstrap col-xs- classes remain in OnlineSched DOM', async ({ page }) => {
     const count = await page.evaluate(() => {
@@ -58,7 +57,7 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
         ...document.querySelectorAll('#schedule *'),
         ...document.querySelectorAll('dialog.os-modal *'),
       ].filter(el =>
-        !el.closest('.schedule-description, #modal-schedule-description, .hours-of-operations, #footer') &&
+        !el.closest('.schedule-description, #modal-schedule-description, #footer') &&
         Array.from(el.classList).some(c => re.test(c))
       ).length;
     });
@@ -72,7 +71,7 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
         ...document.querySelectorAll('#schedule *'),
         ...document.querySelectorAll('dialog.os-modal *'),
       ].filter(el =>
-        !el.closest('.schedule-description, #modal-schedule-description, .hours-of-operations, #footer') &&
+        !el.closest('.schedule-description, #modal-schedule-description, #footer') &&
         Array.from(el.classList).some(c => re.test(c))
       ).length;
     });
@@ -86,7 +85,7 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
         ...document.querySelectorAll('#schedule *'),
         ...document.querySelectorAll('dialog.os-modal *'),
       ].filter(el =>
-        !el.closest('.schedule-description, #modal-schedule-description, .hours-of-operations, #footer') &&
+        !el.closest('.schedule-description, #modal-schedule-description, #footer') &&
         Array.from(el.classList).some(c => re.test(c))
       ).length;
     });
@@ -100,7 +99,7 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
         ...document.querySelectorAll('#schedule *'),
         ...document.querySelectorAll('dialog.os-modal *'),
       ].filter(el =>
-        !el.closest('.schedule-description, #modal-schedule-description, .hours-of-operations, #footer') &&
+        !el.closest('.schedule-description, #modal-schedule-description, #footer') &&
         Array.from(el.classList).some(c => re.test(c))
       ).length;
     });

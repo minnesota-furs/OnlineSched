@@ -54,15 +54,39 @@ export function new_schedule() {
         return includeTabs ? offset + fixed_tabs_height : offset;
     }
 
+    function scrollPageTo(top, behavior) {
+        if (behavior !== 'auto') {
+            window.scrollTo({ top, behavior });
+            return;
+        }
+
+        window.scrollTo(0, top);
+        [
+            document.scrollingElement,
+            document.documentElement,
+            document.body,
+            $('#body')
+        ].forEach((el) => {
+            if (el) {
+                el.scrollTop = top;
+            }
+        });
+    }
+
     window.scrollTopMenu = function () {
         const schedule = $('#schedule');
         if (!schedule) return;
 
+        const isKiosk = schedule.classList.contains('kiosk-schedule');
         let offset = schedule.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset();
-        if (offset < 0) {
+        if (isKiosk) {
+            // In kiosk mode, there's no site header, so scrolling to 0 keeps the title's natural top spacing visible
+            offset = 0;
+        } else if (offset < 0) {
             offset = 0;
         }
-        window.scrollTo({ top: offset, behavior: 'smooth' });
+
+        scrollPageTo(offset, isKiosk ? 'auto' : 'smooth');
     };
 
     function animate_clipboard(clipObject) {
@@ -133,6 +157,8 @@ export function new_schedule() {
             scheduleSort();
             resetSelectTags();
         }
+
+        window.requestAnimationFrame(() => window.scrollTopMenu?.());
     });
 
     $$('a[data-target="#modal-schedule"]').forEach((link) => {

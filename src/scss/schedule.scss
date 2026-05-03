@@ -245,7 +245,7 @@ dl.schedule-meta:after {
 }
 
 .kiosk-schedule .schedule-day > h2 {
-  top: calc(var(--os-sticky-top-offset, 0px) + 50px);
+  top: var(--os-tabs-height, 40px);
 }
 
 
@@ -261,14 +261,24 @@ dl.schedule-meta:after {
     position: -webkit-sticky;
     position: sticky;
     top: var(--os-sticky-top-offset, 0px);
-    z-index: 1;
+    z-index: 2;
+  }
+
+  .kiosk-schedule .schedule-tabs {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0px;
+    z-index: 2;
   }
 }
 
 @media screen and (max-width: 991px) {
-  .schedule-day > h2,
-  .kiosk-schedule .schedule-day > h2 {
+  .schedule-day > h2 {
     top: calc(var(--os-sticky-mobile-top-offset, var(--os-sticky-top-offset, 0px)) + var(--os-tabs-height, 40px));
+  }
+
+  .kiosk-schedule .schedule-day > h2 {
+    top: var(--os-tabs-height, 40px);
   }
 }
 
@@ -558,4 +568,221 @@ dl.schedule-meta:after {
   font-size: 11px;
   letter-spacing: 0 !important;
   line-height: 100%;
+}
+
+/* Hours of Operations */
+.os-hours {
+  margin: 34px auto;
+  max-width: 1260px;
+}
+
+.os-hours__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 44px 82px;
+}
+
+.os-hours__dept {
+  min-width: 0;
+}
+
+.os-hours__name {
+  margin: 0 0 16px;
+  color: var(--os-text, inherit);
+  font-size: 30px;
+  font-weight: var(--os-weight-bold, bold);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.os-hours__location {
+  margin-bottom: 18px;
+  color: var(--os-text, inherit);
+  font-size: 20px;
+  font-weight: var(--os-weight-bold, bold);
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.os-hours__location p {
+  margin: 0 0 6px;
+}
+
+.os-hours__days {
+  font-weight: var(--os-weight-bold, bold);
+  margin: 0;
+  font-size: 16px;
+}
+
+.os-hours__days dt {
+  float: left;
+  width: 34%;
+  clear: both;
+  border-top: 1px solid var(--os-border-light, #d4d4d4);
+  padding: 13px 0;
+}
+
+.os-hours__days dt::after {
+  content: ":";
+}
+
+.os-hours__days dd {
+  float: left;
+  width: 66%;
+  border-top: 1px solid var(--os-border-light, #d4d4d4);
+  margin: 0;
+  padding: 13px 0;
+}
+
+.os-hours__days::after {
+  clear: both;
+  content: "";
+  display: block;
+  height: 1px;
+}
+
+.os-hours__time {
+  display: block;
+  line-height: 1.35;
+}
+
+.os-hours__time-small {
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.os-hours__time-small--break {
+  display: block;
+  white-space: normal;
+}
+
+.os-hours--editor {
+  max-width: 1000px;
+}
+
+.os-hours--editor .os-hours__row {
+  display: block;
+}
+
+.os-hours--editor .os-hours__row > .block-editor-inner-blocks > .block-editor-block-list__layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 44px 82px;
+}
+
+.os-hours--editor .os-hours__name,
+.os-hours--editor .os-hours__location {
+  cursor: text;
+}
+
+.os-hours--editor .os-hours__location {
+  min-height: 28px;
+}
+
+.os-hours--editor .os-hours__location[data-rich-text-placeholder] {
+  border-bottom: 1px dashed var(--os-border-light, #d4d4d4);
+}
+
+.os-hours--editor .os-hours__location[data-rich-text-placeholder]::after,
+.os-hours--editor .os-hours__time-val[data-rich-text-placeholder]::after,
+.os-hours--editor .os-hours__time-small[data-rich-text-placeholder]::after {
+  opacity: 0.55;
+}
+
+.os-hours--editor .os-hours__day-row {
+  clear: both;
+  display: flow-root;
+}
+
+.os-hours--editor .os-hours__day-label::after {
+  content: "";
+}
+
+.os-hours--editor .os-hours__day-select {
+  max-width: 190px;
+}
+
+.os-hours--editor .os-hours__day-select .components-base-control__field {
+  margin: 0;
+}
+
+.os-hours--editor .os-hours__day-select select {
+  font-weight: var(--os-weight-bold, bold);
+  min-height: 36px;
+}
+
+.os-hours--editor .os-hours__day-times > .block-editor-inner-blocks > .block-editor-block-list__layout {
+  display: block;
+}
+
+.os-hours--editor .os-hours__time--editing {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.os-hours--editor .os-hours__time-val {
+  font-weight: var(--os-weight-bold, bold);
+}
+
+.os-hours__time-val--italic,
+.os-hours__time-small--italic {
+  font-style: italic;
+}
+
+.os-hours__time-small--empty {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .os-hours {
+    margin-top: 24px;
+  }
+
+  .os-hours__row {
+    grid-template-columns: 1fr;
+    gap: 42px;
+  }
+
+  .os-hours__name {
+    font-size: 29px;
+  }
+
+  .os-hours__location {
+    font-size: 20px;
+  }
+
+  .os-hours__days {
+    font-size: 18px;
+  }
+
+  .os-hours__days dt {
+    width: 45%;
+  }
+
+  .os-hours__days dd {
+    width: 55%;
+  }
+}
+
+@media (max-width: 900px) {
+  .os-hours--editor .os-hours__row > .block-editor-inner-blocks > .block-editor-block-list__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Kiosk Mode Layout Fixes */
+.os-container--kiosk {
+  padding-top: 0 !important;
+
+  .os-schedule-main > h1 {
+    margin-top: 0;
+    padding-top: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+}
+
+// Reset some common theme padding on the wrapper for kiosk
+#body:has(.os-container--kiosk) {
+  padding-top: 0 !important;
 }

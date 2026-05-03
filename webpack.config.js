@@ -7,7 +7,8 @@ module.exports = {
 
     entry: {
         main: './src/index.js',
-        'admin-badge-types': './src/scss/admin-badge-types.scss'
+        'admin-badge-types': './src/scss/admin-badge-types.scss',
+        'hours-blocks': './src/js/hoursBlocks.js'
     },
 
     output: {
@@ -15,6 +16,10 @@ module.exports = {
         filename: (pathData) => {
             return pathData.chunk.name === 'main' ? 'bundle.js' : '[name].bundle.js';
         }
+    },
+
+    performance: {
+        assetFilter: (assetFilename) => !/\.(?:woff2?|ttf|eot|svg)$/i.test(assetFilename),
     },
 
     devtool: 'source-map',

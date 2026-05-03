@@ -24,6 +24,7 @@ const requiredRuntimeFiles = [
     'build/bundle.js',
     'build/main.css',
     'build/admin-badge-types.css',
+    'build/hours-blocks.bundle.js',
     'admin-badge-types.js',
     'LICENSE',
     'README.md',

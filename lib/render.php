@@ -16,7 +16,7 @@ function onlinesched_render_schedule($args = array()) {
     try {
         $defaults = array(
             'mode'          => 'standard', // 'standard', 'kiosk', 'live'
-            'tabs'          => array('programming', 'essentials', 'hours'),
+            'tabs'          => array('programming', 'essentials', 'hours', 'map'),
             'hours_page_id' => (int) get_option('onlinesched_hours_page_id', 0),
             'map_page_id'   => (int) get_option('onlinesched_map_page_id', 0),
             'tag'           => '',
@@ -78,7 +78,7 @@ function onlinesched_render_schedule($args = array()) {
 
         onlinesched_get_template_part('login-modal');
 
-        echo '<div class="os-container"><div class="os-row"><div class="os-schedule-main">';
+        echo '<div class="os-container' . ($args['mode'] === 'kiosk' ? ' os-container--kiosk' : '') . '"><div class="os-row"><div class="os-schedule-main">';
 
         // If it's not the dedicated page, we might want to skip printing h1/content here
         // But for now we stick to the structure that was in page-schedule.php
@@ -401,7 +401,7 @@ function onlinesched_render_schedule($args = array()) {
 
         <?php if ($liveStreaming) { echo '</div></div>'; } ?>
 
-        </div></div></div>
+        </div></div></div></div>
 
         <?php
         onlinesched_get_template_part('schedule-event-modal', compact('theming'));

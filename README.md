@@ -33,6 +33,18 @@ If you are developing the plugin or want to build it yourself:
 
 If you want to package a release zip locally, run `npm run release`. This will generate a clean installation zip in the `dist/` directory.
 
+### Development Notes
+
+Release zips include compiled assets and Composer dependencies so normal WordPress users can install them directly. Source checkouts are for development and need Composer plus npm before they are usable.
+
+In the Furry Migration Docker environment, run PHP, Composer, and npm from inside `fm-php`:
+
+```bash
+docker exec fm-php bash -c "cd /var/www/html/wp-content/plugins/OnlineSched && composer install --no-dev"
+docker exec fm-php bash -c "source /usr/local/nvm/nvm.sh && cd /var/www/html/wp-content/plugins/OnlineSched && npm install"
+docker exec fm-php bash -c "source /usr/local/nvm/nvm.sh && cd /var/www/html/wp-content/plugins/OnlineSched && npm run build"
+```
+
 ## Embedding the Schedule (Shortcode)
 
 You can easily embed the schedule on any post or page using the shortcode:
@@ -81,6 +93,31 @@ container.
 The dedicated page-template path (assigning the "Online Schedule" template to a Page)
 has the same constraint for the same reason — only one schedule lives in the DOM at a
 time.
+
+## Migrating Legacy Furry Migration Hours
+
+This section is only for Furry Migration's old ACF-powered Hours of Operations page.
+Fresh OnlineSched installs should use the native **Hours of Operations** block directly.
+
+Before removing the old theme renderer from a production site, migrate the configured
+Hours page to native OnlineSched blocks:
+
+```bash
+docker exec fm-php bash -c "cd /var/www/html && wp --allow-root onlinesched migrate-hours --dry-run"
+docker exec fm-php bash -c "cd /var/www/html && wp --allow-root onlinesched migrate-hours --backup"
+```
+
+To target a specific page first, pass the page ID:
+
+```bash
+docker exec fm-php bash -c "cd /var/www/html && wp --allow-root onlinesched migrate-hours 2207 --dry-run"
+docker exec fm-php bash -c "cd /var/www/html && wp --allow-root onlinesched migrate-hours 2207 --backup"
+```
+
+The `--backup` flag stores the previous page content in
+`_onlinesched_hours_premigration`. The migration preserves existing intro copy, removes the
+old `[hours_of_operations]` shortcode, and appends the native Hours block. Do not delete old
+ACF post meta until the schedule Hours tab has been checked on desktop and mobile.
 
 ========================================================================
 HOW TO RUN THE AUTOMATED TESTS

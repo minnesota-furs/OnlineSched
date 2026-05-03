@@ -10,6 +10,8 @@ export function initTabs() {
 
         tabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
+                e.preventDefault();
+
                 const item = tab.parentElement;
                 const isAlreadyActive = item.classList.contains('os-tabs__item--active');
                 

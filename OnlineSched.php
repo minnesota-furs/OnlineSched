@@ -48,6 +48,7 @@ require_once('lib/schedule.php');
 require_once('OnlineSchedSettings.php');
 require_once('lib/render.php');
 require_once('includes/shortcode_schedule.php');
+require_once('includes/hours-blocks.php');
 require_once('includes/shortcode_schedule_cheat_display.php');
 require_once('includes/favorites.php');
 require_once('includes/privacy.php');
