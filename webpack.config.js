@@ -8,7 +8,9 @@ module.exports = {
     entry: {
         main: './src/index.js',
         'admin-badge-types': './src/scss/admin-badge-types.scss',
-        'hours-blocks': './src/js/hoursBlocks.js'
+        'hours-blocks': './src/js/hoursBlocks.js',
+        fontawesome: './src/scss/fontawesome.scss',
+        fonts: './src/scss/fonts.scss',
     },
 
     output: {
