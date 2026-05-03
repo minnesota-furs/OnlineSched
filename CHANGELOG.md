@@ -3,6 +3,8 @@
 ## 1.0.0
 
 - Prepared OnlineSched for open-source release.
+- Added Advanced Header Flare settings with custom Image and SVG support.
+- Polished Modal UI typography and spacing to match reference designs.
 - Added configurable schedule pages, colors, sticky offsets, calendar names, and room sort order.
 - Added template override support and schedule template partials.
 - Renamed event CPT/taxonomies to `os_event`, `os_room`, `os_tag`, `os_day`, and `os_panelist`.

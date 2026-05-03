@@ -161,102 +161,114 @@ export function new_schedule() {
         window.requestAnimationFrame(() => window.scrollTopMenu?.());
     });
 
+    function openEventModal(eventId) {
+        const item = document.getElementById(eventId.startsWith('#') ? eventId.substring(1) : eventId);
+        if (!item) return;
+
+        if (!window.getEventDetailsFromElement) return;
+        const eventDetails = window.getEventDetailsFromElement(item);
+        window.currentModalEventDetails = eventDetails;
+
+        const panelists = eventDetails.panelists;
+        const titleLink = item.querySelector('.schedule-title a');
+        const title = titleLink ? titleLink.innerHTML : '';
+        const description = eventDetails.description;
+        const day = item.closest('.schedule-day');
+        const date = day?.querySelector('h2')?.innerHTML || '';
+        const time = item.querySelector('.schedule-time span')?.innerHTML || '';
+        const room = eventDetails.room;
+        const tags = eventDetails.tags;
+        const ical = item.querySelector('.schedule-ical')?.getAttribute('href') || '#';
+        const googleCal = item.querySelector('.schedule-google')?.getAttribute('href') || '#';
+
+        const badges = item.querySelector('.schedule-title')?.cloneNode(true);
+        badges?.querySelectorAll('a').forEach((anchor) => anchor.remove());
+        const badgesHtml = badges?.innerHTML || '';
+
+        let isFavorite = item.getAttribute('data-favorite') === 'true';
+        const raw_id = item.getAttribute('id');
+        let favBtn = '';
+        if (!scheduleConfig.isKiosk && !scheduleConfig.isLive) {
+            favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
+        }
+
+        const modalTitle = $('#modal-schedule-title');
+        if (modalTitle) {
+            modalTitle.innerHTML = favBtn + title + badgesHtml;
+        }
+
+        function updateModalFavoriteStar(state) {
+            const modalBtn = $('#modal-schedule-title .schedule-favorite-toggle');
+            if (!modalBtn) return;
+            modalBtn.classList.toggle('active', state);
+            modalBtn.setAttribute('aria-pressed', state ? 'true' : 'false');
+            const icon = modalBtn.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fas', state);
+                icon.classList.toggle('far', !state);
+            }
+        }
+
+        // Re-attach favorite listener
+        $('#modal-schedule-title .schedule-favorite-toggle')?.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const mainItem = document.getElementById(raw_id);
+            const btn = mainItem?.querySelector('.schedule-favorite-toggle');
+            isFavorite = !isFavorite;
+
+            if (mainItem) {
+                if (isFavorite) {
+                    mainItem.setAttribute('data-favorite', 'true');
+                } else {
+                    mainItem.removeAttribute('data-favorite');
+                }
+
+                if (btn) {
+                    btn.classList.toggle('active', isFavorite);
+                    btn.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+                    const icon = btn.querySelector('i');
+                    icon?.classList.toggle('fas', isFavorite);
+                    icon?.classList.toggle('far', !isFavorite);
+                }
+            }
+
+            updateModalFavoriteStar(isFavorite);
+            window.updateFavoritesCookie?.();
+        });
+
+        const descriptionEl = $('#modal-schedule-description');
+        if (descriptionEl) {
+            showElement(descriptionEl);
+            descriptionEl.innerHTML = description;
+            const hr = descriptionEl.parentElement?.querySelector('hr');
+            if (hr) showElement(hr);
+        }
+
+        modal_popup_fill('#modal-schedule-date', date);
+        modal_popup_fill('#modal-schedule-time', time);
+        modal_popup_fill('#modal-schedule-room', room);
+        modal_popup_fill('#modal-schedule-tags', tags);
+        modal_popup_fill('#modal-schedule-panelists', panelists);
+
+        $('#modal-schedule-ical')?.setAttribute('href', ical);
+        $('#modal-schedule-google')?.setAttribute('href', googleCal);
+
+        window.currentModalEventId = '#' + item.id;
+        if (window.location.hash !== '#' + item.id.substring(6)) {
+            window.location.hash = item.id.substring(6);
+        }
+
+        openModal('modal-schedule');
+        document.getElementById('modal-schedule')?.addEventListener('close', removeHash, { once: true });
+    }
+
     $$('a[data-target="#modal-schedule"]').forEach((link) => {
         link.addEventListener('click', function (ev) {
             ev.preventDefault();
-
             const parent = this.closest('.schedule-item');
-            if (!parent || !window.getEventDetailsFromElement) return;
-
-            const eventDetails = window.getEventDetailsFromElement(parent);
-            window.currentModalEventDetails = eventDetails;
-
-            const panelists = eventDetails.panelists;
-            const title = this.innerHTML;
-            const description = eventDetails.description;
-            const day = parent.closest('.schedule-day');
-            const date = day?.querySelector('h2')?.innerHTML || '';
-            const time = parent.querySelector('.schedule-time span')?.innerHTML || '';
-            const room = eventDetails.room;
-            const tags = eventDetails.tags;
-            const ical = parent.querySelector('.schedule-ical')?.getAttribute('href') || '#';
-            const googleCal = parent.querySelector('.schedule-google')?.getAttribute('href') || '#';
-
-            const badges = parent.querySelector('.schedule-title')?.cloneNode(true);
-            badges?.querySelectorAll('a').forEach((anchor) => anchor.remove());
-            const badgesHtml = badges?.innerHTML || '';
-
-            let isFavorite = parent.getAttribute('data-favorite') === 'true';
-            const evt_id = parent.getAttribute('id');
-            let favBtn = '';
-            if (!scheduleConfig.isKiosk && !scheduleConfig.isLive) {
-                favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
-            }
-
-            const modalTitle = $('#modal-schedule-title');
-            if (modalTitle) {
-                modalTitle.innerHTML = favBtn + title + badgesHtml;
-            }
-
-            function updateModalFavoriteStar(state) {
-                const modalBtn = $('#modal-schedule-title .schedule-favorite-toggle');
-                if (!modalBtn) return;
-                modalBtn.classList.toggle('active', state);
-                modalBtn.setAttribute('aria-pressed', state ? 'true' : 'false');
-                const icon = modalBtn.querySelector('i');
-                if (icon) {
-                    icon.classList.toggle('fas', state);
-                    icon.classList.toggle('far', !state);
-                }
-            }
-
-            $('#modal-schedule-title .schedule-favorite-toggle')?.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const mainItem = document.getElementById(evt_id);
-                const btn = mainItem?.querySelector('.schedule-favorite-toggle');
-                isFavorite = !isFavorite;
-
-                if (mainItem) {
-                    if (isFavorite) {
-                        mainItem.setAttribute('data-favorite', 'true');
-                    } else {
-                        mainItem.removeAttribute('data-favorite');
-                    }
-
-                    if (btn) {
-                        btn.classList.toggle('active', isFavorite);
-                        btn.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
-                        const icon = btn.querySelector('i');
-                        icon?.classList.toggle('fas', isFavorite);
-                        icon?.classList.toggle('far', !isFavorite);
-                    }
-                }
-
-                updateModalFavoriteStar(isFavorite);
-                window.updateFavoritesCookie?.();
-            });
-
-            const descriptionEl = $('#modal-schedule-description');
-            if (descriptionEl) {
-                showElement(descriptionEl);
-                descriptionEl.innerHTML = description;
-                showElement(descriptionEl.parentElement?.querySelector('hr'));
-            }
-
-            modal_popup_fill('#modal-schedule-date', date);
-            modal_popup_fill('#modal-schedule-time', time);
-            modal_popup_fill('#modal-schedule-room', room);
-            modal_popup_fill('#modal-schedule-tags', tags);
-            modal_popup_fill('#modal-schedule-panelists', panelists);
-
-            $('#modal-schedule-ical')?.setAttribute('href', ical);
-            $('#modal-schedule-google')?.setAttribute('href', googleCal);
-
-            window.location.hash = parent.id.substring(6);
-            openModal('modal-schedule');
-            document.getElementById('modal-schedule')?.addEventListener('close', removeHash, { once: true });
+            if (parent) openEventModal(parent.id);
         });
     });
 
@@ -743,7 +755,13 @@ export function new_schedule() {
                 window.scrollTo({ top: offset, behavior: 'smooth' });
 
                 setTimeout(() => {
-                    $(`${evt_id} .schedule-title a`)?.click();
+                    const modal = $('#modal-schedule');
+                    const isModalOpen = modal && modal.hasAttribute('open');
+                    const isSameEvent = window.currentModalEventId === evt_id;
+
+                    if (!isModalOpen || !isSameEvent) {
+                        openEventModal(evt_id);
+                    }
                 }, 300);
             }
         } else {

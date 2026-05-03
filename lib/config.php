@@ -256,7 +256,48 @@ function onlinesched_add_color_inline_style($handle = 'online-schedule-css')
         wp_strip_all_tags($modal_chrome_focus)
     );
 
+    // Header Flare — opacity only; the icon itself is injected as a DOM element by onlinesched_get_flare_html().
+    $enable_flare = get_option('onlinesched_enable_header_flare', '1');
+    $flare_opacity = ($enable_flare === '1' ? '0.15' : '0');
+    $css .= " :root { --os-flare-opacity: {$flare_opacity}; }";
+
     wp_add_inline_style($handle, $css);
+}
+
+/**
+ * Returns the flare <span> to inject inside day header <h2> elements.
+ * Priority: Image URL > Custom FA class text field > Select preset.
+ * Returns empty string when flare is disabled or set to none.
+ */
+function onlinesched_get_flare_html()
+{
+    if (get_option('onlinesched_enable_header_flare', '1') !== '1') {
+        return '';
+    }
+
+    // Image URL overrides everything.
+    $image = get_option('onlinesched_header_flare_image', '');
+    if (!empty($image)) {
+        return '<span class="os-flare-icon" aria-hidden="true"><img src="' . esc_url($image) . '" alt=""></span>';
+    }
+
+    // Resolve icon class: custom text field overrides select when set.
+    $icon = get_option('onlinesched_header_flare_icon', 'fa-paw');
+    if ($icon === 'fa-custom') {
+        $icon = get_option('onlinesched_header_flare_custom_class', '');
+    }
+
+    if (empty($icon) || $icon === 'fa-none') {
+        return '';
+    }
+
+    // Allow only valid FA slug characters — no injection risk.
+    $icon = preg_replace('/[^a-z0-9\-]/', '', $icon);
+    if (empty($icon)) {
+        return '';
+    }
+
+    return '<span class="os-flare-icon" aria-hidden="true"><i class="fas ' . esc_attr($icon) . '"></i></span>';
 }
 
 function onlinesched_get_provider_icon_allowed_html()

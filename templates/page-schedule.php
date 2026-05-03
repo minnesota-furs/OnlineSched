@@ -30,16 +30,23 @@ $is_live_schedule = onlinesched_is_configured_page($post, 'live', 'live');
 $mode = 'standard';
 $theming_filename = '';
 $theming = '';
+$cssClass = 'standard-schedule';
 
 if ($is_kiosk_schedule) {
     $mode = 'kiosk';
     $theming = "schedule";
     $theming_filename = 'header-schedule.php';
+    $cssClass = 'kiosk-schedule';
 } elseif ($is_live_schedule) {
     $mode = 'live';
+    $cssClass = 'live-schedule';
 }
 
 add_action('wp_enqueue_scripts', 'onlinesched_enqueue_schedule_assets');
+
+add_filter('body_class', function ($classes) use ($cssClass) {
+    return array_merge($classes, array($cssClass));
+});
 
 if (!empty($theming)) {
     include ONLINESCHED_PLUGIN_DIR . 'templates/' . $theming_filename;

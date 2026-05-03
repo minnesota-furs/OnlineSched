@@ -51,58 +51,62 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
   //   .schedule-description / #modal-schedule-description — user-generated WP post content
   //   #footer — theme footer rendered inside #schedule by get_footer()
   test('no Bootstrap col-xs- classes remain in OnlineSched DOM', async ({ page }) => {
-    const count = await page.evaluate(() => {
+    const count = await page.evaluate((S) => {
       const re = /^col-xs-/;
+      const exclusions = `${S.scheduleDescription}, ${S.theme.modalDescription}, ${S.theme.footer}`;
       return [
         ...document.querySelectorAll('#schedule *'),
         ...document.querySelectorAll('dialog.os-modal *'),
       ].filter(el =>
-        !el.closest('.schedule-description, #modal-schedule-description, #footer') &&
+        !el.closest(exclusions) &&
         Array.from(el.classList).some(c => re.test(c))
       ).length;
-    });
+    }, S);
     expect(count).toBe(0);
   });
 
   test('no Bootstrap col-sm- classes remain in OnlineSched DOM', async ({ page }) => {
-    const count = await page.evaluate(() => {
+    const count = await page.evaluate((S) => {
       const re = /^col-sm-/;
+      const exclusions = `${S.scheduleDescription}, ${S.theme.modalDescription}, ${S.theme.footer}`;
       return [
         ...document.querySelectorAll('#schedule *'),
         ...document.querySelectorAll('dialog.os-modal *'),
       ].filter(el =>
-        !el.closest('.schedule-description, #modal-schedule-description, #footer') &&
+        !el.closest(exclusions) &&
         Array.from(el.classList).some(c => re.test(c))
       ).length;
-    });
+    }, S);
     expect(count).toBe(0);
   });
 
   test('no Bootstrap col-md- classes remain in OnlineSched DOM', async ({ page }) => {
-    const count = await page.evaluate(() => {
+    const count = await page.evaluate((S) => {
       const re = /^col-md-/;
+      const exclusions = `${S.scheduleDescription}, ${S.theme.modalDescription}, ${S.theme.footer}`;
       return [
         ...document.querySelectorAll('#schedule *'),
         ...document.querySelectorAll('dialog.os-modal *'),
       ].filter(el =>
-        !el.closest('.schedule-description, #modal-schedule-description, #footer') &&
+        !el.closest(exclusions) &&
         Array.from(el.classList).some(c => re.test(c))
       ).length;
-    });
+    }, S);
     expect(count).toBe(0);
   });
 
   test('no Bootstrap col-lg- classes remain in OnlineSched DOM', async ({ page }) => {
-    const count = await page.evaluate(() => {
+    const count = await page.evaluate((S) => {
       const re = /^col-lg-/;
+      const exclusions = `${S.scheduleDescription}, ${S.theme.modalDescription}, ${S.theme.footer}`;
       return [
         ...document.querySelectorAll('#schedule *'),
         ...document.querySelectorAll('dialog.os-modal *'),
       ].filter(el =>
-        !el.closest('.schedule-description, #modal-schedule-description, #footer') &&
+        !el.closest(exclusions) &&
         Array.from(el.classList).some(c => re.test(c))
       ).length;
-    });
+    }, S);
     expect(count).toBe(0);
   });
 

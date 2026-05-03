@@ -10,6 +10,14 @@
 @use 'tables';
 @use 'utilities';
 
+// Scope all em-relative sizes inside the schedule to a predictable base.
+// Themes with a larger or smaller body font-size won't affect internal proportions.
+// Override if your surrounding content uses a different size:
+//   :root { --os-font-size-base: 18px; }
+#schedule {
+  font-size: var(--os-font-size-base, 16px);
+}
+
 .os-btn--default .fa {
   color: #402b56;
   margin-right: 5px;
@@ -65,6 +73,11 @@
   position: relative;
   display: flex !important;
   flex-wrap: wrap;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
 }
 
 // Hidden items must override back to none
@@ -77,6 +90,10 @@
 .schedule-item.even {
   background-color: #eee;
   background-color: rgba(0, 0, 0, .05);
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+  }
 }
 
 .schedule-title {
@@ -84,9 +101,30 @@
   font-size: 1.1em;
 }
 
+.schedule-title a {
+  color: var(--os-orange);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--os-orange);
+    filter: brightness(0.72);
+    text-decoration: underline;
+  }
+}
+
 .schedule-item hr {
   border: none;
   margin: 10px 0;
+  display: none; /* Hidden by default, shown via media queries */
+}
+
+@media (max-width: 991px) {
+  .schedule-item hr.visible-sm {
+    display: block;
+    width: 100%;
+    border-top: 1px solid rgba(0,0,0,0.1);
+  }
 }
 
 .schedule-calendar {
@@ -96,9 +134,21 @@
   white-space: nowrap;
 }
 
+// Uniform icon size for all action icons (favorite, copy, apple, google).
+.schedule-calendar > * {
+  font-size: 1.2em;
+  vertical-align: middle;
+}
+
 .schedule-calendar a {
   margin-left: 8px;
-  font-size: 1.1em;
+  color: var(--os-orange);
+
+  &:hover,
+  &:focus {
+    color: var(--os-orange);
+    filter: brightness(0.72);
+  }
 }
 
 // Give events breathing room for the absolutely-positioned calendar icons
@@ -116,6 +166,7 @@ dl.schedule-meta dt {
   float: left;
   width: 30px;
   text-align: center;
+  color: #666;
 }
 
 dl.schedule-meta dd {
@@ -140,6 +191,7 @@ dl.schedule-meta:after {
   float: left;
   width: 25px;
   text-align: center;
+  color: #777;
 }
 
 .schedule-item dd {
@@ -172,12 +224,46 @@ dl.schedule-meta:after {
                         }
 */
 
-.schedule-day > h2, .schedule-hour > h3 {
-  font-family: 'Metropolis', sans-serif;
+.schedule-day > h2 {
+  font-family: var(--os-font-family, system-ui, sans-serif);
   margin: 0 -20px;
-  padding: 10px 20px;
+  padding: 18px 24px;
   color: #fff;
-  font-size: 24px;
+  font-size: 28px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--os-blue);
+  position: relative;
+  overflow: hidden;
+}
+
+.os-flare-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%) rotate(15deg);
+  font-size: 40px;
+  line-height: 1;
+  opacity: var(--os-flare-opacity, 0.15);
+  pointer-events: none;
+
+  img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    display: block;
+  }
+}
+
+.schedule-hour > h3 {
+  font-family: var(--os-font-family, system-ui, sans-serif);
+  margin: 0 -20px;
+  padding: 12px 24px;
+  color: #fff;
+  font-size: 20px;
+  background: #333;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .schedule-description {
@@ -240,12 +326,12 @@ dl.schedule-meta:after {
 .schedule-day > h2 {
   position: -webkit-sticky;
   position: sticky;
-  top: calc(var(--os-sticky-top-offset, 0px) + var(--os-tabs-height, 40px));
+  top: calc(var(--os-sticky-top-offset, 0px) + var(--os-tabs-height, 48px));
   z-index: 1;
 }
 
 .kiosk-schedule .schedule-day > h2 {
-  top: var(--os-tabs-height, 40px);
+  top: var(--os-tabs-height, 48px);
 }
 
 
@@ -274,11 +360,22 @@ dl.schedule-meta:after {
 
 @media screen and (max-width: 991px) {
   .schedule-day > h2 {
-    top: calc(var(--os-sticky-mobile-top-offset, var(--os-sticky-top-offset, 0px)) + var(--os-tabs-height, 40px));
+    top: calc(var(--os-sticky-mobile-top-offset, var(--os-sticky-top-offset, 0px)) + var(--os-tabs-height, 48px));
   }
 
   .kiosk-schedule .schedule-day > h2 {
-    top: var(--os-tabs-height, 40px);
+    top: var(--os-tabs-height, 48px);
+  }
+}
+
+// Kiosk hides action icons — remove reserved right gutter so title/panelist columns fill the row.
+.kiosk-schedule .schedule-calendar {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .kiosk-schedule .schedule-item .schedule-panelists {
+    padding-right: 0;
   }
 }
 
@@ -292,6 +389,12 @@ dl.schedule-meta:after {
   background: inherit;
   padding: 0;
   color: var(--os-orange);
+
+  &:hover,
+  &:focus {
+    color: var(--os-orange);
+    filter: brightness(0.72);
+  }
 }
 
 #modal-copy-url {
@@ -421,7 +524,6 @@ dl.schedule-meta:after {
   padding: 0;
   margin: 0 6px 0 0;
   color: var(--os-gold);
-  font-size: 1em;
   vertical-align: middle;
   cursor: pointer;
 

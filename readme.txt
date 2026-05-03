@@ -28,11 +28,37 @@ Social login providers are disabled by default until credentials are configured 
 
 = Does OnlineSched require a specific theme? =
 
-No. The plugin is being prepared to run on normal WordPress themes.
+No. The plugin works with any WordPress theme. It ships with its own stylesheet, Font Awesome icons, and Metropolis font so it looks consistent on a fresh install.
+
+= My theme already loads Font Awesome. Can I stop the plugin from loading it again? =
+
+Yes. Add this to your theme's functions.php:
+
+    add_filter( 'onlinesched_load_fontawesome', '__return_false' );
+
+= My theme already loads Metropolis (or I want a different font). What do I do? =
+
+To skip the plugin's Metropolis bundle entirely, add this to your theme's functions.php:
+
+    add_filter( 'onlinesched_load_fonts', '__return_false' );
+
+To keep the bundle but switch to a different font, override the CSS variable instead:
+
+    add_action( 'wp_head', function () {
+        echo '<style>:root { --os-font-family: "Your Font", sans-serif; }</style>';
+    } );
 
 = Are social login credentials included? =
 
-No. Credentials must be entered in the Social Login admin page or provided by private constants.
+No. Credentials must be entered in the Social Login admin page or provided by private constants. No login providers appear on a fresh install until credentials are configured.
+
+= Can I change the colors without editing CSS? =
+
+Yes. Go to Event Scheduling → Event Settings → Colors in the WordPress admin. Every color the plugin uses has a picker there.
+
+= Can I override the schedule templates? =
+
+Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a matching path in your theme under an onlinesched/ folder. For example, to override the tab bar, create: your-theme/onlinesched/partials/schedule-tabs.php. The full list of overridable partials is in the README on GitHub.
 
 == Changelog ==
 

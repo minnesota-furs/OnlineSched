@@ -323,12 +323,12 @@ function onlinesched_render_schedule($args = array()) {
                                 $newTimestamp = strtotime(date("Y-m-d 00:00:00", $sorttime)); 
                                 $dayofweek = $newdayofweek;
                                 $hour = "none";
-                                echo '<div class="schedule-day" data-schedule-num-day="' . $newTimestamp . '" data-schedule-day="' . $dayofweek . '"><h2>' . $dayofweek . '</h2>';
+                                echo '<div class="schedule-day" data-schedule-num-day="' . $newTimestamp . '" data-schedule-day="' . $dayofweek . '"><h2>' . $dayofweek . onlinesched_get_flare_html() . '</h2>';
                             }
                         } else {
                             if ($dayofweek == "none") {
                                 $dayofweek = "Unscheduled";
-                                echo '<div class="schedule-day" data-schedule-day="Unscheduled"><h2>Unscheduled</h2>';
+                                echo '<div class="schedule-day" data-schedule-day="Unscheduled"><h2>Unscheduled' . onlinesched_get_flare_html() . '</h2>';
                             }
                         }
 

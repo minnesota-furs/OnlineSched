@@ -1,6 +1,8 @@
 # OnlineSched
 A flexible event scheduling plugin for WordPress conventions and organizations.
 
+**Note to the Public:** We built OnlineSched primarily for our own use at Furry Migration, but we want the world to have it as a gift! The developers of this project are open to fully supporting and helping people, with the goal of enabling other groups to have this tool. We hope everyone—both for-profit and non-profit organizations—can use this as a free solution. We are a non-profit organization and do this with volunteers. If your organization needs dedicated support above and beyond what we can provide for free, and you are not a 501(c)(3) non-profit, please reach out to discuss options.
+
 ## Installation
 
 You can install this plugin either by downloading a pre-built release or by building it from source.
@@ -119,175 +121,201 @@ The `--backup` flag stores the previous page content in
 old `[hours_of_operations]` shortcode, and appends the native Hours block. Do not delete old
 ACF post meta until the schedule Hours tab has been checked on desktop and mobile.
 
+## First-Time Setup
+
+After activating the plugin, complete these steps before your schedule will appear:
+
+1. **Create your schedule page.** Add a new Page in WordPress, give it a title like "Schedule", and set its template to **Online Schedule** (in the Page Attributes box on the right). Publish it.
+2. **Tell the plugin where your pages are.** Go to **Event Scheduling → Event Settings** in the WordPress admin. Under the Pages section, select the page you just created as the Schedule page. If you also have Kiosk, Live, Hours, and Map pages, assign those too.
+3. **Set the year.** On the same settings screen, enter the active convention year.
+4. **Optional: customize colors.** The Colors section lets you change the primary green, secondary blue, accent orange, gold, and danger red to match your organization's branding. The defaults match Furry Migration's palette.
+5. **Optional: configure social login.** Go to **Event Scheduling → Social Login** to enter your Google, Discord, Telegram, or Facebook OAuth credentials. Social login is completely disabled until you add credentials — no providers show up in the login modal on a fresh install.
+
+That's it. Add events under **Event Scheduling → Events**, assign them rooms, days, tags, and panelists, and they will appear in the schedule automatically.
+
+---
+
+## Customizing the Look
+
+### Colors
+
+Go to **Event Scheduling → Event Settings → Colors**. Every color the plugin uses is configurable there — no CSS required. Changes take effect immediately across the schedule, badges, tabs, and modals.
+
+### Fonts
+
+The plugin ships with [Metropolis](https://fontsource.org/fonts/metropolis) as its default schedule font. It loads this from your server as a self-hosted web font — no Google Fonts, no external requests.
+
+**If your theme already provides Metropolis** (for example, via Adobe Fonts / Typekit), you can tell the plugin not to load its own copy to avoid downloading the font twice. Add this to your theme's `functions.php`:
+
+```php
+// Our theme already loads Metropolis — skip the plugin's copy.
+add_filter( 'onlinesched_load_fonts', '__return_false' );
+```
+
+**If you want a completely different font**, you don't need to disable anything. Just override the CSS variable after the plugin's stylesheet loads:
+
+```php
+// In functions.php or a custom plugin — point the schedule at your own font.
+add_action( 'wp_head', function () {
+    echo '<style>:root { --os-font-family: "Your Font Name", sans-serif; }</style>';
+} );
+```
+
+The `--os-font-family` variable controls the day-header and hour-header typeface. Everything else inherits from your theme.
+
+### Icons (Font Awesome)
+
+The schedule uses [Font Awesome Free](https://fontawesome.com/) for icons like the calendar, star, copy, and clock symbols. The plugin loads its own copy so it works even if your theme doesn't include Font Awesome.
+
+**If your theme already loads Font Awesome**, add this to your `functions.php` to prevent loading it twice:
+
+```php
+// Our theme already enqueues Font Awesome — skip the plugin's copy.
+add_filter( 'onlinesched_load_fontawesome', '__return_false' );
+```
+
+If you're unsure whether your theme loads it, leave the filter off. Loading it twice doesn't break anything visually — it just wastes a network request.
+
+### Custom CSS
+
+The plugin exposes CSS custom properties (variables) so you can adjust the look without hunting through the stylesheet. The most useful ones:
+
+```css
+/* Drop this in Appearance → Customize → Additional CSS */
+:root {
+  --os-font-size-base: 16px;                 /* base font size for all em values inside the schedule */
+  --os-font-family: "Your Font", sans-serif; /* schedule header font */
+  --os-radius: 0px;                          /* make corners square */
+  --os-tabs-height: 48px;                    /* height of the tab bar */
+  --os-transition: 0.15s ease;               /* speed up animations */
+}
+```
+
+`--os-font-size-base` is the most important one to know about. Every `em`-relative size inside the schedule (titles, metadata, badges, icons) computes from this value. The default is `16px`, which matches most themes. If your theme uses a larger body font — Twenty Twenty-Five ships with `18px`, for example — the schedule will look proportionally smaller than surrounding content. Set this to match your body text and everything re-scales correctly:
+
+```css
+/* Match a theme that uses 18px body text */
+:root { --os-font-size-base: 18px; }
+```
+
+Colors have their own admin UI, but you can also override them with CSS variables if you need values the settings screen doesn't expose:
+
+```css
+:root {
+  --os-green: #00aa55;   /* primary color (tabs active, badges, etc.) */
+  --os-blue:  #1a3a5c;   /* secondary color (day headers, modal text) */
+  --os-gold:  #ffcc00;   /* favorites star color */
+}
+```
+
+### Header Flare (the paw print in day headers)
+
+Go to **Event Scheduling -> Event Settings -> Header Flare**. You can:
+- Turn it off completely with the checkbox.
+- Choose a built-in icon from the select menu: paw, dog, cat, crow, horse, dragon, otter, hippo, frog, or fish.
+- Use anything you want — your org's logo, an SVG, an ice cream cone, literally anything — by pasting an image URL into the Image field. When an image URL is set it takes over from the icon select entirely.
+- Leave the icon field blank to hide the icon while keeping the flare enabled (useful if you only want a custom image or specific CSS effects).
+
+---
+
+## For Theme Developers
+
+### Template Overrides
+
+Every template the plugin renders can be overridden by your theme — the same pattern WordPress uses for WooCommerce templates.
+
+**To override the full schedule page**, create this file in your theme:
+
+```
+your-theme/onlinesched/page-schedule.php
+```
+
+**To override a single partial** (a smaller piece of the page), create the matching file under `onlinesched/partials/` in your theme. For example, to replace the tab bar:
+
+```
+your-theme/onlinesched/partials/schedule-tabs.php
+```
+
+Available partials: `schedule-tabs`, `schedule-filters`, `schedule-event-row`, `schedule-calendar-actions`, `schedule-event-modal`, `login-modal`, `info-modal`, `android-google-calendar-modal`.
+
+Copy the original from `wp-content/plugins/OnlineSched/templates/partials/` as your starting point.
+
+### PHP Hooks Reference
+
+The plugin fires these actions and filters so themes and other plugins can extend behaviour without editing plugin files.
+
+| Hook | Type | When it fires |
+|---|---|---|
+| `os_before_schedule` | action | Before the schedule wrapper `<div>` is output |
+| `os_after_schedule` | action | After the schedule wrapper closes |
+| `os_before_schedule_item` | action | Before each event row, receives `$post_id` |
+| `os_after_schedule_item` | action | After each event row, receives `$post_id` |
+| `os_event_description` | filter | Filters the event description HTML, receives `($html, $post_id)` |
+| `os_event_badge_html` | filter | Filters the badge HTML for a row, receives `($html, $post_id)` |
+| `os_render_schedule_args` | filter | Filters the full args array before rendering |
+| `os_sticky_offsets` | filter | Array of sticky pixel offsets for the tab bar; use this if your theme has a sticky header |
+| `os_kiosk_head_styles` | filter | Array of stylesheet URLs injected into the kiosk page `<head>` |
+| `onlinesched_load_fontawesome` | filter | Return `false` to skip loading the plugin's Font Awesome bundle |
+| `onlinesched_load_fonts` | filter | Return `false` to skip loading the plugin's Metropolis font bundle |
+
+**Example — bumping the sticky tab offset for a 60px sticky header:**
+
+```php
+add_filter( 'os_sticky_offsets', function ( $offsets ) {
+    $offsets['desktop'] = 60;
+    $offsets['mobile']  = 60;
+    return $offsets;
+} );
+```
+
+**Example — adding content above the schedule:**
+
+```php
+add_action( 'os_before_schedule', function () {
+    echo '<p class="schedule-notice">Schedule is subject to change.</p>';
+} );
+```
+
+---
+
+## Tested Against
+
+*   **WordPress:** 6.4, 6.5, 6.6, 6.7
+*   **PHP:** 8.2, 8.3
+*   **Themes:** Furry Migration (Classic), Twenty Twenty-Four, Twenty Twenty-Five (Block)
+
 ========================================================================
 HOW TO RUN THE AUTOMATED TESTS
 ========================================================================
 
-> **Note for Open Source Users:** The Playwright end-to-end test suite is currently tightly coupled to the Furry Migration local Docker environment (`fm-php`). You do not need to run these tests to use the plugin. If you are developing locally outside of that Docker stack, the `npm run test:setup` command will fail because it expects to seed data via WP-CLI inside the `fm-php` container.
-
-These tests check that the schedule page on the website still works
-correctly. Think of them like a robot that clicks around the site and
-makes sure nothing is broken. The robot tests on different screen
-sizes (phone, tablet, big monitor, kiosk TV) and even tries different
-web browsers (Chrome, Firefox, Safari, Edge).
+OnlineSched uses a Playwright end-to-end test suite that verifies the plugin
+works correctly across different browsers and screen sizes. The suite runs
+against two environments: the reference **Furry Migration Docker** stack and
+a standalone **Vanilla WordPress** stack.
 
 ------------------------------------------------------------------------
-BEFORE YOU START (Furry Migration Environment Only) -- you need these things:
+ENVIRONMENT 1: Furry Migration (Local Docker)
 ------------------------------------------------------------------------
 
-  1. Docker Desktop is running (the little whale icon in your taskbar)
+> **Note:** This environment is used for reference development. It requires
+> the full Furry Migration Docker stack.
 
-  2. Your local WordPress site is running and reachable in a browser.
-     If your local URL differs from the test configuration, update the test
-     base URL before running the suite.
-
-  3. You have a terminal open and you're inside the OnlineSched folder:
-
-         cd public_html/wp-content/plugins/OnlineSched
-
-     If you're not sure where you are, type "pwd" and it should end
-     with "plugins/OnlineSched".
+1. Ensure the Docker stack is running from the project root.
+2. Navigate to `public_html/wp-content/plugins/OnlineSched`.
+3. Run `npm run test:setup` (first time only) to install browsers and seed data.
+4. Run `npm test` to execute the full suite.
 
 ------------------------------------------------------------------------
-FIRST TIME SETUP (only do this once)
+ENVIRONMENT 2: Vanilla WordPress (Standalone)
 ------------------------------------------------------------------------
 
-Step 1 -- Install all the stuff the tests need:
+> **Note:** This environment ensures the plugin works without theme dependencies.
 
-    npm install
-
-   This downloads a bunch of packages. It takes a minute or two.
-   You'll see a progress bar. Wait until it finishes.
-
-Step 2 -- Download the test browsers and add fake events to the database:
-
-    npm run test:setup
-
-   This does two things:
-     a) Creates 9 fake convention events in the database (like
-        "Opening Howl Ceremony" and "Fursuit Parade Staging").
-        These fake events are set one week in the future so the
-        schedule page shows them.
-     b) Downloads the browsers the robot uses to test (Chrome, Edge,
-        Firefox, Safari).
-
-   This step takes a few minutes the first time because it has to
-   download several browsers. Be patient!
-
-That's it for setup! You only do these two steps once. The fake events
-stay in the database and the browsers stay downloaded until someone
-wipes everything.
-
-------------------------------------------------------------------------
-RUNNING THE TESTS (do this whenever you want to check things)
-------------------------------------------------------------------------
-
-Just type:
-
-    npm test
-
-The robot will:
-  - Open invisible browser windows in the background
-  - Visit the schedule page on Chrome, Firefox, Safari, and Edge
-  - Try phone size, tablet size, desktop size, and kiosk TV size
-  - Click on tabs, type in the search box, open popups, etc.
-  - Tell you if anything is broken
-
-It takes about 5-10 minutes to finish because it tests so many
-combinations of browsers and screen sizes.
-
-When it's done you'll see something like:
-
-    150 passed   <-- good! everything works
-     20 skipped  <-- these are tests for future features, ignore them
-      0 failed   <-- you want this to say 0
-
-If you see "failed" tests, scroll up to read which ones broke and
-what the error message says.
-
-------------------------------------------------------------------------
-OTHER WAYS TO RUN THE TESTS
-------------------------------------------------------------------------
-
-Watch the robot click around (good for seeing what's happening):
-
-    npm run test:headed
-
-Open a fancy interactive dashboard where you can pick which tests
-to run and watch them live:
-
-    npm run test:ui
-
-Run ONLY the kiosk TV tests (Edge browser at 1080p):
-
-    npm run test:kiosk
-
-Run ONLY the kiosk tests WITHOUT Edge (use this if Edge is not installed on your machine):
-
-    npm run test:kiosk:chromium
-
-Run ONLY the phone-size tests:
-
-    npm run test:mobile
-
-Run ONLY Firefox tests (good for checking alternative browsers):
-
-    npm run test:firefox
-
-Run ONLY Safari tests:
-
-    npm run test:webkit
-
-Run just one specific test file:
-
-    npx playwright test --config=tests/playwright.config.js tests/e2e/05-modals.spec.js
-
-Run tests matching a keyword:
-
-    npx playwright test --config=tests/playwright.config.js --grep "modal"
-
-See a pretty HTML report after a test run:
-
-    npx playwright show-report tests/playwright-report
-
-------------------------------------------------------------------------
-IF TESTS SUDDENLY START FAILING (seed data expired)
-------------------------------------------------------------------------
-
-The fake test events are set one week in the future. After that week
-passes, the schedule page looks empty and some tests will fail saying
-"found 0 events."
-
-Fix it by re-running the seed script:
-
-    npm run test:seed
-
-This adds a fresh batch of fake events for next week. You can run it
-as many times as you want. Old expired events just get ignored.
-
-------------------------------------------------------------------------
-IF YOU WIPED THE DATABASE
-------------------------------------------------------------------------
-
-If someone ran "docker compose down -v" (which erases everything),
-the test events are gone too. You'll need to run the full setup again:
-
-    npm run test:setup
-
-Then run the tests normally:
-
-    npm test
-
-------------------------------------------------------------------------
-IF A BROWSER IS MISSING
-------------------------------------------------------------------------
-
-If you see an error like "browser msedge is not installed" or
-"browser webkit is not installed", just run:
-
-    npx playwright install
-
-This re-downloads all the browsers the tests need.
+1. Navigate to `tests/docker-vanilla`.
+2. Run `docker-compose up -d`.
+3. Run `./seed-vanilla.sh` to install WordPress and seed data.
+4. Navigate back to the plugin root and run:
+   `npx playwright test --project=vanilla-wp`
 
 ------------------------------------------------------------------------
 WHAT ALL THE TEST FILES CHECK

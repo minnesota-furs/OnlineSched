@@ -5,8 +5,13 @@
 
 set -e
 
-CONTAINER="fm-php"
-WP="wp --allow-root --path=/var/www/html"
+CONTAINER="${OS_TEST_CONTAINER:-fm-php}"
+WP_CMD="${OS_TEST_WP:-wp --allow-root --path=/var/www/html}"
+
+# Helper to run WP command inside container
+wp_run() {
+  docker exec "$CONTAINER" $WP_CMD "$@"
+}
 
 YEAR=$(date +%Y)
 
@@ -38,7 +43,7 @@ fi
 echo "✓ Dates verified as future."
 
 # Idempotency: check by title (NOT total count — real DB may already have 100+ events)
-EXISTING=$(docker exec $CONTAINER $WP post list \
+EXISTING=$(wp_run post list \
   --post_type=os_event --post_status=publish \
   --fields=post_title --format=csv 2>/dev/null \
   | grep -c "Opening Howl Ceremony" || true)
@@ -60,24 +65,24 @@ if [ "$EXISTING" -ge 1 ]; then
     "After Dark Howl" \
     "Quiet Paws Chill Zone" \
     "VIP Tail Care Lounge"; do
-    IDS=$(docker exec $CONTAINER $WP post list \
+    IDS=$(wp_run post list \
       --post_type=os_event --post_status=publish \
       --fields=ID,post_title --format=csv 2>/dev/null \
       | grep "\"$TITLE\"" | cut -d',' -f1)
     if [ -n "$IDS" ]; then
-      docker exec $CONTAINER $WP post delete $IDS --force 2>/dev/null || true
+      wp_run post delete $IDS --force 2>/dev/null || true
       echo "  Deleted: $TITLE"
     fi
   done
 fi
 
-docker exec $CONTAINER $WP option update onlinesched_year "$YEAR"
+wp_run option update onlinesched_year "$YEAR"
 echo "Set onlinesched_year to $YEAR"
 
 # Ensure the Essentials tab filter knows which tag slugs are "essentials".
 # The JS checks window.essentialsTags (array of slugs) via this WP option.
 # Without this, the Essentials tab shows 0 items and test 02-tabs fails.
-docker exec $CONTAINER $WP option update onlinesched_essentials_tags '["essential"]' --format=json 2>/dev/null || true
+wp_run option update onlinesched_essentials_tags '["essential"]' --format=json 2>/dev/null || true
 echo "Set onlinesched_essentials_tags to [\"essential\"]"
 
 # ── Badge Type Defaults ──
@@ -85,27 +90,27 @@ echo "Set onlinesched_essentials_tags to [\"essential\"]"
 # correct colors, icons, and row highlights. These match the admin "Restore Defaults" values.
 echo "Setting up default badge types..."
 
-docker exec $CONTAINER $WP option update onlinesched_badge_types \
+wp_run option update onlinesched_badge_types \
   '["Adult","Cancelled","Essentials","Guest Of Honor","Sensory","Special Guest","Streaming","VIP"]' \
   --format=json 2>/dev/null || true
 
-docker exec $CONTAINER $WP option update onlinesched_badge_types_display \
+wp_run option update onlinesched_badge_types_display \
   '{"Adult":true,"Sensory":true,"VIP":true,"Essentials":true,"Guest Of Honor":false,"Special Guest":false,"Streaming":true,"Cancelled":true}' \
   --format=json 2>/dev/null || true
 
-docker exec $CONTAINER $WP option update onlinesched_badge_types_colors \
+wp_run option update onlinesched_badge_types_colors \
   '{"Adult":"#d12229","Sensory":"#0a58ca","VIP":"","Essentials":"","Guest Of Honor":"","Special Guest":"","Streaming":"","Cancelled":""}' \
   --format=json 2>/dev/null || true
 
-docker exec $CONTAINER $WP option update onlinesched_badge_types_fg_colors \
+wp_run option update onlinesched_badge_types_fg_colors \
   '{"Adult":"#ffffff","Sensory":"#ffffff","VIP":"","Essentials":"","Guest Of Honor":"","Special Guest":"","Streaming":"","Cancelled":""}' \
   --format=json 2>/dev/null || true
 
-docker exec $CONTAINER $WP option update onlinesched_badge_types_row_colors \
+wp_run option update onlinesched_badge_types_row_colors \
   '{"Adult":"","Sensory":"","VIP":"#fff0b2","Essentials":"","Guest Of Honor":"#b5d8ac","Special Guest":"#b5d8ac","Streaming":"","Cancelled":""}' \
   --format=json 2>/dev/null || true
 
-docker exec $CONTAINER $WP option update onlinesched_badge_types_icons \
+wp_run option update onlinesched_badge_types_icons \
   '{"Adult":"","Sensory":"","VIP":"","Essentials":"","Guest Of Honor":"fas fa-star","Special Guest":"fas fa-star","Streaming":"","Cancelled":""}' \
   --format=json 2>/dev/null || true
 
@@ -117,10 +122,10 @@ echo "Badge type options set."
 assign_badge_type() {
   local TAG_SLUG="$1"
   local BADGE_TYPE="$2"
-  TERM_ID=$(docker exec $CONTAINER $WP term list os_tag \
+  TERM_ID=$(wp_run term list os_tag \
     --slug="$TAG_SLUG" --field=term_id --format=csv 2>/dev/null | tail -1)
   if [ -n "$TERM_ID" ] && [ "$TERM_ID" != "term_id" ]; then
-    docker exec $CONTAINER $WP term meta update "$TERM_ID" badge_type "$BADGE_TYPE" 2>/dev/null || true
+    wp_run term meta update "$TERM_ID" badge_type "$BADGE_TYPE" 2>/dev/null || true
     echo "  Assigned badge_type '$BADGE_TYPE' to tag '$TAG_SLUG' (term $TERM_ID)"
   fi
 }
@@ -134,22 +139,22 @@ create_event() {
   local PANELIST="$6" # Can be comma-separated
   local CONTENT="$7"
 
-  POST_ID=$(docker exec $CONTAINER $WP post create \
+  POST_ID=$(wp_run post create \
     --post_type=os_event \
     --post_title="$TITLE" \
     --post_content="$CONTENT" \
     --post_status=publish \
     --porcelain)
 
-  docker exec $CONTAINER $WP post meta update $POST_ID onlinesched_sorttime "$SORTTIME"
-  docker exec $CONTAINER $WP post meta update $POST_ID onlinesched_timelen "$DURATION"
-  docker exec $CONTAINER $WP post meta update $POST_ID onlinesched_year "$YEAR"
+  wp_run post meta update $POST_ID onlinesched_sorttime "$SORTTIME"
+  wp_run post meta update $POST_ID onlinesched_timelen "$DURATION"
+  wp_run post meta update $POST_ID onlinesched_year "$YEAR"
 
-  docker exec $CONTAINER $WP term create os_room "$ROOM" --porcelain 2>/dev/null || true
-  docker exec $CONTAINER $WP post term set $POST_ID os_room "$ROOM"
+  wp_run term create os_room "$ROOM" --porcelain 2>/dev/null || true
+  wp_run post term set $POST_ID os_room "$ROOM"
 
-  docker exec $CONTAINER $WP term create os_tag "$TAG" --porcelain 2>/dev/null || true
-  docker exec $CONTAINER $WP post term set $POST_ID os_tag "$TAG"
+  wp_run term create os_tag "$TAG" --porcelain 2>/dev/null || true
+  wp_run post term set $POST_ID os_tag "$TAG"
 
   if [ -n "$PANELIST" ]; then
     # Split by comma and trim
@@ -157,10 +162,10 @@ create_event() {
     CLEAN_NAMES=()
     for NAME in "${NAMES[@]}"; do
       TRIMMED=$(echo "$NAME" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-      docker exec $CONTAINER $WP term create os_panelist "$TRIMMED" --porcelain 2>/dev/null || true
+      wp_run term create os_panelist "$TRIMMED" --porcelain 2>/dev/null || true
       CLEAN_NAMES+=("$TRIMMED")
     done
-    docker exec $CONTAINER $WP post term set $POST_ID os_panelist "${CLEAN_NAMES[@]}"
+    wp_run post term set $POST_ID os_panelist "${CLEAN_NAMES[@]}"
   fi
 
   echo "  Created: $TITLE (ID: $POST_ID)"

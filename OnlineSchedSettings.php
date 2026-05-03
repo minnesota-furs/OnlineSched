@@ -118,6 +118,16 @@ function OnlineSched_admin_init()
     foreach (onlinesched_get_color_defaults() as $key => $unused) {
         onlinesched_register_main_setting(onlinesched_get_option_name($key), 'onlinesched_sanitize_color_option');
     }
+
+    onlinesched_register_main_setting('onlinesched_enable_header_flare', 'onlinesched_sanitize_checkbox');
+    onlinesched_register_main_setting('onlinesched_header_flare_icon', 'sanitize_text_field');
+    onlinesched_register_main_setting('onlinesched_header_flare_custom_class', 'sanitize_text_field');
+    onlinesched_register_main_setting('onlinesched_header_flare_image', 'esc_url_raw');
+}
+
+function onlinesched_sanitize_checkbox($value)
+{
+    return ($value == '1' ? '1' : '0');
 }
 
 function OnlineSched_register_options_page()
@@ -337,6 +347,75 @@ function OnlineSched_options_page()
                 onlinesched_color_input_row('color_gold', 'Favorites Color', 'Used for favorites stars and favorite highlights.');
                 onlinesched_color_input_row('color_danger', 'Danger Color', 'Used for cancelled events and destructive buttons.');
                 ?>
+                <tr>
+                    <th scope="row">Header Flare</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="onlinesched_enable_header_flare" value="1" <?php checked('1', get_option('onlinesched_enable_header_flare', '1')); ?> />
+                            Enable Header Flare (e.g. Paw Prints)
+                        </label>
+                        <p class="description">Adds a subtle icon to the right side of schedule day headers.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="onlinesched_header_flare_icon">Header Flare Icon</label></th>
+                    <td>
+                        <?php
+                        $current_icon        = get_option('onlinesched_header_flare_icon', 'fa-paw');
+                        $current_custom      = get_option('onlinesched_header_flare_custom_class', '');
+                        $preset_icons = [
+                            'fa-paw'    => 'Paw',
+                            'fa-dog'    => 'Dog',
+                            'fa-cat'    => 'Cat',
+                            'fa-crow'   => 'Crow',
+                            'fa-horse'  => 'Horse',
+                            'fa-dragon' => 'Dragon',
+                            'fa-otter'  => 'Otter',
+                            'fa-hippo'  => 'Hippo',
+                            'fa-frog'   => 'Frog',
+                            'fa-fish'   => 'Fish',
+                            'fa-none'   => 'None (no icon)',
+                            'fa-custom' => 'Custom icon class...',
+                        ];
+                        ?>
+                        <select name="onlinesched_header_flare_icon" id="onlinesched_header_flare_icon">
+                            <?php foreach ($preset_icons as $value => $label) : ?>
+                                <option value="<?php echo esc_attr($value); ?>" <?php selected($current_icon, $value); ?>>
+                                    <?php echo esc_html($label); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div id="os-flare-custom-wrap" style="margin-top:8px;<?php echo ($current_icon !== 'fa-custom') ? 'display:none;' : ''; ?>">
+                            <input type="text"
+                                   name="onlinesched_header_flare_custom_class"
+                                   id="onlinesched_header_flare_custom_class"
+                                   value="<?php echo esc_attr($current_custom); ?>"
+                                   placeholder="e.g. fa-ice-cream, fa-star, fa-dragon"
+                                   class="regular-text" />
+                            <p class="description">
+                                Any <a href="https://fontawesome.com/icons?s=solid&m=free" target="_blank">Font Awesome Free solid icon</a> class name.
+                                The icon doesn't have to be an animal — sky's the limit.
+                            </p>
+                        </div>
+                        <script>
+                            (function () {
+                                var sel  = document.getElementById('onlinesched_header_flare_icon');
+                                var wrap = document.getElementById('os-flare-custom-wrap');
+                                if (!sel || !wrap) return;
+                                sel.addEventListener('change', function () {
+                                    wrap.style.display = (sel.value === 'fa-custom') ? '' : 'none';
+                                });
+                            })();
+                        </script>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="onlinesched_header_flare_image">Header Flare Image/SVG URL</label></th>
+                    <td>
+                        <input type="text" name="onlinesched_header_flare_image" id="onlinesched_header_flare_image" value="<?php echo esc_attr(get_option('onlinesched_header_flare_image', '')); ?>" class="regular-text" />
+                        <p class="description">Optional: URL to an image or SVG file. If provided, this will be used instead of the Font Awesome icon.</p>
+                    </td>
+                </tr>
                 <tr>
                     <th scope="row">Restore Defaults</th>
                     <td>

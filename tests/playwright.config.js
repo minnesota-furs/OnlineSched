@@ -44,6 +44,16 @@ module.exports = defineConfig({
     // ── Alternative browser engines ──
     { name: 'firefox', use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 800 } }, testIgnore: KIOSK_SPEC },
     { name: 'webkit',  use: { ...devices['Desktop Safari'],  viewport: { width: 1280, height: 800 } }, testIgnore: KIOSK_SPEC },
+
+    // ── Standalone vanilla WP ──
+    {
+      name: 'vanilla-wp',
+      use: {
+        baseURL: 'http://localhost:8081',
+        viewport: { width: 1280, height: 800 },
+      },
+      testIgnore: KIOSK_SPEC,
+    },
   ],
   outputDir: './test-results',
   reporter: [['html', { outputFolder: './playwright-report', open: 'never' }], ['list']],
