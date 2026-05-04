@@ -51,11 +51,11 @@ test.describe('14 — Standalone Verification', () => {
   test('event modal opens and closes without theme JS', async ({ page }) => {
     await page.locator(S.scheduleTitle).first().click();
     await expect(page.locator(S.scheduleModal)).toBeVisible();
-    await expect(page).toHaveURL(/#evt-/);
+    await expect(page).toHaveURL(/evt=/);
 
     await page.locator(S.scheduleModalClose).click();
     await expect(page.locator(S.scheduleModal)).toBeHidden();
-    await expect(page).not.toHaveURL(/#evt-/);
+    await expect(page).not.toHaveURL(/evt=/);
   });
 
   test('login modal opens and closes without theme JS', async ({ page }) => {

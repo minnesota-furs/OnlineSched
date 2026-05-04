@@ -86,7 +86,7 @@ test.describe('06 — Calendar', () => {
 
       const clipText = await page.evaluate(() => navigator.clipboard.readText());
       expect(clipText).toContain('/schedule/');
-      expect(clipText).toContain('#evt-' + evtId);
+      expect(clipText).toContain('evt=' + evtId);
     });
 
     test('modal copy button copies page URL to clipboard', async ({ page }) => {
@@ -101,7 +101,7 @@ test.describe('06 — Calendar', () => {
       const clipText = await page.evaluate(() => navigator.clipboard.readText());
       expect(clipText).toContain('/schedule/');
       // Modal sets the hash to the event ID before showing
-      expect(clipText).toContain('#evt-');
+      expect(clipText).toContain('evt=');
     });
 
     test('prefers-reduced-motion skips clipboard animation', async ({ page }) => {
@@ -125,7 +125,7 @@ test.describe('06 — Calendar', () => {
       await page.waitForTimeout(300);
 
       const clipText = await page.evaluate(() => navigator.clipboard.readText());
-      expect(clipText).toContain('#evt-' + evtId);
+      expect(clipText).toContain('evt=' + evtId);
     });
   });
 

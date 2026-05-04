@@ -52,7 +52,8 @@ export function initTabs() {
                         detail: {
                             tab: tab,
                             target: targetPane,
-                            hash: `#${targetId}`
+                            hash: `#${targetId}`,
+                            isTrusted: e.isTrusted
                         },
                         bubbles: true
                     });
@@ -67,14 +68,22 @@ export function initTabs() {
 }
 
 function handleInitialHash() {
-    const hash = window.location.hash;
-    if (!hash) return;
+    const rawHash = window.location.hash.substring(1);
+    if (!rawHash) return;
 
-    let targetId = hash.substring(1);
-    
-    // Support legacy singular #hour and other variations
-    if (targetId === 'hour') targetId = 'hours';
-    
+    let targetId = null;
+
+    if (rawHash && !rawHash.includes('=')) {
+        if (rawHash === 'hours' || rawHash === 'hour') targetId = 'hours';
+        else if (rawHash === 'essentials') targetId = 'essentials';
+        else if (rawHash === 'programming') targetId = 'programming';
+    } else {
+        const params = new URLSearchParams(rawHash);
+        targetId = params.get('tab');
+    }
+
+    if (!targetId) return;
+
     const tab = document.querySelector(`[data-os-tab="${targetId}"]`);
     if (tab) {
         // We use a small timeout to ensure all listeners are attached 

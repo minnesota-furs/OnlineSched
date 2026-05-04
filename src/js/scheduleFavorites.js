@@ -17,7 +17,7 @@ export function scheduleFavorites() {
         let evtId = null;
 
         if (modalTitle) {
-            evtId = window.location.hash.replace('#', 'online');
+            evtId = (window.currentModalEventId || '').replace('#', '');
             mainItem = document.getElementById(evtId);
         } else {
             mainItem = btn.closest('.schedule-item');
@@ -29,7 +29,7 @@ export function scheduleFavorites() {
         const newState = !isActive;
         setFavoriteState(mainItem, newState);
 
-        if (window.location.hash.replace('#', 'online') === evtId) {
+        if ((window.currentModalEventId || '').replace('#', '') === evtId) {
             const modalBtn = document.querySelector('#modal-schedule-title .schedule-favorite-toggle');
             if (modalBtn) {
                 modalBtn.classList.toggle('active', newState);

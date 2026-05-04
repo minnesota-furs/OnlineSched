@@ -402,13 +402,12 @@ dl.schedule-meta:after {
 }
 
 .os-clipboard-effect {
-  position: absolute;
   padding: 10px 20px;
   border-radius: 10px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
-  z-index: 1100;
+  z-index: 2000;
   font-size: 28px;
-  color: #ffffff; /* White text */
+  color: #ffffff;
   background-color: var(--os-blue);
   text-wrap: nowrap;
 }
