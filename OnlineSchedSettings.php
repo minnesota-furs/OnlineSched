@@ -123,6 +123,18 @@ function OnlineSched_admin_init()
     onlinesched_register_main_setting('onlinesched_header_flare_icon', 'sanitize_text_field');
     onlinesched_register_main_setting('onlinesched_header_flare_custom_class', 'sanitize_text_field');
     onlinesched_register_main_setting('onlinesched_header_flare_image', 'esc_url_raw');
+
+    onlinesched_register_main_setting('onlinesched_icon_fav_inactive', 'onlinesched_sanitize_icon_classes');
+    onlinesched_register_main_setting('onlinesched_icon_fav_active', 'onlinesched_sanitize_icon_classes');
+}
+
+/**
+ * Sanitizer to ensure clean class strings for dynamic icons.
+ */
+function onlinesched_sanitize_icon_classes($value)
+{
+    // Trim and allow only alphanumeric, spaces, and dashes.
+    return sanitize_text_field(preg_replace('/[^a-z0-9\s-]/i', '', (string)$value));
 }
 
 function onlinesched_sanitize_checkbox($value)
@@ -344,7 +356,8 @@ function OnlineSched_options_page()
                 onlinesched_color_input_row('color_primary', 'Primary Color', 'Used for primary highlights, tab hover states, and login button hover states.');
                 onlinesched_color_input_row('color_secondary', 'Secondary Color', 'Used for schedule day headers, modal headings, and calendar panels.');
                 onlinesched_color_input_row('color_accent', 'Accent Color', 'Used for calendar and copy action icons.');
-                onlinesched_color_input_row('color_gold', 'Favorites Color', 'Used for favorites stars and favorite highlights.');
+                onlinesched_color_input_row('color_fav_inactive', 'Favorite Icon Inactive Color', 'Used for the color of unselected/inactive favorites.');
+                onlinesched_color_input_row('color_fav_active', 'Favorite Icon Active Color', 'Used for the color of selected/active favorites.');
                 onlinesched_color_input_row('color_danger', 'Danger Color', 'Used for cancelled events and destructive buttons.');
                 ?>
                 <tr>
@@ -378,13 +391,18 @@ function OnlineSched_options_page()
                             'fa-custom' => 'Custom icon class...',
                         ];
                         ?>
-                        <select name="onlinesched_header_flare_icon" id="onlinesched_header_flare_icon">
-                            <?php foreach ($preset_icons as $value => $label) : ?>
-                                <option value="<?php echo esc_attr($value); ?>" <?php selected($current_icon, $value); ?>>
-                                    <?php echo esc_html($label); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div style="display:flex; align-items:center;">
+                            <select name="onlinesched_header_flare_icon" id="onlinesched_header_flare_icon">
+                                <?php foreach ($preset_icons as $value => $label) : ?>
+                                    <option value="<?php echo esc_attr($value); ?>" <?php selected($current_icon, $value); ?>>
+                                        <?php echo esc_html($label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span id="os-flare-icon-preview-wrap" style="margin-left:12px; font-size:1.5em; width:30px; text-align:center;">
+                                <i id="os-flare-icon-preview" class="fas <?php echo ($current_icon === 'fa-custom') ? esc_attr($current_custom) : esc_attr($current_icon); ?>"></i>
+                            </span>
+                        </div>
                         <div id="os-flare-custom-wrap" style="margin-top:8px;<?php echo ($current_icon !== 'fa-custom') ? 'display:none;' : ''; ?>">
                             <input type="text"
                                    name="onlinesched_header_flare_custom_class"
@@ -397,25 +415,139 @@ function OnlineSched_options_page()
                                 The icon doesn't have to be an animal — sky's the limit.
                             </p>
                         </div>
-                        <script>
-                            (function () {
-                                var sel  = document.getElementById('onlinesched_header_flare_icon');
-                                var wrap = document.getElementById('os-flare-custom-wrap');
-                                if (!sel || !wrap) return;
-                                sel.addEventListener('change', function () {
-                                    wrap.style.display = (sel.value === 'fa-custom') ? '' : 'none';
-                                });
-                            })();
-                        </script>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="onlinesched_header_flare_image">Header Flare Image/SVG URL</label></th>
                     <td>
-                        <input type="text" name="onlinesched_header_flare_image" id="onlinesched_header_flare_image" value="<?php echo esc_attr(get_option('onlinesched_header_flare_image', '')); ?>" class="regular-text" />
+                        <div style="display:flex; align-items:center;">
+                            <input type="text" name="onlinesched_header_flare_image" id="onlinesched_header_flare_image" value="<?php echo esc_attr(get_option('onlinesched_header_flare_image', '')); ?>" class="regular-text" />
+                            <div id="os-flare-image-preview-wrap" style="margin-left:12px; display:none;">
+                                <img id="os-flare-image-preview" src="" style="max-height:32px; display:block; border:none; outline:none; background:transparent;" />
+                            </div>
+                        </div>
                         <p class="description">Optional: URL to an image or SVG file. If provided, this will be used instead of the Font Awesome icon.</p>
                     </td>
                 </tr>
+                <script>
+                    (function () {
+                        var sel        = document.getElementById('onlinesched_header_flare_icon');
+                        var customWrap = document.getElementById('os-flare-custom-wrap');
+                        var customInp  = document.getElementById('onlinesched_header_flare_custom_class');
+                        var imgInp     = document.getElementById('onlinesched_header_flare_image');
+                        
+                        var iconPrev   = document.getElementById('os-flare-icon-preview');
+                        var iconWrap   = document.getElementById('os-flare-icon-preview-wrap');
+                        var imgPrev    = document.getElementById('os-flare-image-preview');
+                        var imgWrap    = document.getElementById('os-flare-image-preview-wrap');
+
+                        if (!sel || !customWrap) return;
+
+                        function updateFlarePreview() {
+                            var imgUrl = imgInp.value.trim();
+                            if (imgUrl) {
+                                // Image overrides icon
+                                iconWrap.style.display = 'none';
+                                imgWrap.style.display = '';
+                                imgPrev.src = imgUrl;
+                            } else {
+                                // Show icon
+                                imgWrap.style.display = 'none';
+                                iconWrap.style.display = '';
+                                
+                                var iconClass = sel.value;
+                                if (iconClass === 'fa-custom') {
+                                    iconClass = customInp.value.trim() || 'fa-question';
+                                }
+                                
+                                if (iconClass === 'fa-none') {
+                                    iconPrev.className = '';
+                                } else {
+                                    iconPrev.className = 'fas ' + iconClass;
+                                }
+                            }
+                        }
+
+                        sel.addEventListener('change', function () {
+                            customWrap.style.display = (sel.value === 'fa-custom') ? '' : 'none';
+                            updateFlarePreview();
+                        });
+                        
+                        customInp.addEventListener('input', updateFlarePreview);
+                        imgInp.addEventListener('input', updateFlarePreview);
+                        
+                        // Initial run
+                        updateFlarePreview();
+                    })();
+                </script>
+                <tr>
+                    <th scope="row"><label for="onlinesched_icon_fav_inactive">Favorite Icon (Inactive)</label></th>
+                    <td>
+                        <div style="display:flex; align-items:center;">
+                            <input type="text"
+                                   name="onlinesched_icon_fav_inactive"
+                                   id="onlinesched_icon_fav_inactive"
+                                   value="<?php echo esc_attr(get_option('onlinesched_icon_fav_inactive', 'far fa-star')); ?>"
+                                   placeholder="e.g. far fa-star, fas fa-paw, fa-regular fa-bone"
+                                   class="regular-text" />
+                            <span style="margin-left:12px; font-size:1.5em; width:30px; text-align:center; color:<?php echo esc_attr(get_option('onlinesched_color_fav_inactive', '#cccccc')); ?>;">
+                                <i id="os-icon-inactive-preview" class="<?php echo esc_attr(get_option('onlinesched_icon_fav_inactive', 'far fa-star')); ?>"></i>
+                            </span>
+                        </div>
+                        <p class="description">Font Awesome classes for the unselected favorite icon. Default: <code>far fa-star</code></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="onlinesched_icon_fav_active">Favorite Icon (Active)</label></th>
+                    <td>
+                        <div style="display:flex; align-items:center;">
+                            <input type="text"
+                                   name="onlinesched_icon_fav_active"
+                                   id="onlinesched_icon_fav_active"
+                                   value="<?php echo esc_attr(get_option('onlinesched_icon_fav_active', 'fas fa-star')); ?>"
+                                   placeholder="e.g. fas fa-star, fas fa-paw, fa-solid fa-bone"
+                                   class="regular-text" />
+                            <span style="margin-left:12px; font-size:1.5em; width:30px; text-align:center; color:<?php echo esc_attr(get_option('onlinesched_color_gold', '#f6c700')); ?>;">
+                                <i id="os-icon-active-preview" class="<?php echo esc_attr(get_option('onlinesched_icon_fav_active', 'fas fa-star')); ?>"></i>
+                            </span>
+                        </div>
+                        <p class="description">Font Awesome classes for the selected/active favorite icon. Default: <code>fas fa-star</code></p>
+                    </td>
+                </tr>
+                <script>
+                    (function() {
+                        var inInput = document.getElementById('onlinesched_icon_fav_inactive');
+                        var acInput = document.getElementById('onlinesched_icon_fav_active');
+                        var inPrev  = document.getElementById('os-icon-inactive-preview');
+                        var acPrev  = document.getElementById('os-icon-active-preview');
+                        
+                        var inColor = document.getElementById('onlinesched_color_fav_inactive');
+                        var acColor = document.getElementById('onlinesched_color_fav_active');
+
+                        function updatePreview(input, preview, colorInput) {
+                            if (!input || !preview) return;
+                            var classes = input.value.trim() || (input.id.indexOf('active') !== -1 ? 'fas fa-star' : 'far fa-star');
+                            preview.className = classes;
+                            
+                            if (colorInput) {
+                                preview.parentElement.style.color = colorInput.value;
+                            }
+                        }
+
+                        if (inInput) {
+                            inInput.addEventListener('input', function() { updatePreview(inInput, inPrev, inColor); });
+                        }
+                        if (acInput) {
+                            acInput.addEventListener('input', function() { updatePreview(acInput, acPrev, acColor); });
+                        }
+                        if (inColor) {
+                            inColor.addEventListener('input', function() { updatePreview(inInput, inPrev, inColor); });
+                        }
+                        if (acColor) {
+                            acColor.addEventListener('input', function() { updatePreview(acInput, acPrev, acColor); });
+                        }
+                    })();
+                </script>
                 <tr>
                     <th scope="row">Restore Defaults</th>
                     <td>
@@ -492,6 +624,8 @@ function OnlineSched_config_status_page()
         'color_accent' => 'Accent Color',
         'color_gold' => 'Favorites Color',
         'color_danger' => 'Danger Color',
+        'icon_fav_inactive' => 'Favorite Icon (Inactive)',
+        'icon_fav_active' => 'Favorite Icon (Active)',
     );
     ?>
     <div class="wrap">

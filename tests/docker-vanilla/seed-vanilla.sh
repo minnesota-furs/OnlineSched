@@ -9,7 +9,11 @@ CONTAINER="onlinesched-vanilla-wp"
 WP="wp --allow-root --path=/var/www/html"
 SITE_URL="http://localhost:8081"
 ADMIN_USER="admin"
-ADMIN_PASS="password"
+ADMIN_PASS_FILE=".wp_admin_pass"
+if [ ! -f "$ADMIN_PASS_FILE" ]; then
+  openssl rand -base64 16 > "$ADMIN_PASS_FILE"
+fi
+ADMIN_PASS=$(cat "$ADMIN_PASS_FILE")
 ADMIN_EMAIL="admin@example.local"
 
 # Helper to run WP command
@@ -36,6 +40,13 @@ until wp_run core is-installed 2>/dev/null; do
   RETRY_COUNT=$((RETRY_COUNT + 1))
 done
 echo "✓ WordPress installed."
+
+echo "Wiping database..."
+docker exec onlinesched-vanilla-db mysql -u wordpress -pwordpress -e "DROP DATABASE IF EXISTS wordpress; CREATE DATABASE wordpress;"
+
+# Re-install after reset to ensure clean state with our user
+echo "Re-initializing clean WordPress..."
+wp_run core install --url="$SITE_URL" --title="OnlineSched Vanilla" --admin_user="$ADMIN_USER" --admin_password="$ADMIN_PASS" --admin_email="$ADMIN_EMAIL" --skip-email
 
 echo "Activating OnlineSched plugin..."
 wp_run plugin activate OnlineSched
@@ -119,3 +130,8 @@ chmod +x ../fixtures/seed-test-events.sh
 OS_TEST_CONTAINER="$CONTAINER" OS_TEST_WP="$WP" ../fixtures/seed-test-events.sh --force
 
 echo "✓ Vanilla seed complete!"
+echo "--------------------------------------------------"
+echo "Admin URL     : $SITE_URL/wp-admin"
+echo "Admin User    : $ADMIN_USER"
+echo "Admin Password: $ADMIN_PASS (Saved to $ADMIN_PASS_FILE)"
+echo "--------------------------------------------------"

@@ -207,7 +207,7 @@ function onlinesched_render_schedule($args = array()) {
                             <div class="schedule-hour">
                                 <h3>Out of time</h3>
                                 <div class="os-row schedule-item schedule-room-main-stage schedule-tag-essential schedule-tag-streaming"
-                                     data-end-time="1725645600" data-schedule-tag0="0" data-schedule-tag1="1" data-schedule-room0="0">
+                                     data-end-time="1725645600" data-schedule-tag-essential="essential" data-schedule-tag-streaming="streaming" data-schedule-room-main-stage="main-stage">
                                     <div class="os-col-xs-12 schedule-title">Nothing happening. No valid entries in past or future</div>
                                 </div>
                             </div>
@@ -253,10 +253,18 @@ function onlinesched_render_schedule($args = array()) {
                             }
                         }
 
-                        $addScheduleRoom = " schedule-room-" . str_replace(' ', '-', strtolower($rooms));
+                        $rooms_slugs = OnlineSched_terms_slug_array('os_room');
+                        $addScheduleRoom = "";
+                        $addScheduleRoomData = "";
+                        foreach ($rooms_slugs as $slug) {
+                            $addScheduleRoom .= " schedule-room-" . $slug;
+                            $addScheduleRoomData .= " data-schedule-room-" . $slug . '="' . $slug . '"';
+                        }
                         $addScheduleTags = "";
+                        $addScheduleTagsData = "";
                         foreach ($tags_slugs as $slug) {
                             $addScheduleTags .= " schedule-tag-" . $slug;
+                            $addScheduleTagsData .= " data-schedule-tag-" . $slug . '="' . $slug . '"';
                         }
                         
                         $addVIPClass = ''; $addGOHClass = ''; $addSpecialGuestClass = ''; $addCanceledClass = '';
@@ -345,6 +353,7 @@ function onlinesched_render_schedule($args = array()) {
 
                         onlinesched_get_template_part('schedule-event-row', compact(
                             'addCanceledClass', 'addGOHClass', 'addScheduleRoom', 'addScheduleTags',
+                            'addScheduleRoomData', 'addScheduleTagsData',
                             'addSpecialGuestClass', 'addVIPClass', 'badge_types_colors', 'badge_types_display',
                             'badge_types_fg_colors', 'badge_types_icons', 'badge_types_present', 'canonical_badges',
                             'eventCancelled', 'filterLINKS', 'hideTime', 'hourduration', 'liveStreaming',

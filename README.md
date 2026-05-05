@@ -141,6 +141,12 @@ That's it. Add events under **Event Scheduling → Events**, assign them rooms, 
 
 Go to **Event Scheduling → Event Settings → Colors**. Every color the plugin uses is configurable there — no CSS required. Changes take effect immediately across the schedule, badges, tabs, and modals.
 
+### Icons & Attribution
+
+The schedule uses [Font Awesome Free](https://fontawesome.com/) for most UI elements. Custom icons (like the Coyote in the Floof Den demo) may be sourced from external libraries.
+
+*   **Coyote Icon:** Sourced from [SVGRepo](https://www.svgrepo.com/svg/97569/coyote) (CC0 License).
+
 ### Fonts
 
 The plugin ships with [Metropolis](https://fontsource.org/fonts/metropolis) as its default schedule font. It loads this from your server as a self-hosted web font — no Google Fonts, no external requests.

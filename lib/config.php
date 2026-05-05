@@ -140,6 +140,8 @@ function onlinesched_get_color_defaults()
         'color_secondary' => '#0d375a',
         'color_accent' => '#f36d21',
         'color_gold' => '#f6c700',
+        'color_fav_inactive' => '#cccccc',
+        'color_fav_active' => '#d12229',
         'color_danger' => '#d12229',
     );
 }
@@ -193,6 +195,17 @@ function onlinesched_contrast_ratio($hex_a, $hex_b)
     return ($lighter + 0.05) / ($darker + 0.05);
 }
 
+function onlinesched_get_favorite_icon_classes($active = false)
+{
+    if ($active) {
+        $icon = get_option('onlinesched_icon_fav_active', 'fas fa-star');
+        return !empty($icon) ? $icon : 'fas fa-star';
+    } else {
+        $icon = get_option('onlinesched_icon_fav_inactive', 'far fa-star');
+        return !empty($icon) ? $icon : 'far fa-star';
+    }
+}
+
 function onlinesched_get_colors()
 {
     $colors = array();
@@ -244,17 +257,21 @@ function onlinesched_add_color_inline_style($handle = 'online-schedule-css')
     }
 
     $css = sprintf(
-        ':root { --os-green: %1$s; --os-blue: %2$s; --os-orange: %3$s; --os-gold: %4$s; --os-danger: %5$s; --os-green-soft: %6$s; --os-green-focus: %7$s; --os-modal-chrome: %8$s; --os-modal-chrome-focus: %9$s; }',
+        ':root { --os-green: %1$s; --os-blue: %2$s; --os-orange: %3$s; --os-gold: %4$s; --os-fav-inactive: %5$s; --os-fav-active: %6$s; --os-danger: %7$s; --os-green-soft: %8$s; --os-green-focus: %9$s; --os-modal-chrome: %10$s; --os-modal-chrome-focus: %11$s; }',
         wp_strip_all_tags($colors['color_primary']),
         wp_strip_all_tags($colors['color_secondary']),
         wp_strip_all_tags($colors['color_accent']),
         wp_strip_all_tags($colors['color_gold']),
+        wp_strip_all_tags($colors['color_fav_inactive']),
+        wp_strip_all_tags($colors['color_fav_active']),
         wp_strip_all_tags($colors['color_danger']),
         wp_strip_all_tags($primary_soft),
         wp_strip_all_tags($primary_focus),
         wp_strip_all_tags($modal_chrome),
         wp_strip_all_tags($modal_chrome_focus)
     );
+
+    $css .= " .schedule-favorite-toggle:hover i, .schedule-favorite-toggle.active i { color: var(--os-fav-active) !important; }";
 
     // Header Flare — opacity only; the icon itself is injected as a DOM element by onlinesched_get_flare_html().
     $enable_flare = get_option('onlinesched_enable_header_flare', '1');

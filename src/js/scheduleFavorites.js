@@ -1,3 +1,5 @@
+import { updateIconClasses } from "./osIcons";
+
 export function scheduleFavorites() {
     const endpoints = window.OnlineSchedPublic || {};
     const saveFavoritesUrl = endpoints.saveFavoritesUrl || '/wp-content/plugins/OnlineSched/includes/save_favorites.php';
@@ -35,14 +37,12 @@ export function scheduleFavorites() {
                 modalBtn.classList.toggle('active', newState);
                 modalBtn.setAttribute('aria-pressed', newState ? 'true' : 'false');
                 const modalIcon = modalBtn.querySelector('i');
-                modalIcon?.classList.toggle('fas', newState);
-                modalIcon?.classList.toggle('far', !newState);
+                updateIconClasses(modalIcon, newState);
             }
         }
 
         if (icon) {
-            icon.classList.toggle('fas', newState);
-            icon.classList.toggle('far', !newState);
+            updateIconClasses(icon, newState);
         }
 
         window.updateFavoritesCookie?.();
@@ -108,8 +108,7 @@ export function scheduleFavorites() {
             button.classList.toggle('active', state);
             button.setAttribute('aria-pressed', state ? 'true' : 'false');
             const buttonIcon = button.querySelector('i');
-            buttonIcon?.classList.toggle('fas', state);
-            buttonIcon?.classList.toggle('far', !state);
+            updateIconClasses(buttonIcon, state);
         });
     }
 

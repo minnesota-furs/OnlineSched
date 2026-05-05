@@ -64,6 +64,7 @@ add_action('save_post', 'OnlineSched_add_timeslot_fields', 10, 2);
 add_action('manage_os_event_posts_custom_column', 'OnlineSched_columns_content', 10, 2);
 add_action('admin_head', 'OnlineSched_add_help_page');
 add_action('admin_head', 'onlinesched_settings_admin_styles');
+add_action('admin_enqueue_scripts', 'onlinesched_admin_enqueue_assets');
 add_action('edited_os_day', 'custom_edit_day_type', 2, 10);
 add_action('admin_menu', 'onlinesched_register_submenus', 10);
 
@@ -80,6 +81,19 @@ add_action('admin_init', array('OS_Migration', 'maybe_migrate'));
 //
 // Changing Taxonomy - If change update all the dates
 //
+
+function onlinesched_admin_enqueue_assets($hook) {
+    $allowed_hooks = array(
+        'os_event_page_onlinesched-settings',
+        'os_event_page_onlinesched-essentials',
+        'os_event_page_onlinesched-badge-types',
+        'os_event_page_event-schedule-help'
+    );
+    if (!in_array($hook, $allowed_hooks)) {
+        return;
+    }
+    wp_enqueue_style('onlinesched-fa', ONLINESCHED_PLUGIN_URL . 'build/fontawesome.css', array(), '6.0.0');
+}
 
 function custom_edit_day_type($term_id, $taxonomy)
 {

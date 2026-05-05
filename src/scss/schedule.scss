@@ -522,7 +522,7 @@ dl.schedule-meta:after {
   box-shadow: none;
   padding: 0;
   margin: 0 6px 0 0;
-  color: var(--os-gold);
+  color: var(--os-fav-inactive, #ccc); // Neutral inactive color from settings
   vertical-align: middle;
   cursor: pointer;
 

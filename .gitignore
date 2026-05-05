@@ -11,3 +11,4 @@ public/
 -pubic/static
 tests/test-results/
 tests/playwright-report/
+.wp_admin_pass

@@ -1,6 +1,7 @@
 /* Schedule code to do filtering and the magic */
 import { rewriteGoogleCalendarUrlForAndroid } from './scheduleCalendar.js';
 import { openModal } from './osModal.js';
+import { updateIconClasses } from './osIcons.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -226,9 +227,7 @@ export function new_schedule() {
             } else {
                 updateHashState({ day: null, tag: null, room: null, q: null, evt: null, tab: null }, false);
             }
-        }
 
-        if ((hash === '#programming' || hash === '#essentials') && e.detail.isTrusted) {
             resetDropDowns();
             window.favoritesFilterActive = false;
             const favoritesToggle = $('#schedule-favorites-toggle');
@@ -236,6 +235,9 @@ export function new_schedule() {
                 favoritesToggle.classList.remove('active');
                 favoritesToggle.setAttribute('aria-pressed', 'false');
             }
+        }
+
+        if (hash === '#programming' || hash === '#essentials') {
             scheduleSort();
             resetSelectTags();
             resetSelectRooms();
@@ -273,7 +275,9 @@ export function new_schedule() {
         const raw_id = item.getAttribute('id');
         let favBtn = '';
         if (!scheduleConfig.isKiosk && !scheduleConfig.isLive) {
-            favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
+            const config = window.OnlineSchedPublic || {};
+            const iconClass = isFavorite ? (config.iconFavActive || 'fas fa-star') : (config.iconFavInactive || 'far fa-star');
+            favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + iconClass + '"></i></button>';
         }
 
         const modalTitle = $('#modal-schedule-title');
@@ -287,10 +291,7 @@ export function new_schedule() {
             modalBtn.classList.toggle('active', state);
             modalBtn.setAttribute('aria-pressed', state ? 'true' : 'false');
             const icon = modalBtn.querySelector('i');
-            if (icon) {
-                icon.classList.toggle('fas', state);
-                icon.classList.toggle('far', !state);
-            }
+            updateIconClasses(icon, state);
         }
 
         // Re-attach favorite listener
@@ -383,7 +384,6 @@ export function new_schedule() {
     window.setFilterEvents = function (args) {
         scrollTopMenu();
         window.eventschedule_showEvents = args;
-        resetDropDowns();
         scheduleSort();
         resetSelectTags();
     };
@@ -488,10 +488,7 @@ export function new_schedule() {
         this.setAttribute('aria-pressed', window.favoritesFilterActive ? 'true' : 'false');
 
         const icon = this.querySelector('i');
-        if (icon) {
-            icon.classList.toggle('fas', window.favoritesFilterActive);
-            icon.classList.toggle('far', !window.favoritesFilterActive);
-        }
+        updateIconClasses(icon, window.favoritesFilterActive);
 
         if (window.favoritesFilterActive && $('#schedule-select-days')) {
             $('#schedule-select-days').value = 'all';

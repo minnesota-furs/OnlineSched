@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
 async function openHoursTab(page) {
-  await page.goto('/schedule/#hours');
+  await page.goto('/schedule/#tab=hours');
   await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
   await page.locator(`${S.tabList} a[href="#hours"]`).click();
   await expect(page.locator(S.tabHours)).toBeVisible();

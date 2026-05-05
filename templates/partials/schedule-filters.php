@@ -40,7 +40,7 @@ if (!defined('ABSPATH')) {
                                                             style="display: flex; align-items: center; justify-content: center; height: 34px;">
                                                         <span class="favorite-label-mobile"
                                                               style="margin-right: 4px; display: none;">Favorite</span>
-                                                        <i class="far fa-star" aria-hidden="true"
+                                                        <i class="<?php echo esc_attr(onlinesched_get_favorite_icon_classes(false)); ?>" aria-hidden="true"
                                                            style="color: var(--os-gold, #f6c700);"></i>
                                                         <span class="os-sr-only">Show Favorites Only</span>
                                                     </button>

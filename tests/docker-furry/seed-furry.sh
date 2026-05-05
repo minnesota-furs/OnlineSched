@@ -7,7 +7,11 @@ set -e
 CONTAINER="onlinesched-furry-cli"
 SITE_URL="http://localhost:8082"
 ADMIN_USER="admin"
-ADMIN_PASS="password"
+ADMIN_PASS_FILE=".wp_admin_pass"
+if [ ! -f "$ADMIN_PASS_FILE" ]; then
+  openssl rand -base64 16 > "$ADMIN_PASS_FILE"
+fi
+ADMIN_PASS=$(cat "$ADMIN_PASS_FILE")
 ADMIN_EMAIL="furry@example.com"
 
 echo "🐺 Initializing The Floof Den..."
@@ -30,6 +34,14 @@ until wp_run core is-installed >/dev/null 2>&1 || [ $RETRY_COUNT -eq $MAX_RETRIE
 done
 echo "✓ WordPress installed."
 
+echo "  Wiping database..."
+# Wipe directly via the DB container to avoid WP-CLI SSL issues
+docker exec onlinesched-furry-db mysql -u wordpress -pwordpress -e "DROP DATABASE IF EXISTS wordpress; CREATE DATABASE wordpress;"
+
+# Re-install after reset to ensure clean state with our user
+echo "  Re-initializing clean WordPress..."
+wp_run core install --url="$SITE_URL" --title="The Floof Den" --admin_user="$ADMIN_USER" --admin_password="$ADMIN_PASS" --admin_email="$ADMIN_EMAIL" --skip-email
+
 echo "Installing and activating Astra theme..."
 wp_run theme install astra --activate
 
@@ -42,23 +54,15 @@ cat <<'EOF' > /tmp/floof-overdrive.php
 /* Plugin Name: Floof Overdrive */
 add_action('wp_head', function() {
     echo '<style>
-        /* Repeating Paw Background for the Schedule */
+        /* Repeating Coyote Background for the Schedule */
         #schedule { 
-            background-image: url("https://www.svgrepo.com/show/491500/paw.svg");
+            background-image: url("/wp-content/plugins/OnlineSched/tests/docker-furry/demo-assets/coyote.svg");
             background-size: 150px;
             background-repeat: repeat;
             background-attachment: fixed;
             background-color: rgba(253, 252, 240, 0.95);
             background-blend-mode: overlay;
         }
-        /* Swap Favorite Stars for Paw Prints! */
-        .schedule-favorite-toggle i.fa-star::before,
-        .schedule-favorite-toggle i.fa-star-o::before,
-        #modal-schedule-title .schedule-favorite-toggle i::before {
-            content: "\f1b0" !important; /* fa-paw */
-        }
-        /* Extra Padding for the paw icons */
-        .schedule-favorite-toggle { font-size: 1.2em; }
         
         /* Make the schedule card slightly transparent to see the paws */
         .os-row.schedule-item { background: rgba(255,255,255,0.9); }
@@ -110,9 +114,15 @@ wp_run option update onlinesched_color_accent "#e67e22" # Fox Orange
 wp_run option update onlinesched_tab_programming_label "The Hunt"
 wp_run option update onlinesched_tab_hours_label "Den Times"
 
+# Dynamic Favorite Icons (Phase 10.5) - ADA Heart
+wp_run option update onlinesched_icon_fav_inactive "far fa-heart"
+wp_run option update onlinesched_icon_fav_active "fas fa-heart"
+wp_run option update onlinesched_color_fav_inactive "#767676" # ADA Grey
+wp_run option update onlinesched_color_fav_active "#d12229"   # Alpha Red
+
 # Enable Header Flare with a custom SVG
 wp_run option update onlinesched_enable_header_flare 1
-wp_run option update onlinesched_header_flare_image "https://www.svgrepo.com/show/491500/paw.svg"
+wp_run option update onlinesched_header_flare_image "/wp-content/plugins/OnlineSched/tests/docker-furry/demo-assets/coyote.svg"
 
 echo "Configuring Custom Badge Colors..."
 # JSON format: { "label_slug": { "bg": "#hex", "text": "#hex" } }
@@ -122,7 +132,7 @@ BADGE_COLORS='{
   "workshop": { "bg": "#27ae60", "text": "#ffffff" },
   "vip": { "bg": "#f1c40f", "text": "#000000" }
 }'
-wp_run option update onlinesched_badge_types_colors "$BADGE_COLORS"
+wp_run option update onlinesched_badge_types_colors "$BADGE_COLORS" --format=json
 
 echo "Creating The Floof Den Maps (Multi-Floor)..."
 MAP_CONTENT='<div class="os-maps">
@@ -220,6 +230,12 @@ echo "Seeding Test Events with OwO Flavor..."
 # We reuse the existing seed script but it will use the new CLI container
 export OS_TEST_CONTAINER="onlinesched-furry-cli"
 export OS_TEST_WP="wp --allow-root"
-../fixtures/seed-test-events.sh --force
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+"$SCRIPT_DIR/../fixtures/seed-test-events.sh" --force
 
 echo "✓ The Floof Den is fully fortified! Awoooo! 🐺🏁"
+echo "--------------------------------------------------"
+echo "Admin URL     : $SITE_URL/wp-admin"
+echo "Admin User    : $ADMIN_USER"
+echo "Admin Password: $ADMIN_PASS (Saved to $ADMIN_PASS_FILE)"
+echo "--------------------------------------------------"
