@@ -56,7 +56,7 @@ add_action('wp_head', function() {
     echo '<style>
         /* Repeating Coyote Background for the Schedule */
         #schedule { 
-            background-image: url("/wp-content/plugins/OnlineSched/tests/docker-furry/demo-assets/coyote.svg");
+            background-image: url("/wp-content/plugins/OnlineSched/tests/demo-assets/coyote.svg");
             background-size: 150px;
             background-repeat: repeat;
             background-attachment: fixed;
@@ -122,7 +122,7 @@ wp_run option update onlinesched_color_fav_active "#d12229"   # Alpha Red
 
 # Enable Header Flare with a custom SVG
 wp_run option update onlinesched_enable_header_flare 1
-wp_run option update onlinesched_header_flare_image "/wp-content/plugins/OnlineSched/tests/docker-furry/demo-assets/coyote.svg"
+wp_run option update onlinesched_header_flare_image "/wp-content/plugins/OnlineSched/tests/demo-assets/coyote.svg"
 
 echo "Configuring Custom Badge Colors..."
 # JSON format: { "label_slug": { "bg": "#hex", "text": "#hex" } }
