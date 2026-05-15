@@ -1,0 +1,12 @@
+// Metropolis via @fontsource — loaded as the separate 'onlinesched-fonts' stylesheet handle.
+// Themes that already supply Metropolis (e.g. via Typekit) should opt out:
+//   add_filter( 'onlinesched_load_fonts', '__return_false' );
+// Themes that want a different font entirely can override the CSS variable:
+//   add_action( 'wp_head', function() { echo ':root{--os-font-family:"YourFont",sans-serif;}'; } );
+@import '@fontsource/metropolis/400.css';
+@import '@fontsource/metropolis/600.css';
+@import '@fontsource/metropolis/700.css';
+
+:root {
+  --os-font-family: "Metropolis", system-ui, -apple-system, sans-serif;
+}

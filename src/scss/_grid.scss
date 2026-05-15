@@ -1,0 +1,81 @@
+// @author Kurst Hyperyote for Furry Migration
+@use 'sass:math';
+@use 'variables' as *;
+
+// Full-width container matching Bootstrap's container-fluid behavior
+.os-container {
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+// Flex row - children default to full width (mobile-first)
+.os-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -8px;
+
+  > * {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding: 0 8px;
+    box-sizing: border-box;
+  }
+}
+
+// xs columns (always apply)
+@for $i from 1 through 12 {
+  .os-col-xs-#{$i} {
+    flex: 0 0 math.percentage(math.div($i, 12));
+    max-width: math.percentage(math.div($i, 12));
+  }
+}
+
+// sm columns (768px+)
+@media (min-width: #{$os-bp-mobile + 1}) {
+  @for $i from 1 through 12 {
+    .os-col-sm-#{$i} {
+      flex: 0 0 math.percentage(math.div($i, 12));
+      max-width: math.percentage(math.div($i, 12));
+    }
+  }
+}
+
+// md columns (992px+)
+@media (min-width: #{$os-bp-tablet + 1}) {
+  @for $i from 1 through 12 {
+    .os-col-md-#{$i} {
+      flex: 0 0 math.percentage(math.div($i, 12));
+      max-width: math.percentage(math.div($i, 12));
+    }
+  }
+}
+
+// lg columns (1200px+)
+@media (min-width: $os-bp-desktop) {
+  @for $i from 1 through 12 {
+    .os-col-lg-#{$i} {
+      flex: 0 0 math.percentage(math.div($i, 12));
+      max-width: math.percentage(math.div($i, 12));
+    }
+  }
+  @for $i from 1 through 11 {
+    .os-col-lg-offset-#{$i} {
+      margin-left: math.percentage(math.div($i, 12));
+    }
+  }
+}
+
+// Centered content column (replaces col-lg-10 col-lg-offset-1)
+.os-schedule-main {
+  flex: 0 0 100%;
+  max-width: 100%;
+  padding: 0 8px;
+  box-sizing: border-box;
+
+  @media (min-width: $os-bp-desktop) {
+    flex: 0 0 83.333333%;
+    max-width: 83.333333%;
+    margin-left: 8.333333%;
+  }
+}

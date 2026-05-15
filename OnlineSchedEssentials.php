@@ -3,19 +3,22 @@
 // Admin page for managing Essentials tags
 
 function onlinesched_essentials_page() {
-	if (!current_user_can('manage_event_schedule_tags_type')) {
+	if (!current_user_can('manage_os_tag')) {
 		wp_die('You do not have permission to manage Essentials settings.');
 	}
 	$option_name = 'onlinesched_essentials_tags';
 	$essentials_tags = get_option($option_name, array());
 	$tags = get_terms([
-		'taxonomy' => 'event_schedule_tags_type',
+		'taxonomy' => 'os_tag',
 		'hide_empty' => false,
 	]);
 	$option_tab_name = 'onlinesched_essentials_tab_name';
 	$essentials_tab_name = get_option($option_tab_name, 'Essentials');
+    $message = '';
 
 	if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_admin_referer('onlinesched_essentials');
+
 		if (isset($_POST['essentials_tags'])) {
 			$new_tags = array_map('sanitize_text_field', (array)$_POST['essentials_tags']);
 			update_option($option_name, $new_tags);
@@ -72,6 +75,7 @@ function onlinesched_essentials_page() {
 			 echo '<div class="schedule-updated"><button class="close-message" onclick="this.parentNode.style.display=\'none\';">&times;</button><p>' . esc_html($message) . '</p></div>';
 		} ?>
 		<form method="post">
+            <?php wp_nonce_field('onlinesched_essentials'); ?>
 			<table class="form-table">
 				<tr><th>Tab Name for Essential Tab:</th><td>
 					<input type="text" name="essentials_tab_name" value="<?php echo esc_attr($essentials_tab_name); ?>" style="width:220px;" placeholder="Essentials" />

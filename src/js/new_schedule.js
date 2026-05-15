@@ -1,881 +1,1023 @@
 /* Schedule code to do filtering and the magic */
+import { rewriteGoogleCalendarUrlForAndroid } from './scheduleCalendar.js';
+import { openModal } from './osModal.js';
+import { updateIconClasses } from './osIcons.js';
 
-export function new_schedule() {
-    let header_top = 60;
-    let header_mobile_top = 0;
-    let tablet_width = 900;
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
-    //
-    // Function needs to be defined asap.
-    // so need "before" ready
-    //
-    window.scrollTopMenu = function () {
+function showElement(el) {
+    if (el) el.style.display = '';
+}
 
-        var width = jQuery('body').innerWidth();
-        var offsetDiv = header_top;
-        if (width <= tablet_width) {
-            offsetDiv = header_mobile_top;
-        }
+function hideElement(el) {
+    if (el) el.style.display = 'none';
+}
 
-        var offset = jQuery('#schedule').offset().top - offsetDiv;
-        if (offset < 0) {
-            offset = 0;
-        }
-        jQuery('html, body').animate({
-            scrollTop: offset
-        }, 'slow');
-    };
+function isVisible(el) {
+    if (!el) return false;
 
-    jQuery(document).ready(function () {
-        // added for copy url
-        jQuery("#modal-copy-url").on("click", function (e) {
-
-            e.preventDefault(); // Prevent the default action of the link
-
-            const url = window.location.href;
-            navigator.clipboard.writeText(url);
-
-            animate_clipboard(this);
-        });
-
-        jQuery(".schedule-clipboard").on("click", function (e) {
-
-            e.preventDefault(); // Prevent the default action of the link
-            // get the id
-            const eventID = jQuery(this).parent().parent().attr('id').substring(6);
-            const url = window.location.href.replace(location.hash, "") + "#" + eventID;
-
-            navigator.clipboard.writeText(url);
-
-            animate_clipboard(this);
-        });
-
-        function animate_clipboard(clipObject) {
-
-            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-            if (prefersReducedMotion) {
-                // just blur the button lose focus on it.
-                jQuery(clipObject).blur().focusout();
-                return; // Skip animation if the user prefers reduced motion
-            }
-            // Create clipboard icon
-            const $clipboardEffect = jQuery('<div class="clipboard-effect"><i class="fas fa-clipboard-check"></i> Copied!</div>').appendTo('body');
-
-            // Position the effect near the button
-            const offset = jQuery(clipObject).offset();
-            const effectWidth = $clipboardEffect.outerWidth();
-            const effectHeight = $clipboardEffect.outerHeight();
-
-            let topPosition = offset.top - effectHeight - 10; // Position above the button
-            let leftPosition = offset.left + jQuery(clipObject).outerWidth() / 2 - effectWidth / 2; // Center above the button
-
-            // Apply the calculated position
-            $clipboardEffect.css({
-                top: topPosition,
-                left: leftPosition
-            });
-
-            // Animate the effect
-            $clipboardEffect.animate({
-                top: topPosition - 80, // Adjust to desired end position
-                opacity: 0,
-            }, 1500, function () {
-                jQuery(this).remove(); // Remove the effect after animation
-            });
-
-            // Fade the button color
-            jQuery(clipObject).blur().focusout().fadeOut(750).fadeIn(750);
-        }
-
-        jQuery(document).ready(function () {
-            // Listen for the tab change event
-            jQuery('.nav-tabs a').on('shown.bs.tab', function (e) {
-                // Get the href attribute of the active tab
-                var hash = jQuery(e.target).attr('href');
-                // Update the browser's hash
-                if (hash) {
-                    history.pushState(null, null, hash);
-                }
-                // If switching to Programming or Essentials tab, reset all filters
-                if (hash === '#programming') {
-                    resetDropDowns();
-                    window.favoritesFilterActive = false;
-                    jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
-                    scheduleSort();
-                    resetSelectTags();
-                }
-            });
-        });
-
-        jQuery("a[data-target=#modal-schedule]").click(function (ev) {
-            ev.preventDefault();
-
-            var parent = jQuery(this).parents('.schedule-item');
-            var eventDetails = getEventDetailsFromElement(parent);
-            window.currentModalEventDetails = eventDetails; // Store globally for modal use
-            var panelists = eventDetails.panelists;
-            var title = jQuery(this).html();
-            var description = eventDetails.description;
-            var date = parent.parent().siblings('h2').html();
-            var time = parent.find('.schedule-time span').html();
-            var room = eventDetails.room;
-            var tags = eventDetails.tags;
-            var ical = parent.find('.schedule-ical').attr('href');
-            var googleCal = parent.find('.schedule-google').attr('href');
-            // --- Get badges HTML ---
-            var $scheduleTitle = parent.find('.schedule-title');
-            var $badges = $scheduleTitle.clone();
-            $badges.find('a').remove();
-            var badgesHtml = $badges.html();
-            // --- Build one-time Google Calendar event link ---
-            var gcalUrl =
-                'https://calendar.google.com/calendar/render?action=TEMPLATE' +
-                '&text=' + encodeURIComponent(eventDetails.title) +
-                '&details=' + encodeURIComponent(eventDetails.gcalDetails) +
-                '&location=' + encodeURIComponent(eventDetails.gcalLocation) +
-                '&dates=' + eventDetails.gcalDates;
-            // Prepare eventDetails for Android modal
-            var eventDetailsForModal = {
-                title: eventDetails.title,
-                details: eventDetails.gcalDetails,
-                location: eventDetails.gcalLocation,
-                dates: eventDetails.gcalDates
-            };
-            // Insert favorite toggle button before the title in the modal, only if in schedule mode
-            let isFavorite = parent.attr('data-favorite') === 'true';
-            let evt_id = jQuery(parent).attr('id');
-            let favBtn = '';
-            if (
-                window.location.href.indexOf('schedule') !== -1 &&
-                window.location.href.indexOf('kiosk-schedule') === -1
-            ) {
-                favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + (isFavorite ? 'fas' : 'far') + ' fa-star"></i></button>';
-            }
-            jQuery("#modal-schedule-title").html(favBtn + title + badgesHtml);
-            // Always update the modal star to match the current favorite state
-            function updateModalFavoriteStar(state) {
-                let $modalBtn = jQuery('#modal-schedule-title .schedule-favorite-toggle');
-                $modalBtn.toggleClass('active', state).attr('aria-pressed', state ? 'true' : 'false');
-                $modalBtn.find('i').toggleClass('fas', state).toggleClass('far', !state);
-            }
-
-            jQuery("#modal-schedule-title .schedule-favorite-toggle").off('click').on('click', function (e) {
-                e.preventDefault();
-                const $mainItem = jQuery('#' + evt_id);
-                const $btn = $mainItem.find('.schedule-favorite-toggle');
-                isFavorite = !isFavorite;
-                if ($mainItem.length) {
-                    $mainItem.attr('data-favorite', isFavorite);
-                    if (isFavorite) {
-                        $btn.addClass('active').attr('aria-pressed', 'true');
-                        $btn.find('i').removeClass('far').addClass('fas');
-                    } else {
-                        $btn.removeClass('active').attr('aria-pressed', 'false');
-                        $btn.find('i').removeClass('fas').addClass('far');
-                    }
-                }
-                // Always update the modal star to match the new state
-                updateModalFavoriteStar(isFavorite);
-                updateFavoritesCookie();
-            });
-            jQuery("#modal-schedule-description").show().html(description).siblings('hr').show();
-            modal_popup_fill("#modal-schedule-date", date);
-            modal_popup_fill("#modal-schedule-time", time);
-            modal_popup_fill("#modal-schedule-room", room);
-            modal_popup_fill("#modal-schedule-tags", tags);
-            modal_popup_fill("#modal-schedule-panelists", panelists);
-            jQuery("#modal-schedule-ical").attr('href', ical);
-            jQuery("#modal-schedule-google").attr('href', googleCal); // Set correct subscription link for non-Android
-            let evt_hash = jQuery(parent).attr('id').substring(6);
-            window.location.hash = evt_hash;
-            jQuery("#modal-schedule").modal("show");
-            jQuery("#modal-schedule").one('hidden.bs.modal', function () {
-                removeHash();
-            });
-        });
-
-        // Patch: override Google Calendar click for Android to show modal with eventDetails
-        jQuery("#modal-schedule-google").off('click').on('click', function(e) {
-            if (isAndroidDevice()) {
-                e.preventDefault();
-                // Use global event details for correct times
-                var eventDetails = window.currentModalEventDetails || null;
-                var eventDetailsForModal = null;
-                if (eventDetails) {
-                    eventDetailsForModal = {
-                        title: eventDetails.title,
-                        details: eventDetails.gcalDetails,
-                        location: eventDetails.gcalLocation,
-                        dates: eventDetails.gcalDates
-                    };
-                }
-                var googleUrl = jQuery(this).attr('href');
-                let rawLink = '';
-                try {
-                    let urlObj = new URL(googleUrl);
-                    let cid = urlObj.searchParams.get('cid');
-                    if (cid) {
-                        rawLink = decodeURIComponent(cid);
-                    }
-                } catch (err) {
-                    rawLink = googleUrl;
-                }
-                let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
-                showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl, eventDetailsForModal);
-                return false;
-            }
-            // Otherwise, let default handler run
-        });
-
-        function modal_popup_fill(id, value) {
-
-            if (value === undefined || value === "") {
-                jQuery(id).prev().hide();
-                jQuery(id).hide();
-            } else {
-                jQuery(id).html(value).show();
-                jQuery(id).prev().show();
-
-            }
-        }
-
-        jQuery(".schedule-day").each(function (index) {
-            var day = jQuery(this).data("scheduleDay");
-            jQuery("#schedule-select-days").append("<option value='" + day + "'>" + day + "</option>");
-
-        });
-
-// Set events
-        window.eventschedule_showEvents = true;
-        window.favoritesFilterActive = false;
-
-        window.setFilterEvents = function (args) {
-            scrollTopMenu();
-
-            eventschedule_showEvents = args;
-
-            resetDropDowns();
-            scheduleSort();
-            resetSelectTags();
-        }
-
-// fill tag drop down mind you check if it's unique too
-        window.eventschedule_scheduleTags = new Object();
-        window.eventschedule_count = 0;
-        jQuery(".schedule-tags").each(function (index) {
-            // Current tags
-            var tags = jQuery.map(jQuery(this).html().split(","), jQuery.trim);
-            var len = 0;
-            for (index = 0, len = tags.length; index < len; ++index) {
-                var tag = tags[index];
-                tag = tag = tag.replace(/<\/?[^>]+(>|$)/g, "");
-                if (!eventschedule_scheduleTags.hasOwnProperty(tag)) {
-                    eventschedule_scheduleTags[tag] = eventschedule_count++;
-                }
-
-                jQuery(this).parent().parent().attr("data-schedule-tag" + eventschedule_scheduleTags[tag], eventschedule_scheduleTags[tag]);
-            }
-
-        });
-
-        for (var key in eventschedule_scheduleTags) {
-            if (typeof key === 'string' && key.trim().length != 0 && typeof eventschedule_scheduleTags[key] === 'string' && eventschedule_scheduleTags[key].trim.length != 0)
-                jQuery("#schedule-select-tags").append("<option value='" + eventschedule_scheduleTags[key] + "'>" + key + "</option>");
-        }
-
-        window.eventschedule_scheduleRooms = {};
-        jQuery(".schedule-room").each(function () {
-            var rooms = jQuery.map(jQuery(this).html().split(","), jQuery.trim);
-            var parentItem = jQuery(this).parent().parent();
-            rooms.forEach(function(room) {
-                // Normalize room name to slug
-                var slug = room.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
-                if (!eventschedule_scheduleRooms.hasOwnProperty(slug)) {
-                    eventschedule_scheduleRooms[slug] = room; // Store original name for display
-                }
-                // Set attribute using slug (for each room)
-                parentItem.attr("data-schedule-room-" + slug, slug);
-            });
-        });
-
-        // Debug: log all schedule-item room attributes
-        jQuery('.schedule-item').each(function() {
-            var attrs = this.attributes;
-            var roomAttrs = [];
-            for (let i = 0; i < attrs.length; i++) {
-                if (attrs[i].name.startsWith('data-schedule-room')) {
-                    roomAttrs.push(attrs[i].name + '=' + attrs[i].value);
-                }
-            }
-        });
-        // On page load, ensure reset button is disabled if all filters are at default
-        function updateResetButtonState() {
-            var isDefault = (
-                jQuery('#schedule-search-text').val().trim() === '' &&
-                jQuery('#schedule-select-tags').val() === 'all' &&
-                jQuery('#schedule-select-rooms').val() === 'all' &&
-                jQuery('#schedule-select-days').val() === 'Current' &&
-                !window.favoritesFilterActive
-            );
-            jQuery('#schedule-reset').prop('disabled', isDefault);
-        }
-        // Call on page load
-        updateResetButtonState();
-        resetSelectRooms(); // Ensure room dropdown is populated on initial load
-
-        // Ensure resetSelectTags and resetSelectRooms are called after every filter change, including favorites toggle
-        jQuery("#schedule-select-days, #schedule-select-tags, #schedule-select-rooms").change(function () {
-            scheduleSort();
-            resetSelectTags();
-            resetSelectRooms();
-            updateResetButtonState();
-        });
-        jQuery("#schedule-search-text").on('input', function () {
-            scheduleSort();
-            resetSelectTags();
-            resetSelectRooms();
-            updateResetButtonState();
-        });
-        jQuery("#schedule-reset").click(function () {
-            resetDropDowns();
-            // Reset favorites filter
-            window.favoritesFilterActive = false;
-            jQuery('#schedule-favorites-toggle').removeClass('active').attr('aria-pressed', 'false');
-            scheduleSort();
-            resetSelectTags();
-            resetSelectRooms();
-            jQuery('#schedule-reset').prop('disabled', true); // Always disable after reset
-        });
-        jQuery('#schedule-favorites-toggle').on('click', function () {
-            window.favoritesFilterActive = !window.favoritesFilterActive;
-            jQuery(this).toggleClass('active', window.favoritesFilterActive);
-            jQuery(this).attr('aria-pressed', window.favoritesFilterActive ? 'true' : 'false');
-            // Toggle star icon between hollow and solid
-            var $icon = jQuery(this).find('i');
-            if (window.favoritesFilterActive) {
-                $icon.removeClass('far').addClass('fas'); // solid star
-            } else {
-                $icon.removeClass('fas').addClass('far'); // hollow star
-            }
-            if (window.favoritesFilterActive) {
-                jQuery('#schedule-select-days').val('all');
-            }
-            scheduleSort();
-            resetSelectTags();
-            resetSelectRooms();
-            this.blur(); // Remove focus after click
-            updateResetButtonState();
-        });
-
-        function setOddEven() {
-            jQuery('.schedule-item').removeClass('even');
-            jQuery('.schedule-hour').each(function () {
-                var even = false;
-                jQuery(this).find('.schedule-item').each(function () {
-                    if (jQuery(this).is(":visible")) {
-
-                        if (even) {
-                            //code
-                            jQuery(this).addClass('even');
-                            even = false;
-                        } else {
-                            even = true;
-                        }
-                    }
-
-                });
-            });
-            //code
-        }
-
-        function resetDropDowns() {
-            jQuery('#schedule-select-days').val('Current');
-            jQuery('#schedule-select-tags').val('all');
-            jQuery('#schedule-select-rooms').val('all');
-            jQuery('#schedule-search-text').val("");
-        }
-
-        // Helper for attribute matching
-        function hasMatchingAttribute($item, prefix, value) {
-            if (!$item[0] || !$item[0].attributes) return false;
-            for (let attr of $item[0].attributes) {
-                if (attr.name.startsWith(prefix)) {
-                    if (String(attr.value) === String(value)) {
-                        return true;
-                    }
-                }
-            }
+    let current = el;
+    while (current && current.nodeType === Node.ELEMENT_NODE) {
+        if (current.style.display === 'none') {
             return false;
         }
+        current = current.parentElement;
+    }
 
-        function scheduleSort() {
-            if (jQuery('#schedule').length === 0) {
-                return;
-            }
-            var disableReset = true;
+    return true;
+}
 
-            // Get filter values
-            var selectedDay = jQuery("#schedule-select-days").val();
-            var selectedTag = jQuery("#schedule-select-tags").val();
-            var selectedRoom = jQuery("#schedule-select-rooms").val();
-            var searchText = jQuery("#schedule-search-text").val().toLowerCase();
+function stripTags(value) {
+    const holder = document.createElement('div');
+    holder.innerHTML = value || '';
+    return holder.textContent || holder.innerText || '';
+}
 
-            // Ensure selectedTag and selectedRoom are strings for comparison
-            if (selectedTag !== "all") selectedTag = String(selectedTag);
-            if (selectedRoom !== "all") selectedRoom = String(selectedRoom);
+function roomSlug(room) {
+    return room.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
 
-            // Determine if favorites filter is active
-            var favoritesFilterActive = window.favoritesFilterActive;
+function dispatchChange(el) {
+    if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+}
 
-            // Determine if essentials tab is active
-            var essentialsFilterActive = (window.eventschedule_showEvents === false);
-            var essentialsTags = window.essentialsTags || [];
+export function new_schedule() {
+    const scheduleConfig = window.OS_SCHEDULE_CONFIG || {};
+    const header_top = Number.parseInt(scheduleConfig.stickyOffsetDesktop ?? 0, 10) || 0;
+    const header_mobile_top = Number.parseInt(scheduleConfig.stickyOffsetMobile ?? header_top, 10) || 0;
+    const tablet_width = Number.parseInt(scheduleConfig.stickyBreakpoint ?? 991, 10) || 991;
+    const fixed_tabs_height = Number.parseInt(scheduleConfig.fixedTabsHeight ?? 40, 10) || 40;
 
-            // --- Day filtering logic ---
-            if (selectedDay === "all" || selectedDay === "Current") {
-                jQuery('.schedule-day').show();
-            } else {
-                jQuery('.schedule-day').each(function () {
-                    var dayLabel = jQuery(this).attr('data-schedule-day');
-                    if (dayLabel === selectedDay) {
-                        jQuery(this).show();
-                    } else {
-                        jQuery(this).hide();
-                    }
-                });
-            }
+    function normalizeRouteKey(text) {
+        return (text || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
 
-            // --- Main filtering loop ---
-            var anyVisible = false;
-            var currentDateUTC = null;
-            if (selectedDay === "Current") {
-                currentDateUTC = currentDateTimeTimestampUTC();
-            }
-            jQuery('.schedule-item').each(function () {
-                var $item = jQuery(this);
-                var show = true;
+    function getTagRouteValueFromText(text) {
+        return normalizeRouteKey(text);
+    }
 
-                // Filter by day: only show items whose parent day is visible (unless Current)
-                var $day = $item.closest('.schedule-day');
-                if (selectedDay !== "Current" && !$day.is(':visible')) {
-                    show = false;
-                }
+    function getScheduleTagItems(tagsEl) {
+        const termItems = $$('.os-term-item', tagsEl)
+            .map((termItem) => ({
+                label: termItem.textContent.trim(),
+                route: termItem.dataset.osTagRoute || getTagRouteValueFromText(termItem.textContent),
+            }))
+            .filter((tag) => tag.label);
 
-                // Essentials filter: only show items with an essentials tag
-                if (essentialsFilterActive) {
-                    let hasEssentialsTag = false;
-                    for (let i = 0; i < essentialsTags.length; i++) {
-                        if ($item.hasClass('schedule-tag-' + essentialsTags[i])) {
-                            hasEssentialsTag = true;
-                            break;
-                        }
-                    }
-                    if (!hasEssentialsTag) {
-                        show = false;
-                    } else {
-                        disableReset = false;
-                    }
-                }
-
-                // Filter by tag
-                if (selectedTag !== "all") {
-                    if (!hasMatchingAttribute($item, 'data-schedule-tag', selectedTag)) {
-                        show = false;
-                    } else {
-                        disableReset = false;
-                    }
-                }
-
-                // Filter by room
-                if (selectedRoom !== "all") {
-                    if (!hasMatchingAttribute($item, 'data-schedule-room', selectedRoom)) {
-                        show = false;
-                    } else {
-                        disableReset = false;
-                    }
-                }
-
-                // Filter by "Current" day (hide past events)
-                if (selectedDay === "Current") {
-                    var itemDate = $item.data('end-time');
-                    if (!itemDate || itemDate <= currentDateUTC) {
-                        show = false;
-                    } else {
-                        disableReset = false;
-                    }
-                }
-
-                // Filter by search text
-                if (searchText != "") {
-                    var found = false;
-                    $item.find(".schedule-title a, .schedule-panelists, .schedule-tags, .schedule-room").each(function () {
-                        if (jQuery(this).text().toLowerCase().indexOf(searchText) != -1) {
-                            found = true;
-                        }
-                    });
-                    if (!found) {
-                        show = false;
-                    } else {
-                        disableReset = false;
-                    }
-                }
-
-                // Filter by favorites
-                if (favoritesFilterActive) {
-                    if ($item.attr('data-favorite') !== 'true') {
-                        show = false;
-                    } else {
-                        disableReset = false;
-                    }
-                }
-
-                // Show/hide item
-                if (show) {
-                    $item.show();
-                    anyVisible = true;
-                } else {
-                    $item.hide();
-                }
-            });
-
-            // Determine if any filter/search is active
-            var isDefault = (
-                searchText.trim() === '' &&
-                selectedTag === 'all' &&
-                selectedRoom === 'all' &&
-                selectedDay === 'Current' &&
-                !favoritesFilterActive
-            );
-            disableReset = isDefault;
-            jQuery("#schedule-reset").prop("disabled", disableReset);
-
-            reset_schedule(true);
-            messageAtBottomForCalendar();
+        if (termItems.length) {
+            return termItems;
         }
 
-        function resetHoursDays() {
-
-            // Clean up show/hides
-            jQuery('.schedule-hour').each(function () {
-                jQuery(this).show(); // You have to show them to calculate...
-                var visibleLength = jQuery(this).children(':visible').length;
-                // IT counts itself as one
-                if (visibleLength < 2) {
-                    jQuery(this).hide();
-                }
-            });
-
-            // now for days
-            jQuery('.schedule-day').each(function () {
-                jQuery(this).show(); // You have to show them to calculate...
-                var visibleLength = jQuery(this).children(':visible').length;
-
-                // IT counts itself as one
-                if (visibleLength < 2) {
-                    jQuery(this).hide();
-                }
-            });
-        }
-
-        function reset_schedule(resetTags) {
-            resetHoursDays();
-            if (resetTags) {
-                resetSelectTags();
-                resetSelectRooms();
-            }
-            sort_options_by_id("#schedule-select-tags");
-            sort_rooms_options_by_id("#schedule-select-rooms");
-            setOddEven();
-        }
-
-        function resetSelectTags() {
-            // Only use visible schedule items to build tag list
-            var scheduleReset = {};
-            jQuery('.schedule-item:visible .schedule-tags').each(function () {
-                var tags = jQuery.map(jQuery(this).html().split(","), jQuery.trim);
-                tags.forEach(function(tag) {
-                    tag = tag.replace(/<\/?[^>]+(>|$)/g, "");
-                    if (tag && !scheduleReset.hasOwnProperty(tag)) {
-                        scheduleReset[tag] = tag;
-                    }
-                });
-            });
-
-            // get selected option
-            var selectedTagValue = jQuery("#schedule-select-tags option:selected").val();
-
-            // Remove all except 'all'
-            jQuery("#schedule-select-tags option").each(function () {
-                if (jQuery(this).val() !== "all") {
-                    jQuery(this).remove();
-                }
-            });
-
-            for (var key in scheduleReset) {
-                jQuery("#schedule-select-tags").append(jQuery('<option>', {
-                    value: window.eventschedule_scheduleTags[key],
-                    html: key
-                }));
-            }
-
-            // reset selected option
-            if (selectedTagValue !== 'all') {
-                jQuery("#schedule-select-tags").val(selectedTagValue);
-            }
-
-            sort_options_by_id("#schedule-select-tags");
-            setOddEven();
-        }
-
-        function resetSelectRooms() {
-            // Only use visible schedule items to build room list
-            var scheduleRooms = {};
-            jQuery('.schedule-item:visible').each(function () {
-                var $item = jQuery(this);
-                // Find all data-schedule-room-* attributes
-                if ($item[0] && $item[0].attributes) {
-                    for (let attr of $item[0].attributes) {
-                        if (attr.name.startsWith('data-schedule-room')) {
-                            var slug = attr.value;
-                            // Get display name from global room map if available
-                            var name = window.eventschedule_scheduleRooms && window.eventschedule_scheduleRooms[slug] ? window.eventschedule_scheduleRooms[slug] : slug;
-                            if (slug && !scheduleRooms.hasOwnProperty(slug)) {
-                                scheduleRooms[slug] = name;
-                            }
-                        }
-                    }
-                }
-            });
-            // get selected option
-            var selectedRoomValue = jQuery("#schedule-select-rooms option:selected").val();
-            // Remove all except 'all'
-            jQuery("#schedule-select-rooms option").each(function () {
-                if (jQuery(this).val() !== "all") {
-                    jQuery(this).remove();
-                }
-            });
-            for (var slug in scheduleRooms) {
-                jQuery("#schedule-select-rooms").append(jQuery('<option>', {
-                    value: slug,
-                    html: scheduleRooms[slug]
-                }));
-            }
-            // reset selected option
-            if (selectedRoomValue !== 'all') {
-                jQuery("#schedule-select-rooms").val(selectedRoomValue);
-            }
-            sort_rooms_options_by_id("#schedule-select-rooms");
-            setOddEven();
-        }
-
-        function sort_options_by_id(id) {
-
-            var selected = jQuery(id).val();
-            jQuery(id).html(jQuery(id + " option").sort(function (a, b) {
-
-                var a_text = jQuery(a).text().toUpperCase();
-                var b_text = jQuery(b).text().toUpperCase();
-
-                // Check if 'a' or 'b' should be on top
-                if (jQuery(a).val() == 'all') return -1;
-                if (jQuery(b).val() == 'all') return 1;
-
-                var sortResult = a_text == b_text ? 0 : a_text < b_text ? -1 : 1;
-
-                return sortResult;
+        return tagsEl.textContent
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean)
+            .map((tag) => ({
+                label: tag,
+                route: getTagRouteValueFromText(tag),
             }));
-            jQuery(id).val(selected);
+    }
 
-
+    function getHashState() {
+        const rawHash = window.location.hash.substring(1);
+        if (rawHash && !rawHash.includes('=')) {
+            if (rawHash.startsWith('evt-')) return { evt: rawHash.substring(4) };
+            if (rawHash.startsWith('tag-')) return { tag: rawHash.substring(4) };
+            if (rawHash.startsWith('room-')) return { room: rawHash.substring(5) };
+            if (rawHash === 'hours' || rawHash === 'hour') return { tab: 'hours' };
+            if (rawHash === 'essentials') return { tab: 'essentials' };
+            if (rawHash === 'programming') return { tab: 'programming' };
         }
+        const params = new URLSearchParams(rawHash);
+        return Object.fromEntries(params.entries());
+    }
 
-        function sort_rooms_options_by_id(id) {
-
-            var selected = jQuery(id).val();
-            jQuery(id).html(jQuery(id + " option").sort(function (a, b) {
-
-                var a_text = jQuery(a).text().toUpperCase();
-                var b_text = jQuery(b).text().toUpperCase();
-
-                if (a_text != 'ALL ROOMS' && b_text != 'ALL ROOMS') {
-                    if (a_text == 'MAINSTAGE') {
-                        return -1;
-                    }
-
-                    if (b_text == 'MAINSTAGE') {
-                        return 1;
-                    }
-
-                    if (a_text == 'SPECIAL EVENTS') {
-                        return 1;
-                    }
-
-                    if (b_text == 'SPECIAL EVENTS') {
-                        return -1;
-                    }
-                }
-                var sortResult = a_text == b_text ? 0 : a_text < b_text ? -1 : 1
-
-                //	  var sortResult =  jQuery(a).text().toUpperCase() == jQuery(b).text().toUpperCase() ? 0 : jQuery(a).text().toUpperCase() < jQuery(b).text().toUpperCase() ? -1 : 1
-                return sortResult;
-            }));
-
-            jQuery(id).val(selected);
-
-
-        }
-
-        /* jQuery.extend(jQuery.expr[':'], {
-          'containsi': function(elem, i, match, array)
-          {
-            return (elem.textContent || elem.innerText || '').toLowerCase()
-            .indexOf((match[3] || "").toLowerCase()) >= 0;
-          }
-        });  */
-
-        let eventschedule_hash = window.location.hash;
-
-        eventschedule_hash = eventschedule_hash.substring(0, 5);
-
-        if (eventschedule_hash === "#hour") {
-            jQuery("#schedule").show();
-            jQuery('#hours-tab').click();
-            scrollTopMenu();
-        } else if (eventschedule_hash === '#tag-') {
-            let option_val = window.location.hash;
-            option_val = option_val.substring(5);
-
-            option_val = option_val.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(); // Filter out spaces and special chars to make it easier on everyone.
-
-            jQuery("#schedule").show();
-            reset_schedule(true);
-
-            if (isNaN(option_val)) {
-                jQuery("#schedule-select-tags option").each(function () {
-                    var optionText = jQuery(this).text().replace(/<\/?[^>]+(>|$)/g, ""); // Remove HTML tags
-                    optionText = optionText.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(); // remove also all non character make it easier to tag
-
-                    if (optionText === option_val) {
-                        jQuery(this).prop('selected', true);
-                        return false; // Exit loop once a match is found
-                    } else {
-                        console.log('error did not match ' + optionText + ' x ' + option_val);
-                    }
-                });
-            } else {
-                jQuery("#schedule-select-tags").val(option_val).trigger('change');
-            }
-
-            scheduleSort();
-        } else if (eventschedule_hash === "#evt-") {
-
-            jQuery("#schedule").show();
-            reset_schedule(true);
-            scheduleSort();
-
-            let hash = "#online" + window.location.hash.substring(1);
-            let event = jQuery(hash);
-            if (event !== undefined) {
-                if (jQuery(event).css('display') == 'none') {
-                    jQuery('#schedule-select-days').val('all');
-                    scheduleSort();
-                }
-
-                var width = jQuery('body').innerWidth();
-                var offsetDiv = header_top * 2;
-                if (width <= tablet_width) {
-                    offsetDiv = header_mobile_top;
-                }
-
-                var offset = jQuery(event).offset().top - offsetDiv;
-                if (offset < 0) {
-                    offset = 0;
-                }
-
-                jQuery('html, body').animate({
-                    scrollTop: offset
-                }, 'slow');
-
-                jQuery(hash + ' .schedule-title a').click();
-            }
-
+    function updateHashState(updates, replace = true) {
+        const current = getHashState();
+        const next = { ...current, ...updates };
+        Object.keys(next).forEach(k => (!next[k]) && delete next[k]);
+        const newHash = new URLSearchParams(next).toString();
+        const url = window.location.pathname + window.location.search + (newHash ? '#' + newHash : '');
+        if (replace) {
+            history.replaceState(next, '', url);
         } else {
-            jQuery("#schedule").show();
-
-            reset_schedule(true);
-            scheduleSort();
-        }
-
-
-        function messageAtBottomForCalendar() {
-            // Single if statement to check all conditions
-            if ((jQuery('#schedule-search-text').val().trim() === '') &&
-                (jQuery('#schedule-select-tags').val() !== 'all' || jQuery('#schedule-select-rooms').val() !== 'all')) {
-
-                jQuery('#schedule-add-to-calendar-message').html('Add this filtered list to your calendar!');
-            } else {
-
-                jQuery('#schedule-add-to-calendar-message').html('Import the full schedule into your calendar!');
-            }
-        }
-
-        function currentDateTimestampUTC() {
-            var dateObj = new Date();
-            var newUTC = Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-            var utcDate = new Date(newUTC);
-
-            return (utcDate.getTime()) / 1000;
-        }
-
-        function currentDateTimeTimestampUTC() {
-            var utcDate = new Date();
-
-            return ((utcDate.getTime()) / 1000);
-        }
-
-    });
-
-    // From article https://stackoverflow.com/questions/1397329/how-to-remove-the-hash-from-window-location-url-with-javascript-without-page-r
-    function removeHash() {
-        var scrollV, scrollH, loc = window.location;
-        if ("pushState" in history)
-            history.pushState("", document.title, loc.pathname + loc.search);
-        else {
-            // Prevent scrolling by storing the page's current scroll offset
-            scrollV = document.body.scrollTop;
-            scrollH = document.body.scrollLeft;
-
-            loc.hash = "";
-
-            // Restore the scroll offset, should be flicker free
-            document.body.scrollTop = scrollV;
-            document.body.scrollLeft = scrollH;
+            history.pushState(next, '', url);
         }
     }
 
+    function getSelectedTagRouteValue() {
+        const select = $('#schedule-select-tags');
+        const text = select?.options[select.selectedIndex]?.textContent?.trim();
+        return getTagRouteValueFromText(text);
+    }
 
-    window.confirmCalendarAppleSubscription = function (link) {
-        return confirmCalendarSubscription(link, "Apple");
+    function selectTagFromRouteValue(tagSlug) {
+        const select = $('#schedule-select-tags');
+        if (!select || !tagSlug) return;
+        for (const option of select.options) {
+            const text = option.textContent.trim();
+            const optionSlug = normalizeRouteKey(text);
+            if (optionSlug === tagSlug) {
+                select.value = option.value;
+                return;
+            }
+        }
+    }
+
+    function normalizeEventId(eventId) {
+        return String(eventId || '').replace(/^#/, '').replace(/^onlineevt-/, '').replace(/\D/g, '');
+    }
+
+    function getEventItemById(eventId) {
+        const cleanId = normalizeEventId(eventId);
+        if (!cleanId) return null;
+
+        return document.querySelector(`[data-os-event-id="${cleanId}"]`) || document.getElementById(`onlineevt-${cleanId}`);
+    }
+
+    function routeToEvent(eventId) {
+        const cleanId = normalizeEventId(eventId);
+        if (!cleanId) return;
+
+        updateHashState({ evt: cleanId }, false);
+        const item = getEventItemById(cleanId);
+        if (item) {
+            let offset = item.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset(true);
+            if (offset < 0) offset = 0;
+            window.scrollTo({ top: offset, behavior: 'smooth' });
+        }
+        setTimeout(() => {
+            openEventModal(cleanId, { writeHistory: false });
+        }, 300);
+    }
+    window.routeToEvent = routeToEvent;
+
+    function currentStickyOffset(includeTabs = false) {
+        const width = document.body ? document.body.getBoundingClientRect().width : window.innerWidth;
+        const offset = width <= tablet_width ? header_mobile_top : header_top;
+        return includeTabs ? offset + fixed_tabs_height : offset;
+    }
+
+    function scrollPageTo(top, behavior) {
+        if (behavior !== 'auto') {
+            window.scrollTo({ top, behavior });
+            return;
+        }
+
+        window.scrollTo(0, top);
+        [
+            document.scrollingElement,
+            document.documentElement,
+            document.body,
+            $('#body')
+        ].forEach((el) => {
+            if (el) {
+                el.scrollTop = top;
+            }
+        });
+    }
+
+    window.scrollTopMenu = function () {
+        const schedule = $('#schedule');
+        if (!schedule) return;
+
+        const isKiosk = schedule.classList.contains('kiosk-schedule');
+        let offset = schedule.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset();
+        if (isKiosk) {
+            // In kiosk mode, there's no site header, so scrolling to 0 keeps the title's natural top spacing visible
+            offset = 0;
+        } else if (offset < 0) {
+            offset = 0;
+        }
+
+        scrollPageTo(offset, isKiosk ? 'auto' : 'smooth');
     };
 
+    function animate_clipboard(clipObject) {
+        if (!clipObject) return;
+
+        clipObject.blur();
+        clipObject.dispatchEvent(new Event('focusout', { bubbles: true }));
+
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) {
+            return;
+        }
+
+        const clipboardEffect = document.createElement('div');
+        clipboardEffect.className = 'os-clipboard-effect';
+        clipboardEffect.innerHTML = '<i class="fas fa-clipboard-check"></i> Copied!';
+
+        // showModal() promotes a <dialog> to the browser top layer, which renders above
+        // everything in the normal stacking context regardless of z-index. Appending the
+        // effect to document.body would put it behind the dialog backdrop and make it
+        // invisible. When the trigger lives inside an open <dialog>, we must append the
+        // effect inside that dialog so it shares the same top-layer rendering context.
+        const parentDialog = clipObject.closest('dialog');
+        const container = (parentDialog && parentDialog.open) ? parentDialog : document.body;
+
+        clipboardEffect.style.position = 'fixed';
+        clipboardEffect.style.visibility = 'hidden';
+        container.appendChild(clipboardEffect);
+
+        const rect = clipObject.getBoundingClientRect();
+        const effectWidth = clipboardEffect.offsetWidth;
+        const effectHeight = clipboardEffect.offsetHeight;
+        const topPosition = rect.top - effectHeight - 10;
+        const leftPosition = rect.left + (clipObject.offsetWidth / 2) - (effectWidth / 2);
+
+        clipboardEffect.style.top = `${topPosition}px`;
+        clipboardEffect.style.left = `${leftPosition}px`;
+        clipboardEffect.style.visibility = '';
+
+        clipboardEffect.addEventListener('animationend', () => clipboardEffect.remove(), { once: true });
+        window.setTimeout(() => clipboardEffect.remove(), 1800);
+
+        clipObject.classList.add('os-copy-confirm');
+        clipObject.addEventListener('animationend', () => clipObject.classList.remove('os-copy-confirm'), { once: true });
+    }
+
+    window.osShowClipboardEffect = animate_clipboard;
+
+    $('#modal-copy-url')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        navigator.clipboard?.writeText(window.location.href);
+        animate_clipboard(this);
+    });
+
+    $$('.schedule-clipboard').forEach((button) => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            const item = this.closest('.schedule-item');
+            if (!item) return;
+
+            const eventID = normalizeEventId(item.getAttribute('data-os-event-id') || item.id);
+            if (!eventID) return;
+
+            const nextState = { ...getHashState(), evt: eventID };
+            const newHash = new URLSearchParams(nextState).toString();
+            const url = this.getAttribute('data-url') || (window.location.origin + window.location.pathname + window.location.search + '#' + newHash);
+            navigator.clipboard?.writeText(url);
+            animate_clipboard(this);
+        });
+    });
+
+    document.addEventListener('os:tab:shown', function (e) {
+        const hash = e.detail.hash;
+        if (hash && e.detail.isTrusted) {
+            const tabName = hash.substring(1);
+            if (tabName !== 'programming') {
+                updateHashState({ day: null, tag: null, room: null, q: null, evt: null, tab: tabName }, false);
+            } else {
+                updateHashState({ day: null, tag: null, room: null, q: null, evt: null, tab: null }, false);
+            }
+
+            resetDropDowns();
+            window.favoritesFilterActive = false;
+            const favoritesToggle = $('#schedule-favorites-toggle');
+            if (favoritesToggle) {
+                favoritesToggle.classList.remove('active');
+                favoritesToggle.setAttribute('aria-pressed', 'false');
+            }
+        }
+
+        if (hash === '#programming' || hash === '#essentials') {
+            scheduleSort();
+            resetSelectTags();
+            resetSelectRooms();
+            updateResetButtonState();
+        }
+
+        window.requestAnimationFrame(() => window.scrollTopMenu?.());
+    });
+
+    function openEventModal(eventId, options = {}) {
+        const cleanId = normalizeEventId(eventId);
+        let item = getEventItemById(cleanId);
+
+        if (!item) return;
+
+        if (!window.getEventDetailsFromElement) return;
+        const eventDetails = window.getEventDetailsFromElement(item);
+        window.currentModalEventDetails = eventDetails;
+
+        const panelists = eventDetails.panelists;
+        const titleLink = item.querySelector('.schedule-title a');
+        const title = titleLink ? titleLink.innerHTML : '';
+        const description = eventDetails.description;
+        const day = item.closest('.schedule-day');
+        const date = item.dataset.osEventDate || day?.querySelector('h2')?.innerHTML || '';
+        const time = item.dataset.osEventTime || item.querySelector('.schedule-time span')?.innerHTML || item.querySelector('.schedule-time')?.textContent?.trim() || '';
+        const room = eventDetails.room;
+        const tags = eventDetails.tags;
+        const ical = item.querySelector('.schedule-ical')?.getAttribute('href') || '#';
+        const googleCal = item.querySelector('.schedule-google')?.getAttribute('href') || '#';
+
+        const badges = item.querySelector('.schedule-title')?.cloneNode(true);
+        badges?.querySelectorAll('a').forEach((anchor) => anchor.remove());
+        const badgesHtml = badges?.innerHTML || '';
+
+        let isFavorite = item.getAttribute('data-favorite') === 'true';
+        let favBtn = '';
+        if (!scheduleConfig.isKiosk && !scheduleConfig.isLive) {
+            const config = window.OnlineSchedPublic || {};
+            const iconClass = isFavorite ? (config.iconFavActive || 'fas fa-star') : (config.iconFavInactive || 'far fa-star');
+            favBtn = '<button type="button" class="schedule-favorite-toggle' + (isFavorite ? ' active' : '') + '" aria-pressed="' + (isFavorite ? 'true' : 'false') + '" title="Favorite" style="margin-right:8px;"><i class="' + iconClass + '"></i></button>';
+        }
+
+        const modalTitle = $('#modal-schedule-title');
+        if (modalTitle) {
+            modalTitle.innerHTML = favBtn + title + badgesHtml;
+        }
+
+        function updateModalFavoriteStar(state) {
+            const modalBtn = $('#modal-schedule-title .schedule-favorite-toggle');
+            if (!modalBtn) return;
+            modalBtn.classList.toggle('active', state);
+            modalBtn.setAttribute('aria-pressed', state ? 'true' : 'false');
+            const icon = modalBtn.querySelector('i');
+            updateIconClasses(icon, state);
+        }
+
+        // Re-attach favorite listener
+        $('#modal-schedule-title .schedule-favorite-toggle')?.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const mainItem = getEventItemById(cleanId);
+            const btn = mainItem?.querySelector('.schedule-favorite-toggle');
+            isFavorite = !isFavorite;
+
+            if (mainItem) {
+                if (isFavorite) {
+                    mainItem.setAttribute('data-favorite', 'true');
+                } else {
+                    mainItem.removeAttribute('data-favorite');
+                }
+
+                if (btn) {
+                    btn.classList.toggle('active', isFavorite);
+                    btn.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+                    const icon = btn.querySelector('i');
+                    icon?.classList.toggle('fas', isFavorite);
+                    icon?.classList.toggle('far', !isFavorite);
+                }
+            }
+
+            updateModalFavoriteStar(isFavorite);
+            window.updateFavoritesCookie?.();
+        });
+
+        const descriptionEl = $('#modal-schedule-description');
+        if (descriptionEl) {
+            showElement(descriptionEl);
+            descriptionEl.innerHTML = description;
+            const hr = descriptionEl.parentElement?.querySelector('hr');
+            if (hr) showElement(hr);
+        }
+
+        modal_popup_fill('#modal-schedule-date', date);
+        modal_popup_fill('#modal-schedule-time', time);
+        modal_popup_fill('#modal-schedule-room', room);
+        modal_popup_fill('#modal-schedule-tags', tags);
+        modal_popup_fill('#modal-schedule-panelists', panelists);
+
+        $('#modal-schedule-ical')?.setAttribute('href', ical);
+        $('#modal-schedule-google')?.setAttribute('href', googleCal);
+
+        window.currentModalEventId = cleanId;
+        if (options.writeHistory !== false && getHashState().evt !== cleanId) {
+            updateHashState({ evt: cleanId }, false);
+        }
+
+        openModal('modal-schedule');
+        document.getElementById('modal-schedule')?.addEventListener('close', () => {
+            updateHashState({ evt: null }, true);
+        }, { once: true });
+    }
+    window.openEventModal = openEventModal;
+
+    $$('a[data-target="#modal-schedule"]').forEach((link) => {
+        link.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            const parent = this.closest('.schedule-item');
+            if (parent) routeToEvent(parent.getAttribute('data-os-event-id') || parent.id);
+        });
+    });
+
+    function modal_popup_fill(id, value) {
+        const el = $(id);
+        if (!el) return;
+
+        const label = el.previousElementSibling;
+        if (value === undefined || value === '') {
+            hideElement(label);
+            hideElement(el);
+        } else {
+            el.innerHTML = value;
+            showElement(el);
+            showElement(label);
+        }
+    }
+
+    $$('.schedule-day').forEach((dayEl) => {
+        const day = dayEl.dataset.scheduleDay;
+        if (day) {
+            $('#schedule-select-days')?.append(new Option(day, day));
+        }
+    });
+
+    window.eventschedule_showEvents = true;
+    window.favoritesFilterActive = false;
+
+    window.setFilterEvents = function (args) {
+        scrollTopMenu();
+        window.eventschedule_showEvents = args;
+        scheduleSort();
+        resetSelectTags();
+    };
+
+    window.eventschedule_scheduleTags = {};
+    window.eventschedule_count = 0;
+
+    $$('.schedule-tags .os-term-item').forEach((termItem) => {
+        termItem.setAttribute('role', 'button');
+        termItem.setAttribute('tabindex', '0');
+    });
+
+    $$('.schedule-tags').forEach((tagsEl) => {
+        const item = tagsEl.closest('.schedule-item');
+
+        getScheduleTagItems(tagsEl).forEach((tag) => {
+            if (!Object.prototype.hasOwnProperty.call(window.eventschedule_scheduleTags, tag.label)) {
+                window.eventschedule_scheduleTags[tag.label] = window.eventschedule_count++;
+            }
+
+            item?.setAttribute(
+                `data-schedule-tag${window.eventschedule_scheduleTags[tag.label]}`,
+                window.eventschedule_scheduleTags[tag.label]
+            );
+        });
+    });
+
+    for (const key in window.eventschedule_scheduleTags) {
+        if (typeof key === 'string' && key.trim().length !== 0) {
+            $('#schedule-select-tags')?.append(new Option(key, window.eventschedule_scheduleTags[key]));
+        }
+    }
+
+    window.eventschedule_scheduleRooms = {};
+    $$('.schedule-room').forEach((roomEl) => {
+        const rooms = roomEl.innerHTML.split(',').map((room) => stripTags(room).trim()).filter(Boolean);
+        const parentItem = roomEl.closest('.schedule-item');
+
+        rooms.forEach((room) => {
+            const slug = roomSlug(room);
+            if (!Object.prototype.hasOwnProperty.call(window.eventschedule_scheduleRooms, slug)) {
+                window.eventschedule_scheduleRooms[slug] = room;
+            }
+            parentItem?.setAttribute(`data-schedule-room-${slug}`, slug);
+        });
+    });
+
+    function updateResetButtonState() {
+        const isDefault = (
+            ($('#schedule-search-text')?.value || '').trim() === '' &&
+            $('#schedule-select-tags')?.value === 'all' &&
+            $('#schedule-select-rooms')?.value === 'all' &&
+            $('#schedule-select-days')?.value === 'Current' &&
+            !window.favoritesFilterActive
+        );
+        if ($('#schedule-reset')) {
+            $('#schedule-reset').disabled = isDefault;
+        }
+    }
+
+    updateResetButtonState();
+    resetSelectRooms();
+
+    $$('#schedule-select-days, #schedule-select-tags, #schedule-select-rooms').forEach((select) => {
+        select.addEventListener('change', function () {
+            if (this.id === 'schedule-select-days') updateHashState({ day: this.value === 'Current' ? null : this.value }, true);
+            else if (this.id === 'schedule-select-tags') updateHashState({ tag: this.value === 'all' ? null : getSelectedTagRouteValue() }, true);
+            else if (this.id === 'schedule-select-rooms') updateHashState({ room: this.value === 'all' ? null : this.value }, true);
+
+            scheduleSort();
+            resetSelectTags();
+            resetSelectRooms();
+            updateResetButtonState();
+        });
+    });
+
+    $('#schedule-search-text')?.addEventListener('input', function () {
+        updateHashState({ q: this.value.trim() || null }, true);
+        scheduleSort();
+        resetSelectTags();
+        resetSelectRooms();
+        updateResetButtonState();
+    });
+
+    $('#schedule-reset')?.addEventListener('click', function () {
+        updateHashState({ day: null, tag: null, room: null, q: null }, true);
+        resetDropDowns();
+        window.favoritesFilterActive = false;
+        const favoritesToggle = $('#schedule-favorites-toggle');
+        if (favoritesToggle) {
+            favoritesToggle.classList.remove('active');
+            favoritesToggle.setAttribute('aria-pressed', 'false');
+        }
+        scheduleSort();
+        resetSelectTags();
+        resetSelectRooms();
+        this.disabled = true;
+    });
+
+    $('#schedule-favorites-toggle')?.addEventListener('click', function () {
+        window.favoritesFilterActive = !window.favoritesFilterActive;
+        this.classList.toggle('active', window.favoritesFilterActive);
+        this.setAttribute('aria-pressed', window.favoritesFilterActive ? 'true' : 'false');
+
+        const icon = this.querySelector('i');
+        updateIconClasses(icon, window.favoritesFilterActive);
+
+        if (window.favoritesFilterActive && $('#schedule-select-days')) {
+            $('#schedule-select-days').value = 'all';
+        }
+
+        scheduleSort();
+        resetSelectTags();
+        resetSelectRooms();
+        this.blur();
+        updateResetButtonState();
+    });
+
+    function setOddEven() {
+        $$('.schedule-item').forEach((item) => item.classList.remove('even'));
+        $$('.schedule-hour').forEach((hour) => {
+            let even = false;
+            $$('.schedule-item', hour).forEach((item) => {
+                if (!isVisible(item)) return;
+
+                if (even) {
+                    item.classList.add('even');
+                    even = false;
+                } else {
+                    even = true;
+                }
+            });
+        });
+    }
+
+    function resetDropDowns() {
+        if ($('#schedule-select-days')) $('#schedule-select-days').value = 'Current';
+        if ($('#schedule-select-tags')) $('#schedule-select-tags').value = 'all';
+        if ($('#schedule-select-rooms')) $('#schedule-select-rooms').value = 'all';
+        if ($('#schedule-search-text')) $('#schedule-search-text').value = '';
+    }
+
+    function hasMatchingAttribute(item, prefix, value) {
+        if (!item || !item.attributes) return false;
+
+        for (const attr of item.attributes) {
+            if (attr.name.startsWith(prefix) && String(attr.value) === String(value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function scheduleSort() {
+        if (!$('#schedule')) {
+            return;
+        }
+
+        let selectedDay = $('#schedule-select-days')?.value || 'Current';
+        let selectedTag = $('#schedule-select-tags')?.value || 'all';
+        let selectedRoom = $('#schedule-select-rooms')?.value || 'all';
+        const searchText = ($('#schedule-search-text')?.value || '').toLowerCase();
+
+        if (selectedTag !== 'all') selectedTag = String(selectedTag);
+        if (selectedRoom !== 'all') selectedRoom = String(selectedRoom);
+
+        const favoritesFilterActive = window.favoritesFilterActive;
+        const essentialsFilterActive = (window.eventschedule_showEvents === false);
+        const essentialsTags = window.essentialsTags || [];
+
+        if (selectedDay === 'all' || selectedDay === 'Current') {
+            $$('.schedule-day').forEach(showElement);
+        } else {
+            $$('.schedule-day').forEach((dayEl) => {
+                if (dayEl.getAttribute('data-schedule-day') === selectedDay) {
+                    showElement(dayEl);
+                } else {
+                    hideElement(dayEl);
+                }
+            });
+        }
+
+        const currentDateUTC = selectedDay === 'Current' ? currentDateTimeTimestampUTC() : null;
+
+        $$('.schedule-item').forEach((item) => {
+            if (item.dataset.osFallback === 'true') {
+                showElement(item);
+                return;
+            }
+            let show = true;
+
+            const day = item.closest('.schedule-day');
+            if (selectedDay !== 'Current' && !isVisible(day)) {
+                show = false;
+            }
+
+            if (essentialsFilterActive) {
+                let hasEssentialsTag = false;
+                for (let i = 0; i < essentialsTags.length; i++) {
+                    if (item.classList.contains('schedule-tag-' + essentialsTags[i])) {
+                        hasEssentialsTag = true;
+                        break;
+                    }
+                }
+                if (!hasEssentialsTag) {
+                    show = false;
+                }
+            }
+
+            if (selectedTag !== 'all' && !hasMatchingAttribute(item, 'data-schedule-tag', selectedTag)) {
+                show = false;
+            }
+
+            if (selectedRoom !== 'all' && !hasMatchingAttribute(item, 'data-schedule-room-', selectedRoom)) {
+                show = false;
+            }
+
+            if (selectedDay === 'Current') {
+                const itemDate = Number(item.dataset.endTime);
+                if (!itemDate || itemDate <= currentDateUTC) {
+                    show = false;
+                }
+            }
+
+            if (searchText !== '') {
+                const found = $$('.schedule-title a, .schedule-panelists, .schedule-tags, .schedule-room', item)
+                    .some((el) => el.textContent.toLowerCase().indexOf(searchText) !== -1);
+                if (!found) {
+                    show = false;
+                }
+            }
+
+            if (favoritesFilterActive && item.getAttribute('data-favorite') !== 'true') {
+                show = false;
+            }
+
+            if (show) {
+                showElement(item);
+            } else {
+                hideElement(item);
+            }
+        });
+
+        const isDefault = (
+            searchText.trim() === '' &&
+            selectedTag === 'all' &&
+            selectedRoom === 'all' &&
+            selectedDay === 'Current' &&
+            !favoritesFilterActive
+        );
+
+        if ($('#schedule-reset')) {
+            $('#schedule-reset').disabled = isDefault;
+        }
+
+        const visibleItems = $$('.schedule-item').filter(isVisible);
+        const scheduleEl = $('#schedule');
+
+        let emptyState = $('.os-empty-state', scheduleEl);
+        if (visibleItems.length === 0 && !isDefault) {
+            if (!emptyState) {
+                emptyState = document.createElement('div');
+                emptyState.className = 'os-empty-state';
+                emptyState.innerHTML = `
+                    <div class="os-empty-state-content">
+                        <i class="fas fa-search"></i>
+                        <p>No events found matching your filters.</p>
+                        <button type="button" class="os-reset-filters-btn">Reset Filters</button>
+                    </div>
+                `;
+                scheduleEl.appendChild(emptyState);
+
+                $('.os-reset-filters-btn', emptyState).addEventListener('click', () => {
+                    $('#schedule-reset')?.click();
+                });
+            }
+            showElement(emptyState);
+        } else {
+            hideElement(emptyState);
+        }
+
+        reset_schedule(true);
+        messageAtBottomForCalendar();
+    }
+
+    function resetHoursDays() {
+        $$('.schedule-hour').forEach((hour) => {
+            showElement(hour);
+            const visibleLength = Array.from(hour.children).filter(isVisible).length;
+            if (visibleLength < 2) {
+                hideElement(hour);
+            }
+        });
+
+        $$('.schedule-day').forEach((day) => {
+            showElement(day);
+            const visibleLength = Array.from(day.children).filter(isVisible).length;
+            if (visibleLength < 2) {
+                hideElement(day);
+            }
+        });
+    }
+
+    function reset_schedule(resetTags) {
+        resetHoursDays();
+        if (resetTags) {
+            resetSelectTags();
+            resetSelectRooms();
+        }
+        sort_options_by_id('#schedule-select-tags');
+        sort_rooms_options_by_id('#schedule-select-rooms');
+        setOddEven();
+    }
+
+    function resetSelectTags() {
+        const scheduleReset = {};
+        $$('.schedule-item').filter(isVisible).forEach((item) => {
+            $$('.schedule-tags', item).forEach((tagsEl) => {
+                getScheduleTagItems(tagsEl).forEach((tag) => {
+                    if (!Object.prototype.hasOwnProperty.call(scheduleReset, tag.label)) {
+                        scheduleReset[tag.label] = tag.label;
+                    }
+                });
+            });
+        });
+
+        const select = $('#schedule-select-tags');
+        if (!select) return;
+
+        const selectedTagValue = select.value;
+        Array.from(select.options).forEach((option) => {
+            if (option.value !== 'all') {
+                option.remove();
+            }
+        });
+
+        for (const key in scheduleReset) {
+            select.append(new Option(key, window.eventschedule_scheduleTags[key]));
+        }
+
+        if (selectedTagValue !== 'all') {
+            select.value = selectedTagValue;
+        }
+
+        sort_options_by_id('#schedule-select-tags');
+        setOddEven();
+    }
+
+    function resetSelectRooms() {
+        const scheduleRooms = {};
+        $$('.schedule-item').filter(isVisible).forEach((item) => {
+            for (const attr of item.attributes) {
+                if (attr.name.startsWith('data-schedule-room-')) {
+                    const slug = attr.value;
+                    const name = window.eventschedule_scheduleRooms?.[slug] || slug;
+                    if (slug && !Object.prototype.hasOwnProperty.call(scheduleRooms, slug)) {
+                        scheduleRooms[slug] = name;
+                    }
+                }
+            }
+        });
+
+        const select = $('#schedule-select-rooms');
+        if (!select) return;
+
+        const selectedRoomValue = select.value;
+        Array.from(select.options).forEach((option) => {
+            if (option.value !== 'all') {
+                option.remove();
+            }
+        });
+
+        for (const slug in scheduleRooms) {
+            select.append(new Option(scheduleRooms[slug], slug));
+        }
+
+        if (selectedRoomValue !== 'all') {
+            select.value = selectedRoomValue;
+        }
+
+        sort_rooms_options_by_id('#schedule-select-rooms');
+        setOddEven();
+    }
+
+    function sort_options_by_id(id) {
+        const select = $(id);
+        if (!select) return;
+
+        const selected = select.value;
+        const sorted = Array.from(select.options).sort((a, b) => {
+            const aText = a.textContent.toUpperCase();
+            const bText = b.textContent.toUpperCase();
+
+            if (a.value === 'all') return -1;
+            if (b.value === 'all') return 1;
+
+            return aText === bText ? 0 : aText < bText ? -1 : 1;
+        });
+
+        select.replaceChildren(...sorted);
+        select.value = selected;
+    }
+
+    function sort_rooms_options_by_id(id) {
+        const select = $(id);
+        if (!select) return;
+
+        const selected = select.value;
+        const sorted = Array.from(select.options).sort((a, b) => {
+            const aText = a.textContent.toUpperCase();
+            const bText = b.textContent.toUpperCase();
+
+            if (aText !== 'ALL ROOMS' && bText !== 'ALL ROOMS') {
+                if (aText === 'MAINSTAGE') return -1;
+                if (bText === 'MAINSTAGE') return 1;
+                if (aText === 'SPECIAL EVENTS') return 1;
+                if (bText === 'SPECIAL EVENTS') return -1;
+            }
+
+            return aText === bText ? 0 : aText < bText ? -1 : 1;
+        });
+
+        select.replaceChildren(...sorted);
+        select.value = selected;
+    }
+
+    function handleHashRouting() {
+        const state = getHashState();
+        showElement($('#schedule'));
+
+        // Restored tag/room dropdowns are populated from currently-visible items.
+        // On a fresh load those are today-only events, so expand to all days first.
+        if ((state.tag && state.tag !== 'all') || (state.room && state.room !== 'all')) {
+            const daysSelect = $('#schedule-select-days');
+            if (daysSelect) daysSelect.value = 'all';
+            scheduleSort();
+        }
+
+        if (state.day !== undefined && $('#schedule-select-days')) $('#schedule-select-days').value = state.day || 'Current';
+        if (state.tag !== undefined && $('#schedule-select-tags')) selectTagFromRouteValue(state.tag);
+        if (state.room !== undefined && $('#schedule-select-rooms')) $('#schedule-select-rooms').value = state.room || 'all';
+        if (state.q !== undefined && $('#schedule-search-text')) $('#schedule-search-text').value = state.q || '';
+
+        scheduleSort();
+
+        if (state.tab === 'hours') {
+            $('#hours-tab')?.click();
+            scrollTopMenu();
+        } else if (state.tab === 'essentials') {
+            window.setFilterEvents(false);
+            $('[data-os-tab="essentials"]')?.click();
+        } else if (state.tab === 'programming') {
+            $('[data-os-tab="programming"]')?.click();
+        }
+
+        if (state.evt) {
+            const eventEl = getEventItemById(state.evt);
+            if (eventEl) {
+                if (!isVisible(eventEl)) {
+                    if ($('#schedule-select-days')) $('#schedule-select-days').value = 'all';
+                    scheduleSort();
+                }
+
+                let offset = eventEl.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset(true);
+                if (offset < 0) offset = 0;
+                window.scrollTo({ top: offset, behavior: 'smooth' });
+
+                setTimeout(() => {
+                    const modal = $('#modal-schedule');
+                    const isModalOpen = modal && modal.hasAttribute('open');
+                    const isSameEvent = String(window.currentModalEventId) === normalizeEventId(state.evt);
+
+                    if (!isModalOpen || !isSameEvent) {
+                        openEventModal(state.evt, { writeHistory: false });
+                    }
+                }, 300);
+            }
+        } else {
+            const modal = document.getElementById('modal-schedule');
+            if (modal && modal.hasAttribute('open')) {
+                modal.close();
+            }
+        }
+
+        document.dispatchEvent(new CustomEvent('os:hash-routing:complete', { detail: { hash: window.location.hash } }));
+    }
+
+    document.addEventListener('click', function (e) {
+        const room = e.target.closest('.schedule-room.schedule-filter-link');
+        if (!room) return;
+
+        e.preventDefault();
+        const text = room.textContent.trim();
+        if (!text) return;
+
+        const slug = roomSlug(text);
+        const select = $('#schedule-select-rooms');
+        if (select && Array.from(select.options).some((option) => option.value === slug)) {
+            select.value = slug;
+            dispatchChange(select);
+            scrollTopMenu();
+        }
+    });
+
+    document.addEventListener('click', function (e) {
+        const termItem = e.target.closest('.os-term-item');
+        const tagsContainer = e.target.closest('.schedule-tags.schedule-filter-link');
+
+        if (!termItem || !tagsContainer) return;
+
+        const tagText = termItem.textContent.trim();
+        if (!tagText) return;
+
+        const select = $('#schedule-select-tags');
+        if (!select) return;
+
+        const tagRoute = termItem.dataset.osTagRoute || getTagRouteValueFromText(tagText);
+        let matched = false;
+        for (const option of select.options) {
+            if (getTagRouteValueFromText(option.textContent) === tagRoute) {
+                select.value = option.value;
+                dispatchChange(select);
+                matched = true;
+                break;
+            }
+        }
+
+        if (matched) {
+            scrollTopMenu();
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        const termItem = e.target.closest('.schedule-tags.schedule-filter-link .os-term-item');
+        if (!termItem || (e.key !== 'Enter' && e.key !== ' ')) return;
+
+        e.preventDefault();
+        termItem.click();
+    });
+
+    handleHashRouting();
+    window.addEventListener('popstate', handleHashRouting);
+
+    function messageAtBottomForCalendar() {
+        const message = $('#schedule-add-to-calendar-message');
+        if (!message) return;
+
+        if (
+            (($('#schedule-search-text')?.value || '').trim() === '') &&
+            (($('#schedule-select-tags')?.value !== 'all') || ($('#schedule-select-rooms')?.value !== 'all'))
+        ) {
+            message.innerHTML = 'Add this filtered list to your calendar!';
+        } else {
+            message.innerHTML = 'Import the full schedule into your calendar!';
+        }
+    }
+
+    function currentDateTimeTimestampUTC() {
+        const utcDate = new Date();
+        return utcDate.getTime() / 1000;
+    }
+
+    window.confirmCalendarAppleSubscription = function (link) {
+        return confirmCalendarSubscription(link, 'Apple');
+    };
 
     window.confirmCalendarGoogleSubscription = function (link) {
-        if (isAndroidDevice()) {
-            let googleUrl = rewriteGoogleCalendarUrlForAndroid(link.href);
+        if (window.isAndroidDevice?.()) {
+            const googleUrl = rewriteGoogleCalendarUrlForAndroid(link.href);
             let rawLink = '';
             try {
-                let urlObj = new URL(googleUrl);
-                let cid = urlObj.searchParams.get('cid');
+                const urlObj = new URL(googleUrl);
+                const cid = urlObj.searchParams.get('cid');
                 if (cid) {
                     rawLink = decodeURIComponent(cid);
                 }
             } catch (e) {
                 rawLink = googleUrl;
             }
-            let downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
-            let $event = jQuery(link).closest('.schedule-item');
-            let eventDetails = $event.length ? getEventDetailsFromElement($event) : null;
+
+            const downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
+            const scheduleItem = link.closest('.schedule-item');
+            const eventDetails = scheduleItem && window.getEventDetailsFromElement ? window.getEventDetailsFromElement(scheduleItem) : null;
             let eventDetailsForModal = null;
             if (eventDetails) {
                 eventDetailsForModal = {
@@ -885,113 +1027,31 @@ export function new_schedule() {
                     dates: eventDetails.gcalDates
                 };
             }
-            showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl, eventDetailsForModal);
+            window.showAndroidGoogleCalendarModal?.(googleUrl, rawLink, downloadUrl, eventDetailsForModal);
             return false;
-        } else {
-            link.href = rewriteGoogleCalendarUrlForAndroid(link.href);
-            return confirmCalendarSubscription(link, "Google");
         }
+
+        link.href = rewriteGoogleCalendarUrlForAndroid(link.href);
+        return confirmCalendarSubscription(link, 'Google');
     };
 
     window.confirmCalendarSubscription = function (link, service) {
-        if (confirm("This will subscribe you to your " + service + " calendar. This will keep updating until you delete it. Do you want to continue?")) {
-            gtag_event('click', 'engagement', 'subscribe-' + service + '-calendar-single');
+        if (confirm('This will subscribe you to your ' + service + ' calendar. This will keep updating until you delete it. Do you want to continue?')) {
+            window.gtag_event?.('click', 'engagement', 'subscribe-' + service + '-calendar-single');
             setTimeout(function () {
                 window.location.href = link.href;
-            }, 300); // Small delay to allow tracking
+            }, 300);
         }
         return false;
     };
 
-    // --- VANILLA JS MODAL LOGIC FOR LOGIN & HELP ---
-    var loginBtn = document.getElementById('login-modal-btn');
-    var loginModal = document.getElementById('login-modal');
-    var loginCloseBtn = document.getElementById('login-modal-close');
-    var lastLoginTrigger = null;
-
-    if (loginBtn && loginModal && loginCloseBtn) {
-        loginBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            loginModal.style.display = 'block';
-            lastLoginTrigger = loginBtn;
-            loginCloseBtn.focus();
-            loginCloseBtn.blur();
-        });
-        loginCloseBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            loginModal.style.display = 'none';
-
-            if (lastLoginTrigger) {
-                lastLoginTrigger.focus();
-                lastLoginTrigger.blur();
-            }
-        });
-    }
-
-    // --- HELP MODAL ---
-    var infoBtn = document.getElementById('info-modal-btn');
-    var infoModal = document.getElementById('info-modal');
-    var infoCloseBtn = document.getElementById('info-modal-close');
-    var lastInfoTrigger = null;
-
-    if (infoBtn && infoModal && infoCloseBtn) {
-        infoBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            infoModal.style.display = 'block';
-            lastInfoTrigger = infoBtn;
-            infoCloseBtn.focus();
-        });
-        infoCloseBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            infoModal.style.display = 'none';
-            if (lastInfoTrigger) {
-                lastInfoTrigger.focus();
-                lastInfoTrigger.blur();
-            }
-        });
-    }
-
-    // --- ESCAPE KEY HANDLING FOR BOTH MODALS ---
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' || e.keyCode === 27) {
-            if (loginModal && loginModal.style.display !== 'none') {
-                loginModal.style.display = 'none';
-                if (lastLoginTrigger) {
-                    lastLoginTrigger.focus();
-                    lastLoginTrigger.blur();
-                }
-            }
-            if (infoModal && infoModal.style.display !== 'none') {
-                infoModal.style.display = 'none';
-                if (lastInfoTrigger) {
-                    lastInfoTrigger.focus();
-                    lastInfoTrigger.blur();
-                }
-            }
-        }
+    $('#login-modal-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal('login-modal');
     });
 
-
-}
-
-// Utility: rewrite Google Calendar URL for Android (webcal:// to http://)
-function rewriteGoogleCalendarUrlForAndroid(url) {
-    var isAndroid = /android/i.test(navigator.userAgent);
-    if (!isAndroid) return url;
-    try {
-        var urlObj = new URL(url);
-        var cid = urlObj.searchParams.get('cid');
-        if (cid) {
-            var decodedCid = decodeURIComponent(cid);
-            if (decodedCid.startsWith('webcal://')) {
-                var newCid = decodedCid.replace(/^webcal:\/\//i, 'http://');
-                urlObj.searchParams.set('cid', encodeURIComponent(newCid));
-                return urlObj.toString();
-            }
-        }
-    } catch (e) {
-        // fallback: do nothing if URL parsing fails
-    }
-    console.log('android url', url);
-    return url;
+    $('#info-modal-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal('info-modal');
+    });
 }

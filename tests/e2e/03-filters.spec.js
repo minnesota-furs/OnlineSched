@@ -1,0 +1,222 @@
+// @author kurst@mnfurs.org Kurst Hyperyote for Furry Migration
+const { test, expect } = require('@playwright/test');
+const S = require('../helpers/selectors');
+
+test.describe('03 — Filters', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/schedule/');
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+    await page.selectOption(S.selectDays, 'all');
+    await page.waitForTimeout(300);
+  });
+
+  test('search filters items', async ({ page }) => {
+    const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
+    await page.fill(S.searchInput, 'Coyote');
+    await page.waitForTimeout(400);
+    const totalAfter = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(totalAfter).toBeGreaterThan(0);
+    expect(totalAfter).toBeLessThan(totalBefore);
+  });
+
+  test('clearing search restores all items', async ({ page }) => {
+    const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
+    await page.fill(S.searchInput, 'Coyote');
+    await page.waitForTimeout(300);
+    await page.fill(S.searchInput, '');
+    await page.waitForTimeout(400);
+    const totalAfter = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(totalAfter).toBe(totalBefore);
+  });
+
+  test('day dropdown filters to one day section', async ({ page }) => {
+    // Get the first non-default option value
+    const firstDay = await page.locator(`${S.selectDays} option:not([value="all"]):not([value="Current"])`).first().getAttribute('value');
+    await page.selectOption(S.selectDays, firstDay);
+    await page.waitForTimeout(400);
+    const visibleDays = await page.locator(`${S.scheduleDay}:visible`).count();
+    expect(visibleDays).toBe(1);
+  });
+
+  test('selecting All Days shows all day sections', async ({ page }) => {
+    const totalDays = await page.locator(`${S.scheduleDay}:visible`).count();
+    await page.selectOption(S.selectDays, 'all');
+    await page.waitForTimeout(400);
+    const visibleDays = await page.locator(`${S.scheduleDay}:visible`).count();
+    expect(visibleDays).toBe(totalDays);
+  });
+
+  test('tag dropdown filters items', async ({ page }) => {
+    const tagOption = await page.locator(`${S.selectTags} option:not([value="all"])`).first().getAttribute('value');
+    if (!tagOption) return test.skip();
+    const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
+    await page.selectOption(S.selectTags, tagOption);
+    await page.waitForTimeout(400);
+    const totalAfter = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(totalAfter).toBeLessThanOrEqual(totalBefore);
+  });
+
+  test('room dropdown filters items', async ({ page }) => {
+    const roomOption = await page.locator(`${S.selectRooms} option:not([value="all"])`).first().getAttribute('value');
+    if (!roomOption) return test.skip();
+    await page.selectOption(S.selectRooms, roomOption);
+    await page.waitForTimeout(400);
+    const count = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test('Reset button is disabled when no filters active', async ({ page }) => {
+    // beforeEach selects 'all' which enables reset; re-navigate to get true default state.
+    // Use domcontentloaded so we don't wait for all 3rd-party scripts under Docker load.
+    await page.goto('/schedule/', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+    await expect(page.locator(S.resetButton)).toBeDisabled();
+  });
+
+  test('Reset button enables after search and resets on click', async ({ page }) => {
+    await page.fill(S.searchInput, 'Raccoon');
+    await page.waitForTimeout(300);
+    await expect(page.locator(S.resetButton)).toBeEnabled();
+    await page.click(S.resetButton);
+    await page.waitForTimeout(400);
+    await expect(page.locator(S.resetButton)).toBeDisabled();
+    // Verify filters returned to default state
+    await expect(page.locator(S.searchInput)).toHaveValue('');
+    await expect(page.locator(S.selectDays)).toHaveValue('Current');
+    await expect(page.locator(S.selectTags)).toHaveValue('all');
+    await expect(page.locator(S.selectRooms)).toHaveValue('all');
+    // Items should still be visible (seed data is in the future)
+    const visible = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(visible).toBeGreaterThan(0);
+  });
+
+  test('Current filter shows only future events from seed data', async ({ page }) => {
+    await page.selectOption(S.selectDays, 'Current');
+    await page.waitForTimeout(400);
+    // All seed events are in the future, so at least some should be visible
+    const count = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test('multi-filter combo: tag + room simultaneously', async ({ page }) => {
+    // Select a specific tag
+    const tagOption = await page.locator(`${S.selectTags} option:not([value="all"])`).first().getAttribute('value');
+    if (!tagOption) return test.skip();
+    await page.selectOption(S.selectTags, tagOption);
+    await page.waitForTimeout(300);
+    const afterTag = await page.locator(`${S.scheduleItem}:visible`).count();
+
+    // Now also select a specific room — should narrow results further or keep same
+    const roomOption = await page.locator(`${S.selectRooms} option:not([value="all"])`).first().getAttribute('value');
+    if (!roomOption) return test.skip();
+    await page.selectOption(S.selectRooms, roomOption);
+    await page.waitForTimeout(400);
+    const afterBoth = await page.locator(`${S.scheduleItem}:visible`).count();
+
+    expect(afterBoth).toBeLessThanOrEqual(afterTag);
+  });
+
+  test('cancelled event displays Cancelled tag class and hides calendar buttons', async ({ page }) => {
+    // Search for the known cancelled seed event
+    await page.fill(S.searchInput, 'Napping in the Raccoon Lounge');
+    await page.waitForTimeout(400);
+    const items = page.locator(`${S.scheduleItem}:visible`);
+    const count = await items.count();
+    if (count === 0) return test.skip(true, 'Cancelled seed event not found');
+
+    const item = items.first();
+    // Cancelled items get the schedule-tag-cancelled class (from $addScheduleTags in the PHP template)
+    await expect(item).toHaveClass(/schedule-tag-cancelled/);
+
+    // Cancelled events should NOT have calendar/clipboard buttons
+    const calButtons = await item.locator('.schedule-clipboard, .schedule-ical, .schedule-google').count();
+    expect(calButtons).toBe(0);
+  });
+
+  test('clicking a room name in an event row sets the room filter', async ({ page }) => {
+    // Hidden on mobile (max-width: 767px)
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width <= 767) return test.skip(true, 'Clickable room links may be hidden or hard to tap on mobile');
+
+    const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
+    // Find the first visible clickable room element with text
+    const roomLink = page.locator(`${S.scheduleRoom}${S.filterLink}`).first();
+    const roomText = await roomLink.textContent();
+    if (!roomText?.trim()) return test.skip(true, 'No clickable room found');
+
+    await roomLink.click();
+    await page.waitForTimeout(400);
+
+    // Room dropdown should now have a non-default value
+    const selectedRoom = await page.locator(S.selectRooms).inputValue();
+    expect(selectedRoom).not.toBe('all');
+
+    // Visible items should be filtered
+    const totalAfter = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(totalAfter).toBeGreaterThan(0);
+    expect(totalAfter).toBeLessThanOrEqual(totalBefore);
+  });
+
+  test('clicking a tag name in an event row sets the tag filter', async ({ page }) => {
+    // Hidden on mobile (max-width: 767px)
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width <= 767) return test.skip(true, 'Tags are hidden on mobile');
+
+    const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
+    // Find the first visible clickable tags element with text
+    const tagLink = page.locator(`${S.scheduleTags}${S.filterLink}`).first();
+    const tagText = await tagLink.textContent();
+    if (!tagText?.trim()) return test.skip(true, 'No clickable tag found');
+
+    await tagLink.click();
+    await page.waitForTimeout(400);
+
+    // Tag dropdown should now have a non-default value
+    const selectedTag = await page.locator(S.selectTags).inputValue();
+    expect(selectedTag).not.toBe('all');
+
+    // Visible items should be filtered
+    const totalAfter = await page.locator(`${S.scheduleItem}:visible`).count();
+    expect(totalAfter).toBeGreaterThan(0);
+    expect(totalAfter).toBeLessThanOrEqual(totalBefore);
+  });
+
+  test('multi-tag event rows expose each tag as its own filter target', async ({ page }) => {
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width <= 767) return test.skip(true, 'Tags are hidden on mobile');
+
+    const multiTagItem = page.locator(`${S.scheduleItem}:visible`).filter({
+      has: page.locator('.schedule-tags .os-term-item:nth-child(2)'),
+    }).first();
+
+    if ((await multiTagItem.count()) === 0) {
+      return test.skip(true, 'No visible multi-tag event found');
+    }
+
+    const tagItems = multiTagItem.locator('.schedule-tags .os-term-item');
+    const tagCount = await tagItems.count();
+    expect(tagCount).toBeGreaterThanOrEqual(2);
+
+    const secondTag = tagItems.nth(1);
+    const tagText = (await secondTag.textContent())?.trim();
+    if (!tagText) return test.skip(true, 'Second tag text missing');
+
+    const routeValue = tagText.toLowerCase().replace(/[^a-z0-9]/g, '');
+    await secondTag.click();
+    await page.waitForTimeout(400);
+
+    const selectedText = (await page.locator(`${S.selectTags} option:checked`).textContent())?.trim();
+    expect(selectedText?.toLowerCase()).toBe(tagText.toLowerCase());
+    expect(page.url()).toContain(`tag=${routeValue}`);
+  });
+
+  test('clickable room/tag links are not present on kiosk', async ({ page }) => {
+    await page.goto('/kiosk-schedule/');
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+    await page.selectOption(S.selectDays, 'all');
+    await page.waitForTimeout(300);
+
+    const filterLinks = await page.locator(S.filterLink).count();
+    expect(filterLinks).toBe(0);
+  });
+});

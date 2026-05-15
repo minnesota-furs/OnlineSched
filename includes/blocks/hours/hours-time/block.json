@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "onlinesched/hours-time",
+  "version": "1.0.0",
+  "title": "Hours: Time",
+  "category": "widgets",
+  "icon": "clock",
+  "description": "One hours line for a day.",
+  "textdomain": "onlinesched",
+  "parent": [
+    "onlinesched/hours-day"
+  ],
+  "supports": {
+    "html": false
+  },
+  "attributes": {
+    "hours": {
+      "type": "string",
+      "default": ""
+    },
+    "smallText": {
+      "type": "string",
+      "default": ""
+    },
+    "addBreak": {
+      "type": "boolean",
+      "default": false
+    },
+    "italics": {
+      "type": "array",
+      "default": []
+    }
+  }
+}

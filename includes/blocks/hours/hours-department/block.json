@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "onlinesched/hours-department",
+  "version": "1.0.0",
+  "title": "Hours: Department",
+  "category": "widgets",
+  "icon": "building",
+  "description": "A department or service area inside Hours of Operations.",
+  "textdomain": "onlinesched",
+  "parent": [
+    "onlinesched/hours-of-operations"
+  ],
+  "supports": {
+    "html": false
+  },
+  "attributes": {
+    "department": {
+      "type": "string",
+      "default": ""
+    },
+    "location": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "allowedBlocks": [
+    "onlinesched/hours-day"
+  ],
+  "template": [
+    [
+      "onlinesched/hours-day",
+      {},
+      [
+        [
+          "onlinesched/hours-time"
+        ]
+      ]
+    ]
+  ]
+}

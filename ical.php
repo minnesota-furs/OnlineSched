@@ -12,10 +12,10 @@ require_once('html2text/html2text.php');
    Template Name:  Panel Grid - iCal page
  *
  * @file           ical.php
- * @package        FM-2104 
- * @author         Ben Lindstrom
- * @copyright      2014 - Ben Lidnstrom , 2016 Brian Mogged, 2024 FM
- * @license        license.txt
+ * @package        OnlineSched
+ * @author         BL, BM, AL & Contributors
+ * @copyright      2016-2026 Original Authors
+ * @license        GPL-2.0-or-later
  * @version        Release: 2.0
  * @filesource     wp-content/ical.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29
@@ -24,10 +24,6 @@ require_once('html2text/html2text.php');
 
 
 define('DATE_ICAL', 'Ymd\THis\Z');
-date_default_timezone_set('America/Chicago');
-
-
-//date_default_timezone_set('UTC');
 
 
 function escapeString($string) {
@@ -37,8 +33,12 @@ return preg_replace('/([\,;])/','\\\$1', $string);
 class iCalGen {
 
 	private $output;
-	public $prodid = "-//Furry Migration//Programing Grid 2024//EN";
-	private $calname = "furrymigration2024";
+	public $prodid;
+
+    public function __construct()
+    {
+        $this->prodid = function_exists('onlinesched_get_ical_prodid') ? onlinesched_get_ical_prodid() : '-//OnlineSched//Event Schedule//EN';
+    }
 
 
 	// categories need to be pre-escaped otherwise could be double escpaed wrong
@@ -109,18 +109,18 @@ if (!is_numeric($duration) || $duration < 0) {
 }
 $endTime = $startTime + ($duration * 60);
 
-$rooms = OnlineSched_terms_list2('event_schedule_room_type', $_post->ID);
+$rooms = OnlineSched_terms_list2('os_room', $_post->ID);
 $rooms = html_entity_decode($rooms);
 
 $dst = new DateTime('@'.$startTime);
-$dst->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+$dst->setTimeZone(wp_timezone());
 $dst->setTimeZone(new DateTimeZone('UTC'));
 
 $det = new DateTime('@'.$endTime);
-$det->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+$det->setTimeZone(wp_timezone());
 $det->setTimeZone(new DateTimeZone('UTC'));
 
-$tags = OnlineSched_terms_list2('event_schedule_tags_type', $id);
+$tags = OnlineSched_terms_list2('os_tag', $id);
 $tagsArray   = array_map( 'trim', explode( ",", $tags ) );
 $eventCancelled = array_reduce($tagsArray, function($carry, $item) {
 	$lowercaseItem = strtolower($item);
@@ -133,23 +133,24 @@ if ($eventCancelled) {
 
 $content = convert_html_to_text($_post->post_content);
 
-$iCal->add('cal-fm-'.$id,
+$iCal->add('onlinesched-'.$id,
 	   $dst->format("m/d/Y H:i"),
 	   $det->format("m/d/Y H:i"),
 	   //	   date("m/d/Y H:i", $endTime),
 		   $rooms,
 	       html_entity_decode($_post->post_title),
 		   $content,
-		   getEscapedCategoriesForICal($id, 'event_schedule_tags_type'),
+		   getEscapedCategoriesForICal($id, 'os_tag'),
 			$eventCancelled
 		  );
 
 header('Content-type: text/calendar');
-header('Content-Disposition: attachment; filename="mnfm'.$id.'.ics"');
+$filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
+header('Content-Disposition: attachment; filename="' . $filename_prefix . '-' . $id . '.ics"');
 echo $iCal->display();
 
 
-function getEscapedCategoriesForICal($post_id, $tag = 'event_schedule_tags_type') {
+function getEscapedCategoriesForICal($post_id, $tag = 'os_tag') {
 	// Get the terms for the specified custom taxonomy
 	$terms = wp_get_post_terms($post_id, $tag, array('fields' => 'names'));
 

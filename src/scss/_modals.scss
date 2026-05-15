@@ -1,0 +1,60 @@
+// @author Kurst Hyperyote for Furry Migration
+@use 'variables' as *;
+
+dialog.os-modal {
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  max-width: 600px;
+  width: 90vw;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
+  animation: os-fade-in 0.2s ease;
+  margin: 30px auto auto auto; /* Replaces default dialog centering, positions modal near top */
+
+  &::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  // Body scroll lock applied via JS when modal opens
+}
+
+.os-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e3e3e3;
+
+  h3, h4 {
+    margin: 0;
+    color: $os-blue;
+    position: relative;
+    z-index: 0;
+    font-size: 1.15em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.os-modal__body {
+  padding: 16px 24px;
+  overflow-y: auto;
+  max-height: 70vh;
+  line-height: 1.5;
+}
+
+.os-modal__footer {
+  padding: 16px 24px;
+  text-align: center;
+  border-top: 1px solid #e3e3e3;
+}
+
+@media (max-width: $os-bp-mobile) {
+  dialog.os-modal {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    margin: 10px auto auto auto;
+    border-radius: 6px;
+  }
+}

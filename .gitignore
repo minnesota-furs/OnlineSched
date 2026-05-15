@@ -2,10 +2,15 @@
 .htaccess
 .idea/
 build/
+dist/
 vendor/
 *~
 node_modules/
 \#*\#
 public/
 -pubic/static
-
+tests/test-results/
+test-results/
+tests/playwright-report/
+playwright-report/
+.wp_admin_pass

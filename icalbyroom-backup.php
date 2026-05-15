@@ -13,10 +13,10 @@ require_once('../../../wp-load.php');
    Template Name:  Panel Grid - iCal page
  *
  * @file           icalbyroom.php
- * @package        FM-2018 
+ * @package        OnlineSched
  * @author         Ben Lindstrom, Brian Mogged
  * @copyright      2014, 2016, 2018, 2020, 2025
- * @license        license.txt
+ * @license        GPL-2.0-or-later
  * @version        Release: 2.0
  * @filesource     wp-content/plugins/OnlineSched/icalbyroom.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29
@@ -31,11 +31,15 @@ limit = 2
 
 define('DATE_ICAL', 'Ymd\THis\Z');
 define('EOL', "\r\n");
-date_default_timezone_set('America/Chicago');
 
 class iCalGen {
 	private $output;
-	public $prodid = "-//Furry Migration//Programing Grid 2018//EN";
+	public $prodid;
+
+    public function __construct()
+    {
+        $this->prodid = function_exists('onlinesched_get_ical_prodid') ? onlinesched_get_ical_prodid() : '-//OnlineSched//Event Schedule//EN';
+    }
 
 	private function escapeString($string) {
 		return preg_replace('/([\,;])/','\\\$1', $string);
@@ -82,10 +86,10 @@ class iCalGen {
 $slug = $_REQUEST['room'];
 
 $args = array( 
-	'post_type' => 'event_schedule',
+	'post_type' => 'os_event',
 	'tax_query' => array(
 			array(
-				'taxonomy' => 'event_schedule_room_type',
+				'taxonomy' => 'os_room',
 				'field' => 'slug',
 				'terms' => $slug,
 			)
@@ -114,7 +118,8 @@ if (empty($loop->posts)) {
 $postsArr = $loop->posts;
 
 $dnt = new DateTime();
-$dnt->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+$dnt->setTimestamp(current_time('timestamp', true));
+$dnt->setTimeZone(wp_timezone());
 $dnt->setTimeZone(new DateTimeZone('UTC'));
 #$dnt->add(new DateInterval('P10D'));
 
@@ -129,7 +134,7 @@ foreach ($postsArr as $item) {
 	}
 
 	## If the current onlinesched_year is not our current year, skip event
-	if ( $year != get_option( 'event_schedule_year' ) ) {
+	if ( $year != get_option( 'onlinesched_year' ) ) {
 		continue;
 	}
 
@@ -138,11 +143,11 @@ foreach ($postsArr as $item) {
 	$endTime = $startTime + (get_post_meta($postId, 'onlinesched_timelen', true)*60);
 
 	$dst = new DateTime('@'.$startTime);
-	$dst->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+	$dst->setTimeZone(wp_timezone());
 	$dst->setTimeZone(new DateTimeZone('UTC'));
 
 	$det = new DateTime('@'.$endTime);
-	$det->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+	$det->setTimeZone(wp_timezone());
 	$det->setTimeZone(new DateTimeZone('UTC'));
 
 	## If the limiting, skip any events clearly in the past
@@ -151,9 +156,9 @@ foreach ($postsArr as $item) {
 	}
 	$limit--;
 
-	$rooms = OnlineSched_terms_list2('event_schedule_room_type', $postId);
+	$rooms = OnlineSched_terms_list2('os_room', $postId);
 
-	$tags = OnlineSched_terms_list2('event_schedule_tags_type', $postId);
+	$tags = OnlineSched_terms_list2('os_tag', $postId);
 	$tagsArray   = array_map( 'trim', explode( ",", $tags ) );
 	$eventCancelled  = in_array( "canceled", array_map( 'strtolower', $tagsArray ) ) ? true : false;
 	if ($eventCancelled) {
@@ -162,7 +167,7 @@ foreach ($postsArr as $item) {
 
 	$addAdultTag = in_array( "restricted", array_map( 'strtolower', $tagsArray ) ) ? " [Adult]" : "";
 
-	$iCal->add('cal-fm-'.$postId,
+	$iCal->add('onlinesched-'.$postId,
 		   $dst->format("m/d/Y H:i"),
 		   $det->format("m/d/Y H:i"),
 		   $rooms,
@@ -172,5 +177,6 @@ foreach ($postsArr as $item) {
 }
 
 header('Content-type: text/calendar');
-header('Content-Disposition: attachment; filename="mnfm-'.$slug.'.ics"');
+$filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
+header('Content-Disposition: attachment; filename="' . $filename_prefix . '-' . sanitize_title($slug) . '.ics"');
 echo $iCal->display();

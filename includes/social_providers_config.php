@@ -5,53 +5,57 @@ return [
         'Google' => [
             'enabled' => true,
             'keys' => [
-                'id' => '1085930528382-26pbncpv1161eil6gj82i7qd51ji67uo.apps.googleusercontent.com',
-                'secret' => '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',
+                'id' => '',
+                'secret' => '',
             ],
             'scope' => 'email',
-	        'use-favicon' => [
-					'enabled' => true,
-					'favicon' => 'fa-google',
-		            'color' =>  '4285F4',
-	        ]
-
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-google',
+                'color' => '4285F4',
+            ],
         ],
-	    'Telegram' => [
-				'enabled' => true,
-		    'keys' => [
-				'id' => 'xx',
-			    'secret' => 'xx',
-		    ],
-			'scope' => 'email',
-		    'use-favicon' => [
-			    'enabled' => true,
-			    'favicon' => 'fa-telegram',
-			    'color' =>  '4285F4',
-		    ],
-	    ],
-	    'Discord' => [
-			'enabled' => true,
-		    'keys' => [
-				'id' => '',
-			    'secret' => '',
-		    ],
-		    'scope' => 'identify email',
-		    'use-favicon' => [
-			    'enabled' => true,
-			    'favicon' => 'fa-discord',
-			    'color' =>  '4285F4',
-		    ],
-	    ],
-	    'Facebook'  => [
+        'Telegram' => [
             'enabled' => true,
             'keys' => [
-                'id' => 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-                'secret' => 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+                'id' => '',
+                'secret' => '',
             ],
             'scope' => 'email',
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-telegram',
+                'color' => '229ED9',
+            ],
+        ],
+        'Discord' => [
+            'enabled' => true,
+            'keys' => [
+                'id' => '',
+                'secret' => '',
+            ],
+            'scope' => 'identify email',
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-discord',
+                'color' => '5865F2',
+            ],
+        ],
+        'Facebook'  => [
+            'enabled' => true,
+            'keys' => [
+                'id' => '',
+                'secret' => '',
+            ],
+            'scope' => 'email',
+            'use-favicon' => [
+                'enabled' => true,
+                'favicon' => 'fa-facebook',
+                'color' => '1877F2',
+            ],
         ],
         'Steam' => [
-            'enabled' => true,
+            'enabled' => false,
             'no_keys' => true, // Steam does not require keys
             'scope' => '', // Steam does not use scopes
             'use-favicon' => [

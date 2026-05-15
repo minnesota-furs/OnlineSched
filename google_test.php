@@ -38,32 +38,32 @@
         <span id="android-detect"></span>
     </div>
     <div class="link-row">
-        <a href="https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fwww.furrymigration.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" class="calendar-link" id="link-webcal">Webcal (webcal://...)</a>
+        <a href="https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fexample.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" class="calendar-link" id="link-webcal">Webcal (webcal://...)</a>
         <button class="copy-btn" onclick="copyLink('link-webcal')">Copy</button>
     </div>
     <div class="link-row">
-        <a href="https://calendar.google.com/calendar/r?cid=https%3A%2F%2Fwww.furrymigration.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" class="calendar-link" id="link-https">HTTPS (https://...)</a>
+        <a href="https://calendar.google.com/calendar/r?cid=https%3A%2F%2Fexample.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" class="calendar-link" id="link-https">HTTPS (https://...)</a>
         <button class="copy-btn" onclick="copyLink('link-https')">Copy</button>
     </div>
     <div class="link-row">
-        <a href="https://calendar.google.com/calendar/r?cid=http%3A%2F%2Fwww.furrymigration.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" class="calendar-link" id="link-http">HTTP (http://...)</a>
+        <a href="https://calendar.google.com/calendar/r?cid=http%3A%2F%2Fexample.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" class="calendar-link" id="link-http">HTTP (http://...)</a>
         <button class="copy-btn" onclick="copyLink('link-http')">Copy</button>
     </div>
 
 	<div class="link-row">
-		<a href="https://calendar.google.com/calendar/r?cid=https://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all" class="calendar-link" id="ulink-https">HTTPS (https://...) unencoded</a>
+		<a href="https://calendar.google.com/calendar/r?cid=https://example.org/wp-content/plugins/OnlineSched/icalby.php?room=all" class="calendar-link" id="ulink-https">HTTPS (https://...) unencoded</a>
 		<button class="copy-btn" onclick="copyLink('ulink-https')">Copy</button>
 	</div>
 	<div class="link-row">
-		<a href="https://calendar.google.com/calendar/r?cid=http://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all" class="calendar-link" id="ulink-http">HTTP (http://...) unencoded</a>
+		<a href="https://calendar.google.com/calendar/r?cid=http://example.org/wp-content/plugins/OnlineSched/icalby.php?room=all" class="calendar-link" id="ulink-http">HTTP (http://...) unencoded</a>
 		<button class="copy-btn" onclick="copyLink('ulink-http')">Copy</button>
 	</div>
 
-	<a href="https://calendar.google.com/calendar/r?cid=https%3A%2F%2Fwww.furrymigration.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" target="_blank">
+	<a href="https://calendar.google.com/calendar/r?cid=https%3A%2F%2Fexample.org%2Fwp-content%2Fplugins%2FOnlineSched%2Ficalby.php%3Froom%3Dall" target="_blank">
 		Add to Google Calendar
 	</a>
 
-	<a href="http://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all">http://www.furrymigration.org/wp-content/plugins/OnlineSched/icalby.php?room=all</a>
+	<a href="http://example.org/wp-content/plugins/OnlineSched/icalby.php?room=all">http://example.org/wp-content/plugins/OnlineSched/icalby.php?room=all</a>
 
     <div style="margin-top:2em; font-size:0.95em; color:#666;">
         <strong>Notes:</strong><br>

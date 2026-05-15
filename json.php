@@ -21,18 +21,15 @@ gaming=shows all room not programming, consuite, etc
  * Template Name:  Panel Grid - iCal page
  *
  * @file           icalbyroom.php
- * @package        FM-2018
+ * @package        OnlineSched
  * @author         Ben Lindstrom, Brian Mogged
  * @copyright      2014, 2016, 2018
- * @license        license.txt
+ * @license        GPL-2.0-or-later
  * @version        Release: 3.0
  * @filesource     wp-content/themes/fm-2018/icalbyroom.php
  * @link           http://codex.wordpress.org/Theme_Development#Pages_.28page.php.29
  * @since          available since Release 1.0
  */
-
-
-date_default_timezone_set( 'America/Chicago' );
 
 
 $slug = empty($_REQUEST['room']) ? 'main-stage' : $_REQUEST['room'];
@@ -44,10 +41,10 @@ if (!empty($_REQUEST['programming'] )) {
 }
 
 $args = array(
-	'post_type' => 'event_schedule',
+	'post_type' => 'os_event',
 	'tax_query' => array(
 		array(
-			'taxonomy' => 'event_schedule_room_type',
+			'taxonomy' => 'os_room',
 			'field'    => 'slug',
 			'terms'    => $slug,
 		)
@@ -83,7 +80,7 @@ if ( $request == 'programming') {
 	);
 	$args['tax_query'] = array(
 		array(
-			'taxonomy' => 'event_schedule_room_type',
+			'taxonomy' => 'os_room',
 			'field'    => 'slug',
 			'terms'    => $slug,
 			'operator' => 'IN'
@@ -120,14 +117,14 @@ if ( $request == 'gaming') {
 	$args['tax_query'] = array(
 		'relation' => 'AND',
 		array(
-			'taxonomy' => 'event_schedule_room_type',
+			'taxonomy' => 'os_room',
 			'field'    => 'slug',
 			'terms'    => $slug,
 			'operator' => 'NOT IN'
 
 		),
 		array(
-			'taxonomy' => 'event_schedule_tags_type',
+			'taxonomy' => 'os_tag',
 			'field'    => 'slug',
 			'terms'    => 'open-gaming',
 			'operator' => 'NOT IN',
@@ -150,7 +147,8 @@ if ( empty( $loop->posts ) ) {
 $postsArr = $loop->posts;
 
 $dnt = new DateTime();
-$dnt->setTimeZone( new DateTimeZone( date_default_timezone_get() ) );
+$dnt->setTimestamp(current_time('timestamp', true));
+$dnt->setTimeZone(wp_timezone());
 $dnt->setTimeZone( new DateTimeZone( 'UTC' ) );
 #$dnt->add(new DateInterval('P10D'));
 $json_out = array();
@@ -165,26 +163,20 @@ foreach ( $postsArr as $item ) {
 	}
 
 	## If the current onlinesched_year is not our current year, skip event
-	if ( $year != get_option( 'event_schedule_year' ) ) {
+	if ( $year != get_option( 'onlinesched_year' ) ) {
 		continue;
 	}
 
 	## Figure out Times
 	$startTime = get_post_meta( $postId, 'onlinesched_sorttime', true );
-	// time zone bug
-
 	$endTime   = $startTime + ( get_post_meta( $postId, 'onlinesched_timelen', true ) * 60 );
 
-	//timezone bug
-	// hacked to do the time zone need to fix for real
-	$endTime += (60*60*5);
-
 	$dst = new DateTime('@'.$startTime);
-	$dst->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+	$dst->setTimeZone(wp_timezone());
 	$dst->setTimeZone(new DateTimeZone('UTC'));
 
 	$det = new DateTime('@'.$endTime);
-	$det->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+	$det->setTimeZone(wp_timezone());
 	$det->setTimeZone(new DateTimeZone('UTC'));
 
 
@@ -192,7 +184,6 @@ foreach ( $postsArr as $item ) {
 
 	//	$det = new DateTime();
 	//$det->setTimestamp($endTime);
-	//	print_r(array($startTime, $endTime, $det, $dnt));
 
 	## If the limiting, skip any events clearly in the past
 	if ( $limit > 0 && $det < $dnt ) {
@@ -200,9 +191,9 @@ foreach ( $postsArr as $item ) {
 	}
 	$limit --;
 
-	$rooms = OnlineSched_terms_list2( 'event_schedule_room_type', $postId );
+	$rooms = OnlineSched_terms_list2( 'os_room', $postId );
 
-	$tags           = OnlineSched_terms_list2( 'event_schedule_tags_type', $postId );
+	$tags           = OnlineSched_terms_list2( 'os_tag', $postId );
 	$tagsArray      = array_map( 'trim', explode( ",", $tags ) );
 	$eventCancelled = in_array( "canceled", array_map( 'strtolower', $tagsArray ) ) ? true : false;
 	if ( $eventCancelled ) {
@@ -212,7 +203,7 @@ foreach ( $postsArr as $item ) {
 	$addAdultTag = in_array( "restricted", array_map( 'strtolower', $tagsArray ) ) ? " [Adult]" : "";
 
 
-	/*	$iCal->add('cal-fm-'.$postId,
+	/*	$iCal->add('onlinesched-'.$postId,
 		   $dst->format("m/d/Y H:i"),
 		   $det->format("m/d/Y H:i"),
 		   $rooms,
@@ -231,4 +222,3 @@ foreach ( $postsArr as $item ) {
 
 header( 'Content-type: application/json' );
 echo json_encode( $json_out );
-

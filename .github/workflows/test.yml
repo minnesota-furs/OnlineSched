@@ -1,0 +1,42 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build plugin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --classmap-authoritative
+
+      - name: Check for high severity Node advisories
+        run: npm audit --audit-level=high
+
+      - name: Build compiled assets
+        run: BABEL_DISABLE_CACHE=1 npm run build
+
+      - name: Playwright note
+        run: echo "OnlineSched Playwright tests require the Furry Migration Docker stack and are run locally for now."

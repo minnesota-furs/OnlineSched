@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "onlinesched/solo-event",
+  "version": "1.0.0",
+  "title": "OnlineSched: Single Event",
+  "category": "widgets",
+  "icon": "calendar-alt",
+  "description": "Embed a single schedule event as an interactive card.",
+  "supports": {
+    "align": ["left", "center", "right", "wide", "full"],
+    "color": {
+      "background": true,
+      "text": true
+    }
+  },
+  "attributes": {
+    "eventId": {
+      "type": "integer",
+      "default": 0
+    },
+    "align": {
+      "type": "string",
+      "default": "center"
+    }
+  },
+  "textdomain": "onlinesched",
+  "editorScript": "file:./index.js",
+  "style": "file:./style.css",
+  "script": "file:./view.js"
+}

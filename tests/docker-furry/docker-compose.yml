@@ -1,0 +1,66 @@
+# @author kurst@mnfurs.org Kurst Hyperyote for Furry Migration
+# OnlineSched: Furry Fun WordPress Environment (The Floof Den)
+# This environment tests custom colors, badge types, and convention-style layouts.
+
+services:
+  onlinesched-furry-db:
+    image: mariadb:10.11
+    container_name: onlinesched-furry-db
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    networks:
+      - onlinesched-furry-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "wordpress", "-pwordpress"]
+      timeout: 5s
+      retries: 5
+
+  onlinesched-furry-wp:
+    image: wordpress:latest
+    container_name: onlinesched-furry-wp
+    ports:
+      - "8082:80"
+    environment:
+      WORDPRESS_DB_HOST: onlinesched-furry-db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp_data_furry:/var/www/html
+      - ../..:/var/www/html/wp-content/plugins/OnlineSched:z
+    depends_on:
+      onlinesched-furry-db:
+        condition: service_healthy
+    networks:
+      - onlinesched-furry-net
+
+  onlinesched_furry_cli:
+    image: wordpress:cli
+    container_name: onlinesched-furry-cli
+    user: 0:0
+    volumes:
+      - wp_data_furry:/var/www/html
+      - ../..:/var/www/html/wp-content/plugins/OnlineSched:z
+    environment:
+      WORDPRESS_DB_HOST: onlinesched-furry-db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    depends_on:
+      onlinesched-furry-db:
+        condition: service_healthy
+      onlinesched-furry-wp:
+        condition: service_started
+    networks:
+      - onlinesched-furry-net
+    entrypoint: ["/bin/sh", "-c", "tail -f /dev/null"]
+
+volumes:
+  wp_data_furry:
+
+networks:
+  onlinesched-furry-net:
+    driver: bridge

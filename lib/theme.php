@@ -1,5 +1,33 @@
 <?php
+if (!defined('ABSPATH')) {
+	exit;
+}
+
 /* Used for theming */
+function onlinesched_get_template_part($slug, $args = array())
+{
+	$slug = trim((string) $slug, '/');
+	if ('' === $slug || preg_match('/[^A-Za-z0-9_\/-]/', $slug)) {
+		return false;
+	}
+
+	$template = locate_template(array('onlinesched/partials/' . $slug . '.php'), false, false);
+	if (!$template) {
+		$template = ONLINESCHED_PLUGIN_DIR . 'templates/partials/' . $slug . '.php';
+	}
+
+	if (!file_exists($template)) {
+		return false;
+	}
+
+	if (is_array($args) && !empty($args)) {
+		extract($args, EXTR_SKIP);
+	}
+
+	include $template;
+	return true;
+}
+
 function OnlineSched_terms_list($term, &$masterList = null): string
 {
 	$fields = ($masterList === null) ? 'names' : 'all';
@@ -11,7 +39,15 @@ function OnlineSched_terms_list($term, &$masterList = null): string
 
 	$tag_names = [];
 	foreach ($tags_arr as $tag) {
-		$tag_names[] = ($masterList === null) ? $tag : $tag->name ;
+		$name = ($masterList === null) ? $tag : $tag->name ;
+		$classes = ['os-term-item'];
+		$attrs = '';
+		if ('os_tag' === $term) {
+			$classes[] = 'os-schedule-tag';
+			$route = preg_replace('/[^a-z0-9]/', '', strtolower(remove_accents($name)));
+			$attrs .= ' data-os-tag-route="' . esc_attr($route) . '"';
+		}
+		$tag_names[] = '<span class="' . esc_attr(implode(' ', $classes)) . '"' . $attrs . '>' . esc_html($name) . '</span>';
 
 		if ($masterList !== null) {
 			$masterList[$tag->name] = $tag->slug;

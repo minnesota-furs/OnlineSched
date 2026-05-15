@@ -2,15 +2,29 @@ const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const autoprefixer = require('autoprefixer')
-// const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 module.exports = {
 
-    entry: './src/index.js',
+    entry: {
+        main: './src/index.js',
+        'admin-badge-types': './src/scss/admin-badge-types.scss',
+        'hours-blocks': './src/js/hoursBlocks.js',
+        'calendar-helpers': './src/js/calendarHelpers.js',
+        'solo-event-block': './src/js/soloEventBlock.js',
+        'solo-event-view': './src/js/soloEventView.js',
+        fontawesome: './src/scss/fontawesome.scss',
+        fonts: './src/scss/fonts.scss',
+    },
 
     output: {
         path: path.resolve(__dirname, 'build'),
-        filename: 'bundle.js'
+        filename: (pathData) => {
+            return pathData.chunk.name === 'main' ? 'bundle.js' : '[name].bundle.js';
+        }
+    },
+
+    performance: {
+        assetFilter: (assetFilename) => !/\.(?:woff2?|ttf|eot|svg)$/i.test(assetFilename),
     },
 
     devtool: 'source-map',
@@ -56,13 +70,7 @@ module.exports = {
                     MiniCssExtractPlugin.loader,
                     'css-loader',
                     {
-                        loader: 'sass-loader',
-                        options: {
-                            api: "modern",
-                        }
-                    },
-                    {
-                        // Loader for webpack to process CSS with PostCSS
+                        // postcss runs on compiled CSS (after sass)
                         loader: 'postcss-loader',
                         options: {
                             postcssOptions: {
@@ -70,6 +78,13 @@ module.exports = {
                                     autoprefixer
                                 ]
                             }
+                        }
+                    },
+                    {
+                        // sass compiles SCSS -> CSS first
+                        loader: 'sass-loader',
+                        options: {
+                            api: "modern",
                         }
                     }
                 ]

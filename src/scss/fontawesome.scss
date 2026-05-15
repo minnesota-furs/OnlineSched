@@ -1,0 +1,4 @@
+// Font Awesome Free — loaded as the separate 'onlinesched-fa' stylesheet handle.
+// Sites that already enqueue Font Awesome can opt out without touching the main bundle:
+//   add_filter( 'onlinesched_load_fontawesome', '__return_false' );
+@import '@fortawesome/fontawesome-free/css/all.min.css';

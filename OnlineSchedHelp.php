@@ -1,6 +1,6 @@
 <?php
 
-function event_schedule_help_page()
+function os_event_help_page()
 {
 	remove_filter('parse_query', 'OnlineSched_posts_filter');
 	?>

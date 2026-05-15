@@ -1,0 +1,116 @@
+.os-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  padding-left: 0;
+  margin-bottom: 20px;
+  list-style: none;
+  border-bottom: 1px solid #ddd;
+
+  // From legacy schedule.scss
+  margin: 0 -20px 20px;
+  border: none;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 16px;
+  height: 48px;
+  background: #fff;
+
+  &__item {
+    margin-bottom: -1px;
+    width: 33.333333333%;
+    margin: 0 !important;
+
+    a {
+      display: block;
+      padding: 14px 15px;
+      margin-right: 2px;
+      line-height: 1.42857143;
+      border: 1px solid transparent;
+      border-radius: var(--os-radius) var(--os-radius) 0 0;
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+
+      // From legacy schedule.scss
+      background: #333;
+      text-align: center;
+      border: none !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      height: 48px;
+      box-sizing: border-box;
+
+      &:hover {
+        background-color: var(--os-green) !important;
+        color: #fff !important;
+        text-decoration: none !important;
+        border-color: transparent;
+      }
+    }
+
+    &--active a {
+      color: #333 !important;
+      background-color: rgba(0, 0, 0, .05) !important;
+      border: 1px solid #ddd;
+      border-bottom-color: transparent;
+      cursor: default;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, .05) !important;
+        color: #333 !important;
+        text-decoration: none !important;
+        border: 1px solid #ddd;
+        border-bottom-color: transparent;
+      }
+    }
+  }
+}
+
+.os-tab-content {
+  > .os-tab-pane {
+    display: none;
+
+    &--active {
+      display: block;
+    }
+
+    &#hours {
+      padding: 0 20px 20px;
+
+      &:before {
+        display: block;
+        content: '';
+        visibility: hidden;
+        margin-top: -40px;
+        height: 40px;
+      }
+    }
+  }
+}
+
+// Sticky tabs on mobile
+@media (max-width: 991px) {
+  .schedule-fixed .os-tabs {
+    position: fixed;
+    left: 0;
+    top: var(--os-sticky-mobile-top-offset, var(--os-sticky-top-offset, 0px));
+    width: 100%;
+    margin: 0;
+    z-index: 999;
+  }
+
+  .schedule-fixed .os-tab-content {
+    padding-top: 40px;
+  }
+}
+
+// Live schedule
+.live-schedule .os-tabs {
+  display: none;
+}
