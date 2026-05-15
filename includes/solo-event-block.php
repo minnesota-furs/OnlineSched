@@ -1,7 +1,7 @@
 <?php
 /**
  * Solo Event block registration and rendering.
- * 
+ *
  * @package OnlineSched
  */
 
@@ -108,14 +108,14 @@ function onlinesched_render_solo_event_block( $attributes ) {
 
 	ob_start();
 	?>
-	<div id="<?php echo esc_attr( $wrapper_id ); ?>" 
-		 class="os-solo-event-card<?php echo esc_attr( $cancelled_class . $full_width_class ); ?> schedule-item" 
+	<div id="<?php echo esc_attr( $wrapper_id ); ?>"
+		 class="os-solo-event-card<?php echo esc_attr( $cancelled_class . $full_width_class ); ?> schedule-item"
 		 data-os-event-id="<?php echo esc_attr( $event_id ); ?>"
 		 data-end-time="<?php echo esc_attr( $end_time ); ?>"
 		 data-os-event-date="<?php echo esc_attr( $data['formatted_date'] ); ?>"
 		 data-os-event-time="<?php echo esc_attr( $data['hour_duration'] ); ?>"
 		 <?php echo $highlight_style; ?>>
-		
+
 		<div class="os-solo-event-card__header">
 			<div class="os-solo-event-card__title-row">
 				<?php echo $view_model->get_favorite_button_html(); ?>

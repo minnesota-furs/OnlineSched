@@ -1,6 +1,6 @@
 /**
  * Solo Event Block - Frontend hydration (Native JS style).
- * 
+ *
  * @package OnlineSched
  */
 
@@ -16,15 +16,15 @@
         const checkInterval = setInterval(() => {
             if (window.fetchOnlineSchedLoginState) {
                 clearInterval(checkInterval);
-                
+
                 // Get current user state
                 window.fetchOnlineSchedLoginState().then(user => {
                     const favorites = normalizeFavorites(user.favorites || getCookie('schedule_favorites'));
-                    
+
                     cards.forEach(card => {
                         const eventId = card.getAttribute('data-os-event-id');
                         const isFavorite = favorites.includes(String(eventId));
-                        
+
                         // Initial favorite state
                         if (isFavorite) {
                             card.setAttribute('data-favorite', 'true');

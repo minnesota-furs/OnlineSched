@@ -59,7 +59,7 @@ cat <<'EOF' > /tmp/floof-overdrive.php
 add_action('wp_head', function() {
     echo '<style>
         /* Repeating Coyote Background for the Schedule */
-        #schedule { 
+        #schedule {
             background-image: url("/wp-content/plugins/OnlineSched/tests/demo-assets/coyote.svg");
             background-size: 150px;
             background-repeat: repeat;
@@ -67,7 +67,7 @@ add_action('wp_head', function() {
             background-color: rgba(253, 252, 240, 0.95);
             background-blend-mode: overlay;
         }
-        
+
         /* Make the schedule card slightly transparent to see the paws */
         .os-row.schedule-item { background: rgba(255,255,255,0.9); }
     </style>';
@@ -85,7 +85,7 @@ add_action('init', function() {
             <!-- wp:paragraph --><p>Heckin good boye smol bork drive shoob doggo. Clouds fluffer bark snoot snoot. Awooo!</p><!-- /wp:paragraph -->'
         ]);
     }
-    
+
     // Replace the default "Hello world!" post
     $hello_world = get_page_by_path('hello-world', OBJECT, 'post');
     if ($hello_world) {
@@ -95,7 +95,7 @@ add_action('init', function() {
             'post_content' => '<!-- wp:paragraph --><p>Awoooo! Welcome to your first hunt in the Floof Den. This post is just marking the territory. Bark pupsem sniffer snoot paw bork. 🐾</p><!-- /wp:paragraph -->
             <!-- wp:paragraph --><p>Waggy tail floof clouds pupperino shoob maximum borkdrive. Feel the fur, be the fur. OwO!</p><!-- /wp:paragraph -->'
         ]);
-        
+
         // Update the default comment to be a sniff
         $comments = get_comments(['post_id' => $hello_world->ID]);
         foreach($comments as $comment) {

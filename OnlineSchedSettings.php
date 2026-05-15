@@ -13,7 +13,7 @@ function onlinesched_settings_capability()
 // Settings groups are admin-form internals: only settings_fields($group) and options.php
 // see them. Nothing outside this plugin's own code references them, so they need no legacy
 // aliases. If we ever rename a group again, add a one-line migration that maps any saved
-// state — do not introduce dual-group registration. See OPEN_SOURCE_PLAN.md Phase 4.
+// state; do not introduce dual-group registration.
 add_filter('option_page_capability_onlinesched_option_group', 'onlinesched_settings_capability');
 add_filter('option_page_capability_onlinesched_social_login_group', 'onlinesched_settings_capability');
 
@@ -435,7 +435,7 @@ function OnlineSched_options_page()
                         var customWrap = document.getElementById('os-flare-custom-wrap');
                         var customInp  = document.getElementById('onlinesched_header_flare_custom_class');
                         var imgInp     = document.getElementById('onlinesched_header_flare_image');
-                        
+
                         var iconPrev   = document.getElementById('os-flare-icon-preview');
                         var iconWrap   = document.getElementById('os-flare-icon-preview-wrap');
                         var imgPrev    = document.getElementById('os-flare-image-preview');
@@ -454,12 +454,12 @@ function OnlineSched_options_page()
                                 // Show icon
                                 imgWrap.style.display = 'none';
                                 iconWrap.style.display = '';
-                                
+
                                 var iconClass = sel.value;
                                 if (iconClass === 'fa-custom') {
                                     iconClass = customInp.value.trim() || 'fa-question';
                                 }
-                                
+
                                 if (iconClass === 'fa-none') {
                                     iconPrev.className = '';
                                 } else {
@@ -472,10 +472,10 @@ function OnlineSched_options_page()
                             customWrap.style.display = (sel.value === 'fa-custom') ? '' : 'none';
                             updateFlarePreview();
                         });
-                        
+
                         customInp.addEventListener('input', updateFlarePreview);
                         imgInp.addEventListener('input', updateFlarePreview);
-                        
+
                         // Initial run
                         updateFlarePreview();
                     })();
@@ -520,7 +520,7 @@ function OnlineSched_options_page()
                         var acInput = document.getElementById('onlinesched_icon_fav_active');
                         var inPrev  = document.getElementById('os-icon-inactive-preview');
                         var acPrev  = document.getElementById('os-icon-active-preview');
-                        
+
                         var inColor = document.getElementById('onlinesched_color_fav_inactive');
                         var acColor = document.getElementById('onlinesched_color_fav_active');
 
@@ -528,7 +528,7 @@ function OnlineSched_options_page()
                             if (!input || !preview) return;
                             var classes = input.value.trim() || (input.id.indexOf('active') !== -1 ? 'fas fa-star' : 'far fa-star');
                             preview.className = classes;
-                            
+
                             if (colorInput) {
                                 preview.parentElement.style.color = colorInput.value;
                             }

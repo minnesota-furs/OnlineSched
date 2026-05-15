@@ -42,18 +42,18 @@ function onlinesched_render_schedule($args = array()) {
         $badge_type_meta_cache = array();
         $gmt_offset = floatval(get_option('gmt_offset'));
         $onlinesched_year = get_option('onlinesched_year');
-        
+
         $essentials_tab_name = get_option('onlinesched_essentials_tab_name', 'Essentials');
         $programming_tab_label = onlinesched_get_config('tab_programming_label', 'Programming');
         $programming_mobile_label = onlinesched_get_config('tab_programming_mobile_label', 'Events');
         $hours_tab_label = onlinesched_get_config('tab_hours_label', 'Hours');
         $map_tab_label = onlinesched_get_config('tab_map_label', 'Map');
-        
+
         $programming_tab_label = $programming_tab_label !== '' ? $programming_tab_label : 'Programming';
         $programming_mobile_label = $programming_mobile_label !== '' ? $programming_mobile_label : 'Events';
         $hours_tab_label = $hours_tab_label !== '' ? $hours_tab_label : 'Hours';
         $map_tab_label = $map_tab_label !== '' ? $map_tab_label : 'Map';
-        
+
         $sticky_offsets = onlinesched_get_sticky_offsets();
 
         // Ensure essentialsTags is output
@@ -119,7 +119,7 @@ function onlinesched_render_schedule($args = array()) {
         <div id="schedule"
              style="display:none; --os-sticky-top-offset:<?php echo esc_attr($sticky_offsets['desktop']); ?>px; --os-sticky-mobile-top-offset:<?php echo esc_attr($sticky_offsets['mobile']); ?>px;"
              class="<?php echo esc_attr($cssClass); ?>">
-            
+
             <?php onlinesched_get_template_part('schedule-tabs', compact(
                 'theming', 'programming_tab_label', 'programming_mobile_label',
                 'essentials_tab_name', 'hours_tab_label', 'map_tab_label'
@@ -128,7 +128,7 @@ function onlinesched_render_schedule($args = array()) {
             <div class="os-tab-content">
                 <div role="tabpanel" class="os-tab-pane os-tab-pane--active" id="programming">
                     <?php onlinesched_get_template_part('schedule-filters', compact('theming', 'liveStreaming')); ?>
-                    
+
                     <?php
                     $dayofweek = 'none';
                     $hour = 'none';
@@ -179,7 +179,7 @@ function onlinesched_render_schedule($args = array()) {
                     $loop = new WP_Query($query_args);
                     update_meta_cache('post', wp_list_pluck($loop->posts, 'ID'));
                     remove_filter('posts_clauses', 'onlinesched_modify_wp_query_clauses', 10);
-                    
+
                     $badge_types_display = get_option('onlinesched_badge_types_display', array());
                     $badge_types_icons = get_option('onlinesched_badge_types_icons', array());
                     $badge_types_colors = get_option('onlinesched_badge_types_colors', array());
@@ -234,7 +234,7 @@ function onlinesched_render_schedule($args = array()) {
                         $tag_terms = wp_get_post_terms(get_the_ID(), 'os_tag');
                         $badge_types_present = [];
                         $row_highlight_color = '';
-                        
+
                         foreach ($tag_terms as $term) {
                             if (!isset($badge_type_meta_cache[$term->term_id])) {
                                 $meta_badge = get_term_meta($term->term_id, 'badge_type', true);
@@ -244,7 +244,7 @@ function onlinesched_render_schedule($args = array()) {
                                 $badge_type_meta_cache[$term->term_id] = $meta_badge;
                             }
                             $badge_type = $badge_type_meta_cache[$term->term_id];
-                            
+
                             if ($badge_type) {
                                 $badge_types_present[$badge_type][] = $term;
                                 if (isset($badge_types_row_colors[$badge_type]) && $badge_types_row_colors[$badge_type] && $row_highlight_color == '') {
@@ -266,7 +266,7 @@ function onlinesched_render_schedule($args = array()) {
                             $addScheduleTags .= " schedule-tag-" . $slug;
                             $addScheduleTagsData .= " data-schedule-tag-" . $slug . '="' . $slug . '"';
                         }
-                        
+
                         $addVIPClass = ''; $addGOHClass = ''; $addSpecialGuestClass = ''; $addCanceledClass = '';
                         foreach ($badge_types_present as $type => $terms) {
                             $lc_type = strtolower($type);
@@ -328,7 +328,7 @@ function onlinesched_render_schedule($args = array()) {
                                 if ($dayofweek != "none" && $dayofweek != "") {
                                     echo "</div></div>";
                                 }
-                                $newTimestamp = strtotime(date("Y-m-d 00:00:00", $sorttime)); 
+                                $newTimestamp = strtotime(date("Y-m-d 00:00:00", $sorttime));
                                 $dayofweek = $newdayofweek;
                                 $hour = "none";
                                 echo '<div class="schedule-day" data-schedule-num-day="' . $newTimestamp . '" data-schedule-day="' . $dayofweek . '"><h2>' . $dayofweek . onlinesched_get_flare_html() . '</h2>';
@@ -362,7 +362,7 @@ function onlinesched_render_schedule($args = array()) {
                         ));
                     endwhile;
                     wp_reset_postdata();
-                    
+
                     if ($dayofweek != 'none') {
                         echo "</div></div>";
                     }
@@ -405,7 +405,7 @@ function onlinesched_render_schedule($args = array()) {
             <?php } ?>
 
         </div>
-        
+
         <?php do_action('os_after_schedule'); ?>
 
         <?php if ($liveStreaming) { echo '</div></div>'; } ?>

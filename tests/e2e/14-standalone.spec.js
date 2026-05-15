@@ -95,7 +95,7 @@ test.describe('14 — Standalone Verification', () => {
 
       await page.reload();
       await page.waitForSelector(S.schedule);
-      
+
       const content = await page.content();
       expect(content).toContain(sentinel);
 
@@ -104,7 +104,7 @@ test.describe('14 — Standalone Verification', () => {
 
       await page.reload();
       await page.waitForSelector(S.schedule);
-      
+
       const contentAfter = await page.content();
       expect(contentAfter).not.toContain(sentinel);
       await expect(page.locator(S.tabList)).toBeVisible();

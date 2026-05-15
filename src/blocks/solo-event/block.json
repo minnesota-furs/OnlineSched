@@ -6,7 +6,7 @@
   "title": "OnlineSched: Single Event",
   "category": "widgets",
   "icon": "calendar-alt",
-  "description": "Embed a single Furry Migration schedule event as an interactive card.",
+  "description": "Embed a single schedule event as an interactive card.",
   "supports": {
     "align": ["left", "center", "right", "wide", "full"],
     "color": {

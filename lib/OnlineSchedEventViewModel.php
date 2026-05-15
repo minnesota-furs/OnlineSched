@@ -1,9 +1,9 @@
 <?php
 /**
  * OnlineSched Event View Model
- * 
+ *
  * A single source of truth for event data and rendering logic.
- * 
+ *
  * @package OnlineSched
  */
 
@@ -25,13 +25,13 @@ class OnlineSchedEventViewModel {
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param int $event_id The ID of the os_event post.
 	 */
 	public function __construct( $event_id ) {
 		$this->id = absint( $event_id );
 		$this->post = get_post( $this->id );
-		
+
 		if ( $this->post && 'os_event' === $this->post->post_type ) {
 			$this->load_metadata();
 		}
@@ -50,11 +50,11 @@ class OnlineSchedEventViewModel {
 		// Metadata extraction uses corrected event timing keys.
 		$sort_ts = get_post_meta( $this->id, 'onlinesched_sorttime', true );
 		$duration = get_post_meta( $this->id, 'onlinesched_timelen', true );
-		
+
 		$this->data['start_ts'] = ! empty( $sort_ts ) ? (int) $sort_ts : 0;
 		$this->data['duration'] = ! empty( $duration ) ? (int) $duration : 0;
 		$this->data['end_ts']   = $this->data['start_ts'] + ( $this->data['duration'] * 60 );
-		
+
 		$this->data['formatted_date'] = $this->data['start_ts'] ? date_i18n( 'l, F j, Y', $this->data['start_ts'] ) : '';
 		$this->data['formatted_time'] = $this->data['start_ts'] ? date_i18n( 'g:i A', $this->data['start_ts'] ) : '';
 		$this->data['hour_duration']  = $this->calculate_duration( $this->data['start_ts'], $this->data['end_ts'] );
@@ -66,7 +66,7 @@ class OnlineSchedEventViewModel {
 		// Taxonomy extraction - Generate links to main schedule with filter hash
 		$this->data['rooms'] = $this->get_linked_terms( 'os_room', $schedule_url, '#room-' );
 		$this->data['tags'] = $this->get_linked_terms( 'os_tag', $schedule_url, '#tag-' );
-		
+
 		// Panelists: Plain text to avoid 404 links to non-existent archive pages
 		$panelist_terms = wp_get_post_terms( $this->id, 'os_panelist' );
 		$this->data['panelists'] = ! is_wp_error( $panelist_terms ) ? implode( ', ', wp_list_pluck( $panelist_terms, 'name' ) ) : '';
@@ -134,9 +134,9 @@ class OnlineSchedEventViewModel {
 		// Re-fetch badge logic from options/filters to ensure consistency
 		$badge_types_present = array(); // Fetch the active term types once and cache in metadata.
 		// For now, we'll implement the core VIP/GOH/Cancelled badges as a baseline.
-		
+
 		$badges = '';
-		
+
 		if ( $this->data['is_cancelled'] ) {
 			$badges .= ' <span class="os-badge os-badge--canceled">' . esc_html__( 'Canceled', 'onlinesched' ) . '</span>';
 		}
@@ -161,8 +161,8 @@ class OnlineSchedEventViewModel {
 			return '';
 		}
 
-		$fav_icon_class = function_exists( 'onlinesched_get_favorite_icon_classes' ) 
-			? onlinesched_get_favorite_icon_classes( false ) 
+		$fav_icon_class = function_exists( 'onlinesched_get_favorite_icon_classes' )
+			? onlinesched_get_favorite_icon_classes( false )
 			: 'far fa-star';
 
 		return sprintf(

@@ -25,7 +25,7 @@ require_once('html2text/html2text.php');
  * @since          available since Release 1.0
  */
 
-/* Usage 
+/* Usage
 room=<panels> room name, can be comma separated
 room=all all rooms
 tag=<tags> by tag, can be comma separated
@@ -71,14 +71,14 @@ class iCalGen {
 
 		$this->output .= 'BEGIN:VEVENT' . EOL .
 			"DTSTAMP:" . gmdate(DATE_ICAL) . "\r\n" .
-		    'DTSTART:' . $start->format(DATE_ICAL) . EOL . 
+		    'DTSTART:' . $start->format(DATE_ICAL) . EOL .
 		    'DTEND:' . $end->format(DATE_ICAL) . EOL .
 		    'SUMMARY:' . $this->escapeString($title) . EOL .
 		    'DESCRIPTION:' . str_replace(array("\n", "\r"), '', $this->escapeString($desc)) . EOL .
 		    'LOCATION:' . $this->escapeString($location) . EOL .
 			'CATEGORIES:'. $categories. EOL .
 			"STATUS:" . ($cancelled ? 'CANCELLED' : 'CONFIRMED') . "\r\n" .
-		    'UID:' . $uid  . EOL . 
+		    'UID:' . $uid  . EOL .
 		    'END:VEVENT' . EOL;
 	}
 
@@ -89,13 +89,13 @@ class iCalGen {
 		    'METHOD:PUBLISH' . EOL .
 		    'PRODID:' . $this->prodid . EOL .
 		    'X-WR-TIMEZONE:GMT' . EOL .
-		    $this->output . 
+		    $this->output .
 		    'END:VCALENDAR'. EOL;
 	}
 }
 
 $filename='-all';
-$args = array( 
+$args = array(
 	'post_type' => 'os_event',
 #	'orderby' => 'title',		## XX Think this is wrong
 	'meta_key' => 'onlinesched_sorttime',
@@ -173,7 +173,7 @@ foreach ($postsArr as $item) {
 	$year = get_post_meta( $postId, 'onlinesched_year', true );
 
 	## If we are limited ($limit != -1), if we hit 0, skip remaining posts.
-	if ( $limit == 0) {		
+	if ( $limit == 0) {
 		break;
 	}
 
@@ -214,7 +214,7 @@ foreach ($postsArr as $item) {
 
 	if ($eventCancelled) {
 		$rooms = "Canceled";
-	} 
+	}
 
 	$addAdultTag = in_array( "restricted", array_map( 'strtolower', $tagsArray ) ) ? " [Adult]" : "";
 

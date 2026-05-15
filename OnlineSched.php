@@ -467,9 +467,8 @@ function OnlineSched_init()
 		)
 	);
 
-	// Legacy registrations for grace period.
-	// Per OPEN_SOURCE_PLAN.md Phase 4: this entire block is removed in 1.1.0. Track as
-	// a `1.1.0-cleanup` issue the day 1.0.0 ships.
+		// Legacy registrations for grace period.
+		// Remove this block in 1.1.0 and track it as a public cleanup issue after 1.0.0 ships.
 
 	register_post_type(
 		'event_schedule',

@@ -70,7 +70,7 @@ router, and the modal layer all depend on:
 
 * `#schedule` — the main wrapper.
 * `#programming`, `#essentials`, `#hours`, `#map` — tab panes.
-* `#evt-{post_id}` — one per event row, used by deep links such as `/schedule/#evt-123`.
+* `#evt={post_id}` - one per event row, used by deep links such as `/schedule/#evt=123`.
 * `#modal-schedule`, `#login-modal`, `#info-modal`, `#android-google-calendar-modal` —
   appended to the page once per render.
 
@@ -80,9 +80,10 @@ HTML. In practice, the symptoms are:
 * Clicking an event in the second schedule opens the event modal pointing at the first
   schedule.
 * Tab clicks in the second schedule scroll the first schedule.
-* `/your-page/#evt-123` always resolves to the first schedule, regardless of which
+* `/your-page/#evt=123` always resolves to the first schedule, regardless of which
   schedule contains the event.
-* Deep links to `#hours` or `#tag-something` activate the tab in the first schedule
+* Deep links to `#hours`, `#tag=tag-slug`, or combined filters such as
+  `#tag=tag-slug&room=room-slug` activate the tab/filter state in the first schedule
   only.
 
 If a host page genuinely needs two schedule views (for example, a "today" filter and an
@@ -346,7 +347,7 @@ WHAT ALL THE TEST FILES CHECK
                       links (including the event ID in the URL)? Does
                       the copy-to-clipboard animation work? Does
                       reduced-motion accessibility skip animations?
-07 - Hash routing     Does /schedule/#hour or /schedule/#evt-123 work?
+07 - Hash routing     Does /schedule/#hour or /schedule/#evt=123 work?
 08 - Kiosk mode       Does the kiosk TV page at /kiosk-schedule/ work
                       at 1080p on Edge? Are favorites and calendar
                       buttons correctly hidden? Do search, filters,

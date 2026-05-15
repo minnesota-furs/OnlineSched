@@ -53,11 +53,11 @@ cat <<'EOF' > /tmp/horde-overdrive.php
 /* Plugin Name: Horde Overdrive */
 add_action('wp_head', function() {
     echo '<style>
-        #schedule { 
+        #schedule {
             background-color: #1a1a1a;
             color: #eee;
         }
-        .os-row.schedule-item { 
+        .os-row.schedule-item {
             background: rgba(40, 40, 40, 0.9);
             border-bottom: 1px solid #444;
         }
@@ -143,7 +143,7 @@ $base_time = time() - (12 * 3600);
 for ($i = 1; $i <= 500; $i++) {
     $is_furry = (rand(0, 1) === 0);
     $base_title = $is_furry ? $furry_titles[array_rand($furry_titles)] : $gaming_titles[array_rand($gaming_titles)];
-    
+
     $event_id = wp_insert_post([
         "post_type" => "os_event",
         "post_title" => "$base_title #$i",
@@ -153,15 +153,15 @@ for ($i = 1; $i <= 500; $i++) {
     if ($event_id) {
         wp_set_object_terms($event_id, (int)$room_ids[array_rand($room_ids)], "os_room");
         wp_set_object_terms($event_id, (int)$tag_ids[array_rand($tag_ids)], "os_tag");
-        
+
         $random_offset = rand(0, 48 * 3600);
         $sort_time = $base_time + $random_offset;
-        
+
         update_post_meta($event_id, "onlinesched_sorttime", $sort_time);
         update_post_meta($event_id, "onlinesched_timelen", 60);
         update_post_meta($event_id, "onlinesched_year", $current_year);
     }
-    
+
     if ($i % 50 === 0) {
         echo "  ... $i events unleashed.\n";
     }

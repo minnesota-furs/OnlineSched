@@ -30,11 +30,11 @@ until wp_run core is-installed 2>/dev/null; do
     echo "Timed out waiting for WP-CLI"
     exit 1
   fi
-  
+
   if wp_run core install --url="$SITE_URL" --title="OnlineSched Vanilla" --admin_user="$ADMIN_USER" --admin_password="$ADMIN_PASS" --admin_email="$ADMIN_EMAIL" --skip-email 2>/dev/null; then
     break
   fi
-  
+
   echo "  Still waiting for WordPress installation ($RETRY_COUNT/$MAX_RETRIES)..."
   sleep 5
   RETRY_COUNT=$((RETRY_COUNT + 1))

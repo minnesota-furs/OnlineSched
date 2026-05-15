@@ -1,6 +1,6 @@
 /**
  * Solo Event Block - Editor components (Native JS style).
- * 
+ *
  * @package OnlineSched
  */
 
@@ -113,7 +113,7 @@ function SoloEventEdit({ attributes, setAttributes }) {
         )
     );
 
-    const content = eventId 
+    const content = eventId
         ? el(ServerSideRender, {
             block: 'onlinesched/solo-event',
             attributes: attributes,

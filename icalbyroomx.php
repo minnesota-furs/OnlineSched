@@ -23,7 +23,7 @@ require_once('html2text/html2text.php');
  * @since          available since Release 1.0
  */
 
-/* Usage 
+/* Usage
 romm=paanel room name
 room=all all roms
 limit = 2
@@ -62,12 +62,12 @@ class iCalGen {
 		$end->setTimezone($utc);
 
 		$this->output .= 'BEGIN:VEVENT' . EOL .
-		    'DTSTART:' . $start->format(DATE_ICAL) . EOL . 
+		    'DTSTART:' . $start->format(DATE_ICAL) . EOL .
 		    'DTEND:' . $end->format(DATE_ICAL) . EOL .
 		    'SUMMARY:' . $this->escapeString($title) . EOL .
 		    'DESCRIPTION:' . str_replace(array("\n", "\r"), '', $this->escapeString($desc)) . EOL .
-		    'LOCATION:' . $this->escapeString($location) . EOL . 
-		    'UID:' . $uid  . EOL . 
+		    'LOCATION:' . $this->escapeString($location) . EOL .
+		    'UID:' . $uid  . EOL .
 		    'END:VEVENT' . EOL;
 	}
 
@@ -78,14 +78,14 @@ class iCalGen {
 		    'METHOD:PUBLISH' . EOL .
 		    'PRODID:' . $this->prodid . EOL .
 		    'X-WR-TIMEZONE:GMT' . EOL .
-		    $this->output . 
+		    $this->output .
 		    'END:VCALENDAR'. EOL;
 	}
 }
 
 $slug = $_REQUEST['room'];
 
-$args = array( 
+$args = array(
 	'post_type' => 'os_event',
 	'tax_query' => array(
 			array(
@@ -129,7 +129,7 @@ foreach ($postsArr as $item) {
 	$year = get_post_meta( $postId, 'onlinesched_year', true );
 
 	## If we are limited ($limit != -1), if we hit 0, skip remaining posts.
-	if ( $limit == 0) {		
+	if ( $limit == 0) {
 		break;
 	}
 
@@ -166,7 +166,7 @@ foreach ($postsArr as $item) {
 	$eventCancelled  = in_array( "canceled", array_map( 'strtolower', $tagsArray ) ) ? true : false;
 	if ($eventCancelled) {
 		$rooms = "Canceled";
-	} 
+	}
 
 	$addAdultTag = in_array( "restricted", array_map( 'strtolower', $tagsArray ) ) ? " [Adult]" : "";
 

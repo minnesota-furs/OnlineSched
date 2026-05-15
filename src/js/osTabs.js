@@ -14,7 +14,7 @@ export function initTabs() {
 
                 const item = tab.parentElement;
                 const isAlreadyActive = item.classList.contains('os-tabs__item--active');
-                
+
                 const targetId = tab.getAttribute('data-os-tab');
                 const paneId = tab.getAttribute('data-os-pane') || targetId;
                 const targetPane = document.getElementById(paneId);
@@ -86,7 +86,7 @@ function handleInitialHash() {
 
     const tab = document.querySelector(`[data-os-tab="${targetId}"]`);
     if (tab) {
-        // We use a small timeout to ensure all listeners are attached 
+        // We use a small timeout to ensure all listeners are attached
         // and the DOM is fully ready to be manipulated.
         setTimeout(() => {
             tab.click();

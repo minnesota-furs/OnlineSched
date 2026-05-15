@@ -11,7 +11,7 @@ test.describe('07 — Hash Routing', () => {
     await expect(page.locator(S.tabProgramming)).toBeHidden();
   });
 
-  test('#tag- hash selects matching tag in dropdown', async ({ page }) => {
+  test('#tag= hash selects matching tag in dropdown', async ({ page }) => {
     // Use the Essential tag which exists in seed data
     await page.goto('/schedule/#tag=essential');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
@@ -20,7 +20,7 @@ test.describe('07 — Hash Routing', () => {
     expect(selectedText?.toLowerCase()).toContain('essential');
   });
 
-  test('#evt- hash opens the matching event modal', async ({ page }) => {
+  test('#evt= hash opens the matching event modal', async ({ page }) => {
     // Get a valid event ID from the schedule
     await page.goto('/schedule/');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
@@ -77,7 +77,7 @@ test.describe('07 — Hash Routing', () => {
     // Verify dropdowns are set
     const selectedTag = await page.locator(`${S.selectTags} option:checked`).textContent();
     expect(selectedTag?.toLowerCase()).toContain(tagSlug);
-    
+
     const selectedRoom = await page.locator(S.selectRooms).inputValue();
     expect(selectedRoom).toBe(roomSlug);
 
@@ -93,4 +93,3 @@ test.describe('07 — Hash Routing', () => {
     }
   });
 });
-

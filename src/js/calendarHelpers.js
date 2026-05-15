@@ -1,6 +1,6 @@
 /**
  * OnlineSched Calendar Helpers - Lightweight scripts for cross-component usage.
- * 
+ *
  * @package OnlineSched
  * @author Kurst Hyperyote for Furry Migration
  */
@@ -78,7 +78,7 @@
             }
 
             const downloadUrl = rawLink.startsWith('webcal://') ? rawLink.replace('webcal://', 'https://') : rawLink;
-            
+
             // Solo cards might not have the full eventDetails logic but can still use the basic modal
             window.showAndroidGoogleCalendarModal(googleUrl, rawLink, downloadUrl, null);
             return false;

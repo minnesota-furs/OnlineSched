@@ -502,7 +502,7 @@ export function new_schedule() {
             if (this.id === 'schedule-select-days') updateHashState({ day: this.value === 'Current' ? null : this.value }, true);
             else if (this.id === 'schedule-select-tags') updateHashState({ tag: this.value === 'all' ? null : getSelectedTagRouteValue() }, true);
             else if (this.id === 'schedule-select-rooms') updateHashState({ room: this.value === 'all' ? null : this.value }, true);
-            
+
             scheduleSort();
             resetSelectTags();
             resetSelectRooms();
@@ -897,7 +897,7 @@ export function new_schedule() {
                     if ($('#schedule-select-days')) $('#schedule-select-days').value = 'all';
                     scheduleSort();
                 }
-                
+
                 let offset = eventEl.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset(true);
                 if (offset < 0) offset = 0;
                 window.scrollTo({ top: offset, behavior: 'smooth' });

@@ -1,7 +1,7 @@
 <?php
 /**
  * OnlineSched REST API Endpoints.
- * 
+ *
  * @package OnlineSched
  */
 
@@ -58,7 +58,7 @@ function onlinesched_rest_event_search( $request ) {
 		while ( $query->have_posts() ) {
 			$query->the_post();
 			$event_id = get_the_ID();
-			
+
 			// Simple list for the picker
 			$results[] = array(
 				'id'    => $event_id,
