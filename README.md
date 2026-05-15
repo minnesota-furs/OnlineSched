@@ -1,6 +1,12 @@
 # OnlineSched
 A flexible event scheduling plugin for WordPress conventions and organizations.
 
+## Dedication
+
+This project is dedicated in memory of Cyn and Snap.
+
+Both supported me during the years this tool was being built, and both helped keep me moving when the work was heavier than it looked. They are part of why this project made it across the line.
+
 **Note to the Public:** We built OnlineSched primarily for our own use at Furry Migration, but we want the world to have it as a gift! The developers of this project are open to fully supporting and helping people, with the goal of enabling other groups to have this tool. We hope everyone—both for-profit and non-profit organizations—can use this as a free solution. We are a non-profit organization and do this with volunteers. If your organization needs dedicated support above and beyond what we can provide for free, and you are not a 501(c)(3) non-profit, please reach out to discuss options.
 
 ## Installation
