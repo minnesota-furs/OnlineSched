@@ -64,6 +64,16 @@ module.exports = defineConfig({
       },
       testMatch: /15-solo-event-block\.spec\.js/,
     },
+
+    // -- High-load gaming demo build --
+    {
+      name: 'gaming-wp',
+      use: {
+        baseURL: 'http://localhost:8083',
+        viewport: { width: 1280, height: 800 },
+      },
+      testMatch: /16-gaming-demo\.spec\.js/,
+    },
   ],
   outputDir: './test-results',
   reporter: [['html', { outputFolder: './playwright-report', open: 'never' }], ['list']],
