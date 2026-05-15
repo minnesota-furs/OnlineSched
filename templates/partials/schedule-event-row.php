@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 
 $row_style = $row_highlight_color ? ' style="background-color: ' . esc_attr($row_highlight_color) . ';"' : '';
 do_action('os_before_schedule_item', get_the_ID());
-echo '<div id="onlineevt-' . get_the_ID() . '" class="os-row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-end-time="' . $sortEndTimeGMT . '"' . $addScheduleRoomData . $addScheduleTagsData . $row_style . '>';
+echo '<div id="onlineevt-' . get_the_ID() . '" class="os-row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-os-event-id="' . esc_attr(get_the_ID()) . '" data-end-time="' . $sortEndTimeGMT . '"' . $addScheduleRoomData . $addScheduleTagsData . $row_style . '>';
 
 $hiddenLg = $liveStreaming ? ' os-hide-desktop' : '';
 $titleLg = $liveStreaming ? ' os-col-lg-7' : '';
@@ -57,7 +57,7 @@ echo '<dl class="os-col-md-2 os-col-sm-3' . $hideTime . '">';
 echo '<dt><i class="far fa-clock" aria-hidden="true"></i></dt>';
 echo '<dd class="schedule-time"><span class="os-sr-only">' . date('g:i A', $sorttime) . '</span>' . esc_html($hourduration) . '</dd>';
 echo '</dl>';
-echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . ' os-hide-mobile">';
+echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . '">';
 if ($tags != 'None') {
     echo '<dt><i class="fa fa-tags" aria-hidden="true"></i></dt>';
     echo '<dd class="schedule-tags' . $filterLinkClass . '">' . $tags . '</dd>';
@@ -73,7 +73,7 @@ echo '<div class="schedule-calendar' . $hiddenLg . '">';
 if (!$eventCancelled) {
     if ($theming != "schedule") {
         $fav_icon_class = onlinesched_get_favorite_icon_classes(false);
-        echo '<button class="schedule-favorite-toggle" title="Mark as favorite" data-event-id="' . get_the_ID() . '"><i class="' . esc_attr($fav_icon_class) . '" aria-hidden="true"></i></button>';
+        echo '<button class="schedule-favorite-toggle" title="Mark as favorite" data-os-event-id="' . esc_attr(get_the_ID()) . '"><i class="' . esc_attr($fav_icon_class) . '" aria-hidden="true"></i></button>';
         $ical_base_url = ONLINESCHED_PLUGIN_URL;
         $ical_base_url = preg_replace('/^https?:\/\//', '', $ical_base_url);
         $ical_link = 'webcal://' . $ical_base_url . 'ical.php?cal-id=' . get_the_ID();

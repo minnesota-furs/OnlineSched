@@ -53,6 +53,32 @@ export function new_schedule() {
         return (text || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 
+    function getTagRouteValueFromText(text) {
+        return normalizeRouteKey(text);
+    }
+
+    function getScheduleTagItems(tagsEl) {
+        const termItems = $$('.os-term-item', tagsEl)
+            .map((termItem) => ({
+                label: termItem.textContent.trim(),
+                route: termItem.dataset.osTagRoute || getTagRouteValueFromText(termItem.textContent),
+            }))
+            .filter((tag) => tag.label);
+
+        if (termItems.length) {
+            return termItems;
+        }
+
+        return tagsEl.textContent
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean)
+            .map((tag) => ({
+                label: tag,
+                route: getTagRouteValueFromText(tag),
+            }));
+    }
+
     function getHashState() {
         const rawHash = window.location.hash.substring(1);
         if (rawHash && !rawHash.includes('=')) {
@@ -83,7 +109,7 @@ export function new_schedule() {
     function getSelectedTagRouteValue() {
         const select = $('#schedule-select-tags');
         const text = select?.options[select.selectedIndex]?.textContent?.trim();
-        return normalizeRouteKey(text);
+        return getTagRouteValueFromText(text);
     }
 
     function selectTagFromRouteValue(tagSlug) {
@@ -99,18 +125,33 @@ export function new_schedule() {
         }
     }
 
+    function normalizeEventId(eventId) {
+        return String(eventId || '').replace(/^#/, '').replace(/^onlineevt-/, '').replace(/\D/g, '');
+    }
+
+    function getEventItemById(eventId) {
+        const cleanId = normalizeEventId(eventId);
+        if (!cleanId) return null;
+
+        return document.querySelector(`[data-os-event-id="${cleanId}"]`) || document.getElementById(`onlineevt-${cleanId}`);
+    }
+
     function routeToEvent(eventId) {
-        updateHashState({ evt: eventId.replace('onlineevt-', '') }, false);
-        const item = document.getElementById(eventId.startsWith('#') ? eventId.substring(1) : eventId);
+        const cleanId = normalizeEventId(eventId);
+        if (!cleanId) return;
+
+        updateHashState({ evt: cleanId }, false);
+        const item = getEventItemById(cleanId);
         if (item) {
             let offset = item.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset(true);
             if (offset < 0) offset = 0;
             window.scrollTo({ top: offset, behavior: 'smooth' });
         }
         setTimeout(() => {
-            openEventModal(eventId);
+            openEventModal(cleanId, { writeHistory: false });
         }, 300);
     }
+    window.routeToEvent = routeToEvent;
 
     function currentStickyOffset(includeTabs = false) {
         const width = document.body ? document.body.getBoundingClientRect().width : window.innerWidth;
@@ -197,6 +238,8 @@ export function new_schedule() {
         clipObject.addEventListener('animationend', () => clipObject.classList.remove('os-copy-confirm'), { once: true });
     }
 
+    window.osShowClipboardEffect = animate_clipboard;
+
     $('#modal-copy-url')?.addEventListener('click', function (e) {
         e.preventDefault();
         navigator.clipboard?.writeText(window.location.href);
@@ -207,12 +250,14 @@ export function new_schedule() {
         button.addEventListener('click', function (e) {
             e.preventDefault();
             const item = this.closest('.schedule-item');
-            if (!item || !item.id) return;
+            if (!item) return;
 
-            const eventID = item.id.replace('onlineevt-', '');
+            const eventID = normalizeEventId(item.getAttribute('data-os-event-id') || item.id);
+            if (!eventID) return;
+
             const nextState = { ...getHashState(), evt: eventID };
             const newHash = new URLSearchParams(nextState).toString();
-            const url = window.location.origin + window.location.pathname + window.location.search + '#' + newHash;
+            const url = this.getAttribute('data-url') || (window.location.origin + window.location.pathname + window.location.search + '#' + newHash);
             navigator.clipboard?.writeText(url);
             animate_clipboard(this);
         });
@@ -247,8 +292,10 @@ export function new_schedule() {
         window.requestAnimationFrame(() => window.scrollTopMenu?.());
     });
 
-    function openEventModal(eventId) {
-        const item = document.getElementById(eventId.startsWith('#') ? eventId.substring(1) : eventId);
+    function openEventModal(eventId, options = {}) {
+        const cleanId = normalizeEventId(eventId);
+        let item = getEventItemById(cleanId);
+
         if (!item) return;
 
         if (!window.getEventDetailsFromElement) return;
@@ -260,8 +307,8 @@ export function new_schedule() {
         const title = titleLink ? titleLink.innerHTML : '';
         const description = eventDetails.description;
         const day = item.closest('.schedule-day');
-        const date = day?.querySelector('h2')?.innerHTML || '';
-        const time = item.querySelector('.schedule-time span')?.innerHTML || '';
+        const date = item.dataset.osEventDate || day?.querySelector('h2')?.innerHTML || '';
+        const time = item.dataset.osEventTime || item.querySelector('.schedule-time span')?.innerHTML || item.querySelector('.schedule-time')?.textContent?.trim() || '';
         const room = eventDetails.room;
         const tags = eventDetails.tags;
         const ical = item.querySelector('.schedule-ical')?.getAttribute('href') || '#';
@@ -272,7 +319,6 @@ export function new_schedule() {
         const badgesHtml = badges?.innerHTML || '';
 
         let isFavorite = item.getAttribute('data-favorite') === 'true';
-        const raw_id = item.getAttribute('id');
         let favBtn = '';
         if (!scheduleConfig.isKiosk && !scheduleConfig.isLive) {
             const config = window.OnlineSchedPublic || {};
@@ -299,7 +345,7 @@ export function new_schedule() {
             e.preventDefault();
             e.stopPropagation();
 
-            const mainItem = document.getElementById(raw_id);
+            const mainItem = getEventItemById(cleanId);
             const btn = mainItem?.querySelector('.schedule-favorite-toggle');
             isFavorite = !isFavorite;
 
@@ -340,19 +386,23 @@ export function new_schedule() {
         $('#modal-schedule-ical')?.setAttribute('href', ical);
         $('#modal-schedule-google')?.setAttribute('href', googleCal);
 
-        window.currentModalEventId = '#' + item.id;
+        window.currentModalEventId = cleanId;
+        if (options.writeHistory !== false && getHashState().evt !== cleanId) {
+            updateHashState({ evt: cleanId }, false);
+        }
 
         openModal('modal-schedule');
         document.getElementById('modal-schedule')?.addEventListener('close', () => {
             updateHashState({ evt: null }, true);
         }, { once: true });
     }
+    window.openEventModal = openEventModal;
 
     $$('a[data-target="#modal-schedule"]').forEach((link) => {
         link.addEventListener('click', function (ev) {
             ev.preventDefault();
             const parent = this.closest('.schedule-item');
-            if (parent) routeToEvent(parent.id);
+            if (parent) routeToEvent(parent.getAttribute('data-os-event-id') || parent.id);
         });
     });
 
@@ -391,21 +441,22 @@ export function new_schedule() {
     window.eventschedule_scheduleTags = {};
     window.eventschedule_count = 0;
 
+    $$('.schedule-tags .os-term-item').forEach((termItem) => {
+        termItem.setAttribute('role', 'button');
+        termItem.setAttribute('tabindex', '0');
+    });
+
     $$('.schedule-tags').forEach((tagsEl) => {
-        const tags = tagsEl.innerHTML.split(',').map((tag) => tag.trim());
         const item = tagsEl.closest('.schedule-item');
 
-        tags.forEach((tagHtml) => {
-            const tag = stripTags(tagHtml).trim();
-            if (!tag) return;
-
-            if (!Object.prototype.hasOwnProperty.call(window.eventschedule_scheduleTags, tag)) {
-                window.eventschedule_scheduleTags[tag] = window.eventschedule_count++;
+        getScheduleTagItems(tagsEl).forEach((tag) => {
+            if (!Object.prototype.hasOwnProperty.call(window.eventschedule_scheduleTags, tag.label)) {
+                window.eventschedule_scheduleTags[tag.label] = window.eventschedule_count++;
             }
 
             item?.setAttribute(
-                `data-schedule-tag${window.eventschedule_scheduleTags[tag]}`,
-                window.eventschedule_scheduleTags[tag]
+                `data-schedule-tag${window.eventschedule_scheduleTags[tag.label]}`,
+                window.eventschedule_scheduleTags[tag.label]
             );
         });
     });
@@ -569,6 +620,10 @@ export function new_schedule() {
         const currentDateUTC = selectedDay === 'Current' ? currentDateTimeTimestampUTC() : null;
 
         $$('.schedule-item').forEach((item) => {
+            if (item.dataset.osFallback === 'true') {
+                showElement(item);
+                return;
+            }
             let show = true;
 
             const day = item.closest('.schedule-day');
@@ -635,6 +690,32 @@ export function new_schedule() {
             $('#schedule-reset').disabled = isDefault;
         }
 
+        const visibleItems = $$('.schedule-item').filter(isVisible);
+        const scheduleEl = $('#schedule');
+
+        let emptyState = $('.os-empty-state', scheduleEl);
+        if (visibleItems.length === 0 && !isDefault) {
+            if (!emptyState) {
+                emptyState = document.createElement('div');
+                emptyState.className = 'os-empty-state';
+                emptyState.innerHTML = `
+                    <div class="os-empty-state-content">
+                        <i class="fas fa-search"></i>
+                        <p>No events found matching your filters.</p>
+                        <button type="button" class="os-reset-filters-btn">Reset Filters</button>
+                    </div>
+                `;
+                scheduleEl.appendChild(emptyState);
+
+                $('.os-reset-filters-btn', emptyState).addEventListener('click', () => {
+                    $('#schedule-reset')?.click();
+                });
+            }
+            showElement(emptyState);
+        } else {
+            hideElement(emptyState);
+        }
+
         reset_schedule(true);
         messageAtBottomForCalendar();
     }
@@ -672,11 +753,9 @@ export function new_schedule() {
         const scheduleReset = {};
         $$('.schedule-item').filter(isVisible).forEach((item) => {
             $$('.schedule-tags', item).forEach((tagsEl) => {
-                const tags = tagsEl.innerHTML.split(',').map((tag) => tag.trim());
-                tags.forEach((tagHtml) => {
-                    const tag = stripTags(tagHtml).trim();
-                    if (tag && !Object.prototype.hasOwnProperty.call(scheduleReset, tag)) {
-                        scheduleReset[tag] = tag;
+                getScheduleTagItems(tagsEl).forEach((tag) => {
+                    if (!Object.prototype.hasOwnProperty.call(scheduleReset, tag.label)) {
+                        scheduleReset[tag.label] = tag.label;
                     }
                 });
             });
@@ -786,11 +865,9 @@ export function new_schedule() {
         const state = getHashState();
         showElement($('#schedule'));
 
-        // When restoring a room filter, the room dropdown is only populated from
-        // currently-visible items. On a fresh load those are today-only events,
-        // so the target room option may not exist yet. Expand to all days first
-        // so every room slug is present in the dropdown, then apply the real state.
-        if (state.room && state.room !== 'all') {
+        // Restored tag/room dropdowns are populated from currently-visible items.
+        // On a fresh load those are today-only events, so expand to all days first.
+        if ((state.tag && state.tag !== 'all') || (state.room && state.room !== 'all')) {
             const daysSelect = $('#schedule-select-days');
             if (daysSelect) daysSelect.value = 'all';
             scheduleSort();
@@ -814,8 +891,7 @@ export function new_schedule() {
         }
 
         if (state.evt) {
-            const fullEventId = 'onlineevt-' + state.evt;
-            const eventEl = document.getElementById(fullEventId);
+            const eventEl = getEventItemById(state.evt);
             if (eventEl) {
                 if (!isVisible(eventEl)) {
                     if ($('#schedule-select-days')) $('#schedule-select-days').value = 'all';
@@ -829,10 +905,10 @@ export function new_schedule() {
                 setTimeout(() => {
                     const modal = $('#modal-schedule');
                     const isModalOpen = modal && modal.hasAttribute('open');
-                    const isSameEvent = window.currentModalEventId === '#' + fullEventId;
+                    const isSameEvent = String(window.currentModalEventId) === normalizeEventId(state.evt);
 
                     if (!isModalOpen || !isSameEvent) {
-                        openEventModal(fullEventId);
+                        openEventModal(state.evt, { writeHistory: false });
                     }
                 }, 300);
             }
@@ -864,18 +940,21 @@ export function new_schedule() {
     });
 
     document.addEventListener('click', function (e) {
-        const tags = e.target.closest('.schedule-tags.schedule-filter-link');
-        if (!tags) return;
+        const termItem = e.target.closest('.os-term-item');
+        const tagsContainer = e.target.closest('.schedule-tags.schedule-filter-link');
 
-        const tagText = e.target.textContent.trim().replace(/<\/?[^>]+(>|$)/g, '');
+        if (!termItem || !tagsContainer) return;
+
+        const tagText = termItem.textContent.trim();
         if (!tagText) return;
 
         const select = $('#schedule-select-tags');
         if (!select) return;
 
+        const tagRoute = termItem.dataset.osTagRoute || getTagRouteValueFromText(tagText);
         let matched = false;
         for (const option of select.options) {
-            if (option.textContent.trim().toLowerCase() === tagText.toLowerCase()) {
+            if (getTagRouteValueFromText(option.textContent) === tagRoute) {
                 select.value = option.value;
                 dispatchChange(select);
                 matched = true;
@@ -886,6 +965,14 @@ export function new_schedule() {
         if (matched) {
             scrollTopMenu();
         }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        const termItem = e.target.closest('.schedule-tags.schedule-filter-link .os-term-item');
+        if (!termItem || (e.key !== 'Enter' && e.key !== ' ')) return;
+
+        e.preventDefault();
+        termItem.click();
     });
 
     handleHashRouting();

@@ -184,7 +184,6 @@ foreach ( $postsArr as $item ) {
 
 	//	$det = new DateTime();
 	//$det->setTimestamp($endTime);
-	//	print_r(array($startTime, $endTime, $det, $dnt));
 
 	## If the limiting, skip any events clearly in the past
 	if ( $limit > 0 && $det < $dnt ) {

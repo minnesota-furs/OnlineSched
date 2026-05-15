@@ -18,9 +18,7 @@ module.exports = async () => {
       console.error('\n⚠️  No schedule events found! Run: npm run test:seed\n');
       process.exit(1);
     }
-    console.log(`✓ Found ${count} schedule events. Tests can proceed.`);
   } finally {
     await browser.close();
   }
 };
-

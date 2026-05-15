@@ -48,6 +48,10 @@ wp_run theme install astra --activate
 echo "Activating OnlineSched plugin..."
 wp_run plugin activate OnlineSched
 
+echo "Configuring pretty permalinks..."
+wp_run rewrite structure '/%postname%/' --hard
+wp_run rewrite flush --hard
+
 echo "Injecting Floof Overdrive (CSS & Content Fluff)..."
 cat <<'EOF' > /tmp/floof-overdrive.php
 <?php
@@ -232,6 +236,26 @@ export OS_TEST_CONTAINER="onlinesched-furry-cli"
 export OS_TEST_WP="wp --allow-root"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 "$SCRIPT_DIR/../fixtures/seed-test-events.sh" --force
+
+# Create a dedicated solo-event block demo page in the furry site too.
+SOLO_EVENT_IDS=$(wp_run post list --post_type=os_event --orderby=ID --order=ASC --post_status=publish --format=ids --posts_per_page=2)
+SOLO_EVENT_ID_ONE=$(echo "$SOLO_EVENT_IDS" | awk '{ print $1 }')
+SOLO_EVENT_ID_TWO=$(echo "$SOLO_EVENT_IDS" | awk '{ print $2 }')
+if [ -z "$SOLO_EVENT_ID_ONE" ]; then
+  echo "⚠️  No seeded os_event posts found; skipping Solo Event Block Den Demo page."
+else
+  if [ -z "$SOLO_EVENT_ID_TWO" ]; then
+    SOLO_EVENT_ID_TWO="$SOLO_EVENT_ID_ONE"
+  fi
+  SOLO_BLOCK_ONE='<!-- wp:onlinesched/solo-event {"eventId":'${SOLO_EVENT_ID_ONE}'} /-->'
+  SOLO_BLOCK_TWO='<!-- wp:onlinesched/solo-event {"eventId":'${SOLO_EVENT_ID_TWO}'} /-->'
+  SOLO_DEMO_CONTENT="<!-- wp:paragraph --><p>This page demonstrates the new Single Event block inside a furry flavored site shell.</p><!-- /wp:paragraph -->
+${SOLO_BLOCK_ONE}
+${SOLO_BLOCK_TWO}"
+
+  wp_run post create --post_type=page --post_title="Solo Event Block Den Demo" --post_name="solo-event-block-demo" \
+    --post_content="$SOLO_DEMO_CONTENT" --post_status=publish
+fi
 
 echo "✓ The Floof Den is fully fortified! Awoooo! 🐺🏁"
 echo "--------------------------------------------------"

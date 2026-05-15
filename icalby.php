@@ -195,9 +195,6 @@ foreach ($postsArr as $item) {
 	$det->setTimeZone(wp_timezone());
 	$det->setTimeZone(new DateTimeZone('UTC'));
 
-	//	var_dump(array( $endTime, $det, $dnt));
-
-
 	## If the limiting, skip any events clearly in the past
 	if ($limit > 0 && $det < $dnt) {
 		continue;

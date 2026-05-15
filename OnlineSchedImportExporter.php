@@ -505,21 +505,8 @@ function handle_os_event_csv_upload($file)
             }
 
 
-			// DO it seperate to get around some behavior that is setitng it to -99 in the db
+			// Keep the legacy row workaround and skip direct sorttime writes here.
 //            update_post_meta($event_id, 'onlinesched_sorttime', $mysql_time);
-
-//            echo "<pre>"; var_dump($post_data); echo "</pre>";
-
-// if ($name === "Salsa Dancing 101") {wp_die("end of line"); die();}
-
-
-//            echo '<pre>';
-//            var_dump(array($external_event_id, $name, $date, $time, $description, $room_type, $speakers, $length, $tags));
-//            var_dump($day_of_week, $formatted_date, $hour, $minutes, $mysql_time);
-			//           print "date object<br />";
-			//          var_dump($full_date);
-			//         echo "</pre>";
-			//         wp_die();
 
 		}
 		fclose($handle);

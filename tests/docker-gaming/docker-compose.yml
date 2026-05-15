@@ -1,0 +1,66 @@
+# @author kurst@mnfurs.org Kurst Hyperyote for Furry Migration
+# OnlineSched: Gaming Demo WordPress Environment (The Dragon's Hoard)
+# This environment tests high-load (500+ events) and empty state fallbacks.
+
+services:
+  onlinesched-gaming-db:
+    image: mariadb:10.11
+    container_name: onlinesched-gaming-db
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    networks:
+      - onlinesched-gaming-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "wordpress", "-pwordpress"]
+      timeout: 5s
+      retries: 5
+
+  onlinesched-gaming-wp:
+    image: wordpress:latest
+    container_name: onlinesched-gaming-wp
+    ports:
+      - "8083:80"
+    environment:
+      WORDPRESS_DB_HOST: onlinesched-gaming-db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp_data_gaming:/var/www/html
+      - ../..:/var/www/html/wp-content/plugins/OnlineSched:z
+    depends_on:
+      onlinesched-gaming-db:
+        condition: service_healthy
+    networks:
+      - onlinesched-gaming-net
+
+  onlinesched-gaming-cli:
+    image: wordpress:cli
+    container_name: onlinesched-gaming-cli
+    user: 0:0
+    volumes:
+      - wp_data_gaming:/var/www/html
+      - ../..:/var/www/html/wp-content/plugins/OnlineSched:z
+    environment:
+      WORDPRESS_DB_HOST: onlinesched-gaming-db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    depends_on:
+      onlinesched-gaming-db:
+        condition: service_healthy
+      onlinesched-gaming-wp:
+        condition: service_started
+    networks:
+      - onlinesched-gaming-net
+    entrypoint: ["/bin/sh", "-c", "tail -f /dev/null"]
+
+volumes:
+  wp_data_gaming:
+
+networks:
+  onlinesched-gaming-net:
+    driver: bridge

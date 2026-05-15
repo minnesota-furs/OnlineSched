@@ -51,11 +51,19 @@ wp_run core install --url="$SITE_URL" --title="OnlineSched Vanilla" --admin_user
 echo "Activating OnlineSched plugin..."
 wp_run plugin activate OnlineSched
 
+echo "Configuring pretty permalinks..."
+wp_run rewrite structure '/%postname%/' --hard
+wp_run rewrite flush --hard
+
 echo "Configuring OnlineSched pages..."
 # Create main schedule page
 SCHEDULE_PAGE_ID=$(wp_run post create --post_type=page --post_title="Schedule" --post_name="schedule" --post_status=publish --porcelain)
 wp_run post meta update $SCHEDULE_PAGE_ID _wp_page_template "page-schedule.php"
 wp_run option update onlinesched_schedule_page_id $SCHEDULE_PAGE_ID
+
+# Enable Header Flare with a custom SVG
+wp_run option update onlinesched_enable_header_flare 1
+wp_run option update onlinesched_header_flare_image "/wp-content/plugins/OnlineSched/tests/demo-assets/coyote.svg"
 
 # Create kiosk page
 KIOSK_PAGE_ID=$(wp_run post create --post_type=page --post_title="Kiosk" --post_name="kiosk-schedule" --post_status=publish --porcelain)
@@ -128,6 +136,26 @@ echo "Seeding test events..."
 # Ensure the seed script is executable
 chmod +x ../fixtures/seed-test-events.sh
 OS_TEST_CONTAINER="$CONTAINER" OS_TEST_WP="$WP" ../fixtures/seed-test-events.sh --force
+
+# Create a solo-event block demo page if seeded events are present.
+SOLO_EVENT_IDS=$(wp_run post list --post_type=os_event --orderby=ID --order=ASC --post_status=publish --format=ids --posts_per_page=2)
+SOLO_EVENT_ID_ONE=$(echo "$SOLO_EVENT_IDS" | awk '{ print $1 }')
+SOLO_EVENT_ID_TWO=$(echo "$SOLO_EVENT_IDS" | awk '{ print $2 }')
+if [ -z "$SOLO_EVENT_ID_ONE" ]; then
+  echo "⚠️  No seeded os_event posts found; skipping Solo Event Block Demo page."
+else
+  if [ -z "$SOLO_EVENT_ID_TWO" ]; then
+    SOLO_EVENT_ID_TWO="$SOLO_EVENT_ID_ONE"
+  fi
+  SOLO_BLOCK_ONE='<!-- wp:onlinesched/solo-event {"eventId":'${SOLO_EVENT_ID_ONE}'} /-->'
+  SOLO_BLOCK_TWO='<!-- wp:onlinesched/solo-event {"eventId":'${SOLO_EVENT_ID_TWO}'} /-->'
+  SOLO_DEMO_CONTENT="<!-- wp:paragraph --><p>This is a minimal single-event embed so the block can be checked without the full schedule shell.</p><!-- /wp:paragraph -->
+${SOLO_BLOCK_ONE}
+${SOLO_BLOCK_TWO}"
+
+  wp_run post create --post_type=page --post_title="Solo Event Block Demo" --post_name="solo-event-demo" \
+    --post_content="$SOLO_DEMO_CONTENT" --post_status=publish
+fi
 
 echo "✓ Vanilla seed complete!"
 echo "--------------------------------------------------"

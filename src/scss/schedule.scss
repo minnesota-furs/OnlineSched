@@ -9,6 +9,7 @@
 @use 'badges';
 @use 'tables';
 @use 'utilities';
+@use 'solo-event';
 
 // Scope all em-relative sizes inside the schedule to a predictable base.
 // Themes with a larger or smaller body font-size won't affect internal proportions.
@@ -200,9 +201,24 @@ dl.schedule-meta:after {
 
 .schedule-filter-link {
   cursor: pointer;
-  &:hover {
+
+  &:not(.schedule-tags):hover {
     text-decoration: underline;
     color: var(--os-green);
+  }
+}
+
+.schedule-tags.schedule-filter-link {
+  cursor: default;
+
+  .os-term-item {
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+      color: var(--os-green);
+      text-decoration: underline;
+    }
   }
 }
 

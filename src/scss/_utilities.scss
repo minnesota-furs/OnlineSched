@@ -61,3 +61,42 @@
   @media (min-width: $os-bp-tablet + 1) { display: inline !important; }
 }
 
+.os-empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  background: rgba(0,0,0,0.02);
+  border-radius: var(--os-radius);
+  margin-top: 20px;
+  color: var(--os-text-muted);
+
+  .os-empty-state-content {
+    i {
+      font-size: 3em;
+      margin-bottom: 20px;
+      opacity: 0.2;
+      display: block;
+    }
+
+    p {
+      font-size: 1.25em;
+      margin-bottom: 24px;
+    }
+
+    .os-reset-filters-btn {
+      background: var(--os-primary);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      font-size: 1.1em;
+
+      &:hover {
+        background: var(--os-primary-dark, #333);
+      }
+    }
+  }
+}
+

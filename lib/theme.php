@@ -39,7 +39,15 @@ function OnlineSched_terms_list($term, &$masterList = null): string
 
 	$tag_names = [];
 	foreach ($tags_arr as $tag) {
-		$tag_names[] = ($masterList === null) ? $tag : $tag->name ;
+		$name = ($masterList === null) ? $tag : $tag->name ;
+		$classes = ['os-term-item'];
+		$attrs = '';
+		if ('os_tag' === $term) {
+			$classes[] = 'os-schedule-tag';
+			$route = preg_replace('/[^a-z0-9]/', '', strtolower(remove_accents($name)));
+			$attrs .= ' data-os-tag-route="' . esc_attr($route) . '"';
+		}
+		$tag_names[] = '<span class="' . esc_attr(implode(' ', $classes)) . '"' . $attrs . '>' . esc_html($name) . '</span>';
 
 		if ($masterList !== null) {
 			$masterList[$tag->name] = $tag->slug;

@@ -86,9 +86,17 @@ function onlinesched_enqueue_schedule_assets() {
         );
     }
 
+    wp_register_script('onlinesched-calendar-helpers',
+        $plugin_url . 'build/calendar-helpers.bundle.js',
+        array(),
+        filemtime($plugin_path . 'build/calendar-helpers.bundle.js'),
+        true
+    );
+    wp_enqueue_script('onlinesched-calendar-helpers');
+
     wp_enqueue_script('online-schedule-js',
         $plugin_url . 'build/bundle.js',
-        array(),
+        array('onlinesched-calendar-helpers'),
         filemtime($plugin_path . 'build/bundle.js'),
         true
     );

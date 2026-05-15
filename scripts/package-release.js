@@ -59,8 +59,67 @@ const html2TextFiles = [
     'html2text/composer.json',
 ];
 
+const skippedSourceDirs = new Set([
+    '.git',
+    '.github',
+    'build',
+    'dist',
+    'node_modules',
+    'vendor',
+]);
+
+function isPrivatePlanningFile(filePath) {
+    const basename = path.basename(filePath);
+
+    return basename === 'OPEN_SOURCE_PLAN.md'
+        || basename === 'REFACTOR_PLAN.md'
+        || basename === 'POST_LAUNCH_CLEANUP_PLAN.md'
+        || /^PHASE_[A-Za-z0-9_.-]+\.md$/.test(basename)
+        || /^plan-[A-Za-z0-9_.-]+\.md$/.test(basename)
+        || /_PLAN\.md$/.test(basename);
+}
+
 function relativePath(fullPath) {
     return path.relative(root, fullPath).split(path.sep).join('/');
+}
+
+function findPrivatePlanningFiles(directory) {
+    const found = [];
+
+    if (!fs.existsSync(directory)) {
+        return found;
+    }
+
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const sourcePath = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+            if (skippedSourceDirs.has(entry.name)) {
+                continue;
+            }
+
+            if (
+                relativePath(sourcePath).includes('/tests/test-results/')
+                || relativePath(sourcePath).includes('/tests/playwright-report/')
+            ) {
+                continue;
+            }
+
+            found.push(...findPrivatePlanningFiles(sourcePath));
+        } else if (entry.isFile() && isPrivatePlanningFile(sourcePath)) {
+            found.push(relativePath(sourcePath));
+        }
+    }
+
+    return found;
+}
+
+function assertNoPrivatePlanningFiles(directory = root) {
+    const found = findPrivatePlanningFiles(directory);
+
+    if (found.length > 0) {
+        throw new Error(`Release cannot be packaged with private planning files in the plugin tree:\n- ${found.join('\n- ')}`);
+    }
 }
 
 function assertRequiredFiles() {
@@ -90,11 +149,15 @@ function shouldSkipDirectoryEntry(sourcePath) {
     const relative = relativePath(sourcePath);
     const basename = path.basename(sourcePath);
 
+    if (isPrivatePlanningFile(sourcePath)) {
+        return true;
+    }
+
     if (basename === '.DS_Store') {
         return true;
     }
 
-    if (basename === '.git' || basename === '.github' || basename === 'examples') {
+    if (basename === '.git' || basename === '.github' || basename === 'examples' || basename === 'docker') {
         return true;
     }
 
@@ -333,6 +396,7 @@ function zipRelease(version) {
 }
 
 function main() {
+    assertNoPrivatePlanningFiles();
     assertRequiredFiles();
     const version = readPluginVersion();
 
@@ -347,9 +411,9 @@ function main() {
     copyDirectory(path.join(root, 'build'), path.join(stagingDir, 'build'), shouldSkipBuildFile);
     html2TextFiles.forEach(copyRelativeFile);
     copyDirectory(path.join(root, 'html2text', 'src'), path.join(stagingDir, 'html2text', 'src'));
+    assertNoPrivatePlanningFiles(stagingDir);
 
     const zipPath = zipRelease(version);
-    console.log(`Packaged ${path.relative(root, zipPath)}`);
 }
 
 main();

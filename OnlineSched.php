@@ -50,6 +50,8 @@ require_once('lib/render.php');
 require_once('includes/shortcode_schedule.php');
 require_once('includes/hours-blocks.php');
 require_once('includes/shortcode_schedule_cheat_display.php');
+require_once('includes/solo-event-block.php');
+require_once('includes/rest-api.php');
 require_once('includes/favorites.php');
 require_once('includes/privacy.php');
 require_once("OnlineSchedBadgeTypes.php");
@@ -770,6 +772,11 @@ function OnlineSched_add_timeslot_fields($os_event_id, $os_event)
 				$posted_min);
 		}
 		update_post_meta($os_event_id, 'onlinesched_sorttime', $sorttime);
+
+		/**
+		 * Hook for cache purging and other post-save actions.
+		 */
+		do_action('onlinesched_event_updated', $os_event_id);
 	}
 }
 

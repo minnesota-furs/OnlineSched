@@ -181,6 +181,35 @@ test.describe('03 — Filters', () => {
     expect(totalAfter).toBeLessThanOrEqual(totalBefore);
   });
 
+  test('multi-tag event rows expose each tag as its own filter target', async ({ page }) => {
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width <= 767) return test.skip(true, 'Tags are hidden on mobile');
+
+    const multiTagItem = page.locator(`${S.scheduleItem}:visible`).filter({
+      has: page.locator('.schedule-tags .os-term-item:nth-child(2)'),
+    }).first();
+
+    if ((await multiTagItem.count()) === 0) {
+      return test.skip(true, 'No visible multi-tag event found');
+    }
+
+    const tagItems = multiTagItem.locator('.schedule-tags .os-term-item');
+    const tagCount = await tagItems.count();
+    expect(tagCount).toBeGreaterThanOrEqual(2);
+
+    const secondTag = tagItems.nth(1);
+    const tagText = (await secondTag.textContent())?.trim();
+    if (!tagText) return test.skip(true, 'Second tag text missing');
+
+    const routeValue = tagText.toLowerCase().replace(/[^a-z0-9]/g, '');
+    await secondTag.click();
+    await page.waitForTimeout(400);
+
+    const selectedText = (await page.locator(`${S.selectTags} option:checked`).textContent())?.trim();
+    expect(selectedText?.toLowerCase()).toBe(tagText.toLowerCase());
+    expect(page.url()).toContain(`tag=${routeValue}`);
+  });
+
   test('clickable room/tag links are not present on kiosk', async ({ page }) => {
     await page.goto('/kiosk-schedule/');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
@@ -191,4 +220,3 @@ test.describe('03 — Filters', () => {
     expect(filterLinks).toBe(0);
   });
 });
-

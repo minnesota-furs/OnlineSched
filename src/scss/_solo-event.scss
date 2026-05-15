@@ -1,0 +1,236 @@
+// @author Kurst Hyperyote for Furry Migration
+@use 'variables' as *;
+
+.os-solo-event-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
+  margin: 24px 0;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+  font-family: var(--os-font-family, 'Metropolis', sans-serif);
+  font-size: var(--os-font-size-base, 16px);
+  line-height: 1.5;
+  color: #333;
+
+  &.schedule-item {
+    display: block !important;
+    padding: 0;
+    margin: 32px auto;
+    border: 1px solid #e3e3e3;
+
+    &:hover {
+      background: #fff;
+    }
+  }
+
+  &.is-full-width {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  &.os-cancelled {
+    opacity: 0.8;
+    .os-solo-event-card__title a {
+      text-decoration: line-through;
+      color: var(--os-danger);
+    }
+  }
+}
+
+.os-solo-event-card__header {
+  padding: 32px 32px 14px;
+}
+
+.os-solo-event-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .schedule-favorite-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #ffc107;
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+}
+
+.os-solo-event-card__title {
+  margin: 0;
+  flex: 1;
+  font-size: 1.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  a {
+    color: var(--os-orange, #e67e22);
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.os-solo-event-card .os-solo-event-card__title {
+  font-size: 1.65rem;
+}
+
+.os-solo-event-card__body {
+  padding: 0 32px 28px;
+}
+
+.os-solo-event-card__description {
+  display: block;
+  margin-bottom: 20px;
+  line-height: 1.6;
+  color: #555;
+  font-size: 1.05rem;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.os-solo-event-card .os-solo-event-card__description {
+  display: block;
+}
+
+.os-solo-event-card__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.os-solo-event-card__meta-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #666;
+
+  i {
+    width: 16px;
+    text-align: center;
+    color: #2c3e50;
+    margin-top: 2px;
+  }
+
+  span {
+    font-weight: 500; // Refined weight
+  }
+
+  .os-term-item, .os-filter-link {
+    color: var(--os-orange, #e67e22);
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.os-solo-event-card .schedule-panelists {
+  padding-right: 0;
+}
+
+.os-solo-event-card__footer {
+  padding: 24px 32px;
+  background: #fcfcfc;
+  border-top: 1px solid #f5f5f5;
+  text-align: center; // Center alignment foundation
+}
+
+.os-solo-event-card__actions {
+  display: inline-flex; // Ensure it only takes needed width
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+
+	  .os-btn {
+	    background: #fff; // Match modal style
+	    border: 1px solid #ccc;
+	    border-radius: 4px;
+	    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 700; // Stronger weight for buttons
+	    text-transform: uppercase;
+	    color: #333;
+	    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+	    transition: all 0.2s ease;
+	    cursor: pointer;
+	    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+
+	    &:visited,
+	    &:active,
+	    &:focus {
+	      color: #333;
+	      text-decoration: none !important;
+	    }
+
+	    &:hover {
+	      background: #f8f8f8;
+	      border-color: #bbb;
+	      color: #000;
+	      text-decoration: none !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    i {
+      font-size: 1rem;
+      &.fab.fa-apple { color: #000; }
+      &.fab.fa-google { color: #4285f4; }
+      &.fas.fa-copy { color: var(--os-orange, #e67e22); }
+    }
+  }
+}
+
+// Spacing for tag list items
+.os-term-item {
+  display: inline-block;
+  margin-right: 2px;
+}
+
+// Editor placeholder styling
+.os-solo-event-placeholder {
+  padding: 40px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  text-align: center;
+  background: #f9f9f9;
+  color: #666;
+}
+
+@media (max-width: 600px) {
+  .os-solo-event-card__actions {
+    display: flex;
+    flex-direction: column;
+    .os-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}

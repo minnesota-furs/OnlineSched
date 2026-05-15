@@ -54,6 +54,16 @@ module.exports = defineConfig({
       },
       testIgnore: KIOSK_SPEC,
     },
+
+    // ── Furry demo build ──
+    {
+      name: 'furry-wp',
+      use: {
+        baseURL: 'http://localhost:8082',
+        viewport: { width: 1280, height: 800 },
+      },
+      testMatch: /15-solo-event-block\.spec\.js/,
+    },
   ],
   outputDir: './test-results',
   reporter: [['html', { outputFolder: './playwright-report', open: 'never' }], ['list']],

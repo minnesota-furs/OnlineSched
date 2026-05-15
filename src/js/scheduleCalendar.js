@@ -32,9 +32,15 @@ export function scheduleCalendar() {
         let title = el.querySelector('.schedule-title a')?.textContent?.trim() ?? '';
         let descEl = el.querySelector('.schedule-description');
         let description = descEl ? descEl.innerHTML : '';
-        let room = el.querySelector('.schedule-room')?.textContent?.trim() ?? '';
-        let tags = el.querySelector('.schedule-tags')?.textContent?.trim() ?? '';
-        let panelists = el.querySelector('.schedule-panelists')?.textContent?.trim() ?? '';
+        let roomEl = el.querySelector('.schedule-room');
+        let tagsEl = el.querySelector('.schedule-tags');
+        let panelistsEl = el.querySelector('.schedule-panelists');
+        let room = roomEl?.innerHTML?.trim() ?? '';
+        let tags = tagsEl?.innerHTML?.trim() ?? '';
+        let panelists = panelistsEl?.innerHTML?.trim() ?? '';
+        let roomText = roomEl?.textContent?.trim() ?? '';
+        let tagsText = tagsEl?.textContent?.trim() ?? '';
+        let panelistsText = panelistsEl?.textContent?.trim() ?? '';
         let endTimestamp = parseInt(el.dataset.endTime, 10);
         let durationText = el.querySelector('.schedule-time')?.textContent ?? '';
         let durationMinutes = 0;
@@ -62,9 +68,9 @@ export function scheduleCalendar() {
         let gcalEnd = formatGCalDate(endTimestamp);
         let gcalDates = gcalStart + '/' + gcalEnd;
         let gcalDetails = description ? description.replace(/<[^>]+>/g, '') : '';
-        if (panelists) gcalDetails += '\nPanelists: ' + panelists.replace(/<[^>]+>/g, '');
-        if (tags) gcalDetails += '\nTags: ' + tags.replace(/<[^>]+>/g, '');
-        let gcalLocation = room ? room.replace(/<[^>]+>/g, '') : '';
+        if (panelistsText) gcalDetails += '\nPanelists: ' + panelistsText;
+        if (tagsText) gcalDetails += '\nTags: ' + tagsText;
+        let gcalLocation = roomText;
         return {
             title, description, room, tags, panelists,
             endTimestamp, startTimestamp,

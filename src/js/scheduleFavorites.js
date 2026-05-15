@@ -19,11 +19,11 @@ export function scheduleFavorites() {
         let evtId = null;
 
         if (modalTitle) {
-            evtId = (window.currentModalEventId || '').replace('#', '');
-            mainItem = document.getElementById(evtId);
+            evtId = String(window.currentModalEventId || '').replace(/\D/g, '');
+            mainItem = document.querySelector(`[data-os-event-id="${evtId}"]`) || document.getElementById(`onlineevt-${evtId}`);
         } else {
             mainItem = btn.closest('.schedule-item');
-            evtId = mainItem?.getAttribute('id');
+            evtId = mainItem?.getAttribute('data-os-event-id') || mainItem?.getAttribute('id')?.replace('onlineevt-', '');
         }
 
         if (!mainItem || !evtId) return;
@@ -31,7 +31,7 @@ export function scheduleFavorites() {
         const newState = !isActive;
         setFavoriteState(mainItem, newState);
 
-        if ((window.currentModalEventId || '').replace('#', '') === evtId) {
+        if (String(window.currentModalEventId || '').replace(/\D/g, '') === String(evtId)) {
             const modalBtn = document.querySelector('#modal-schedule-title .schedule-favorite-toggle');
             if (modalBtn) {
                 modalBtn.classList.toggle('active', newState);
@@ -98,42 +98,51 @@ export function scheduleFavorites() {
     }
 
     function setFavoriteState(item, state) {
-        if (state) {
-            item.setAttribute('data-favorite', 'true');
-        } else {
-            item.removeAttribute('data-favorite');
-        }
+        const eventId = item.getAttribute('data-os-event-id') || item.getAttribute('id')?.replace('onlineevt-', '');
+        if (!eventId) return;
 
-        item.querySelectorAll('.schedule-favorite-toggle').forEach((button) => {
-            button.classList.toggle('active', state);
-            button.setAttribute('aria-pressed', state ? 'true' : 'false');
-            const buttonIcon = button.querySelector('i');
-            updateIconClasses(buttonIcon, state);
+        // Find all elements for this event ID (main schedule and solo cards)
+        const selector = `#onlineevt-${eventId}, [data-os-event-id="${eventId}"]`;
+        document.querySelectorAll(selector).forEach((el) => {
+            if (state) {
+                el.setAttribute('data-favorite', 'true');
+            } else {
+                el.removeAttribute('data-favorite');
+            }
+
+            el.querySelectorAll('.schedule-favorite-toggle').forEach((button) => {
+                button.classList.toggle('active', state);
+                button.setAttribute('aria-pressed', state ? 'true' : 'false');
+                const buttonIcon = button.querySelector('i');
+                updateIconClasses(buttonIcon, state);
+            });
         });
     }
 
     function clearFavoriteStates() {
         document.querySelectorAll('.schedule-item[data-favorite="true"]').forEach((item) => {
-            setFavoriteState(item, false);
+            const eventId = item.getAttribute('data-os-event-id') || item.getAttribute('id')?.replace('onlineevt-', '');
+            if (eventId) {
+                setFavoriteState(item, false);
+            }
         });
     }
 
     function applyFavoriteIds(ids) {
         clearFavoriteStates();
         normalizeFavorites(ids).forEach((id) => {
-            const item = document.getElementById('onlineevt-' + id);
-            if (item) {
+            const items = document.querySelectorAll(`#onlineevt-${id}, [data-os-event-id="${id}"]`);
+            items.forEach((item) => {
                 setFavoriteState(item, true);
-            }
+            });
         });
     }
 
     function collectFavoriteIdsFromDom() {
         const ids = [];
         document.querySelectorAll('.schedule-item[data-favorite="true"]').forEach((item) => {
-            const id = item.getAttribute('id');
-            const match = id && id.match(/onlineevt-(\d+)/);
-            if (match) ids.push(match[1]);
+            const id = item.getAttribute('data-os-event-id') || item.getAttribute('id')?.replace('onlineevt-', '');
+            if (id) ids.push(id);
         });
 
         return [...new Set(ids)];

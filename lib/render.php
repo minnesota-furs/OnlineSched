@@ -202,12 +202,12 @@ function onlinesched_render_schedule($args = array()) {
 
                     if (!$loop->have_posts()){
                         ?>
-                        <div class="schedule-day" data-schedule-num-day="1725580800" data-schedule-day="Friday, September 6">
+                        <div class="schedule-day" data-schedule-num-day="<?php echo time(); ?>" data-schedule-day="<?php echo date('l, F j', time()); ?>">
                             <h2>No date in past or future</h2>
                             <div class="schedule-hour">
                                 <h3>Out of time</h3>
-                                <div class="os-row schedule-item schedule-room-main-stage schedule-tag-essential schedule-tag-streaming"
-                                     data-end-time="1725645600" data-schedule-tag-essential="essential" data-schedule-tag-streaming="streaming" data-schedule-room-main-stage="main-stage">
+                                <div class="os-row schedule-item schedule-room-main-stage schedule-tag-essential schedule-tag-streaming os-fallback-item"
+                                     data-end-time="<?php echo time(); ?>" data-schedule-tag-essential="essential" data-schedule-tag-streaming="streaming" data-schedule-room-main-stage="main-stage" data-os-fallback="true">
                                     <div class="os-col-xs-12 schedule-title">Nothing happening. No valid entries in past or future</div>
                                 </div>
                             </div>
