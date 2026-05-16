@@ -49,7 +49,8 @@ test.describe('14 — Standalone Verification', () => {
   });
 
   test('event modal opens and closes without theme JS', async ({ page }) => {
-    await page.locator(S.scheduleTitle).first().click();
+    await page.locator(S.selectDays).selectOption({ label: 'All Days' });
+    await page.locator(`${S.scheduleItem}:visible ${S.scheduleTitle}`).first().click();
     await expect(page.locator(S.scheduleModal)).toBeVisible();
     await expect(page).toHaveURL(/evt=/);
 

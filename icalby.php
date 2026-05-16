@@ -1,11 +1,4 @@
 <?php
-/*
- * TODO:
- * - support "room=slug,slug,slug"
- * - support "tag=tag,tag,tag"
- * - support "limit=x" to show latest limits
- * - Clean code
- */
 require_once('../../../wp-load.php');
 
 require_once('html2text/html2text.php');
@@ -36,6 +29,29 @@ textlen = <number> limits description length (default 250). If textlen is 0 or n
 
 define('DATE_ICAL', 'Ymd\THis\Z');
 define('EOL', "\r\n");
+
+function onlinesched_get_request_value(array $keys) {
+	foreach ($keys as $key) {
+		if (isset($_REQUEST[$key]) && $_REQUEST[$key] !== '') {
+			if (is_array($_REQUEST[$key])) {
+				continue;
+			}
+
+			return sanitize_text_field(wp_unslash($_REQUEST[$key]));
+		}
+	}
+
+	return '';
+}
+
+function onlinesched_get_request_slugs(array $keys) {
+	$value = onlinesched_get_request_value($keys);
+	if ($value === '') {
+		return array();
+	}
+
+	return array_values(array_filter(array_map('sanitize_title', explode(',', $value))));
+}
 
 class iCalGen {
 	private $output;
@@ -104,11 +120,8 @@ $args = array(
 	'nopaging' => true
 );
 
-if (!empty($_REQUEST['room'] || !empty($_REQUEST['rooms']))) {
-
-	$raw_slug = empty($_REQUEST['room'])? $_REQUEST['rooms'] :$_REQUEST['room'];
-
-	$sanitized_slugs = array_map('sanitize_title', explode(',', $raw_slug));
+$sanitized_slugs = onlinesched_get_request_slugs(array('room', 'rooms'));
+if (!empty($sanitized_slugs)) {
 	$clean_slug = implode(',', array_filter($sanitized_slugs));
 
 
@@ -124,11 +137,8 @@ if (!empty($_REQUEST['room'] || !empty($_REQUEST['rooms']))) {
 	}
 }
 
-if (!empty($_REQUEST['tag']) || !empty($_REQUEST['tags'])) {
-
-	$raw_slug = empty($_REQUEST['tag']) ? $_REQUEST['tags'] : $_REQUEST['tag'];
-
-	$sanitized_slugs = array_map('sanitize_title', explode(',', $raw_slug));
+$sanitized_slugs = onlinesched_get_request_slugs(array('tag', 'tags'));
+if (!empty($sanitized_slugs)) {
 	$clean_slug = implode(',', array_filter($sanitized_slugs));
 
 	if (strtolower($clean_slug) !== 'all') {
@@ -151,15 +161,11 @@ if (!empty($_REQUEST['tag']) || !empty($_REQUEST['tags'])) {
 }
 
 $limit = -1;
-if (isset($_REQUEST['limit'])) {
-	$limit = intval($_REQUEST['limit']);
+if (isset($_REQUEST['limit']) && !is_array($_REQUEST['limit'])) {
+	$limit = intval(wp_unslash($_REQUEST['limit']));
 }
 $loop = new WP_Query($args);
-if (empty($loop->posts)) {
-	exit();
-}
-
-$postsArr = $loop->posts;
+$postsArr = empty($loop->posts) ? array() : $loop->posts;
 
 $dnt = new DateTime();
 $dnt->setTimestamp(current_time('timestamp', true));

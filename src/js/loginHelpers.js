@@ -12,7 +12,7 @@ export function loginHelpers() {
         var left = (screen.width / 2) - (w / 2), top = (screen.height / 2) - (h / 2);
         var win = window.open(url, 'onlinesched_login', 'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left + ',resizable,scrollbars');
         if (!win) {
-            alert('Popup blocked! Please allow popups for this site to log in.');
+            window.location.href = url;
         }
         return false;
     }
@@ -28,15 +28,7 @@ export function loginHelpers() {
         var left = (screen.width / 2) - (w / 2), top = (screen.height / 2) - (h / 2);
         var win = window.open(url, 'onlinesched_logout', 'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left + ',resizable,scrollbars');
         if (!win) {
-            alert('Popup blocked! Please allow popups for this site to log out.');
-            // Clear login state if popup blocked
-            if (window.ONLINESCHED_USER) {
-                window.ONLINESCHED_USER.loggedIn = false;
-                window.ONLINESCHED_USER.provider = '';
-                window.ONLINESCHED_USER.favoritesToken = '';
-            }
-            if (typeof updateLoginLogoutUI === 'function') updateLoginLogoutUI();
-            window.location.reload();
+            window.location.href = url;
         } else {
             // Poll for window close, then reload
             var pollTimer = window.setInterval(function () {

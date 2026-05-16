@@ -2,7 +2,6 @@
  * OnlineSched Calendar Helpers - Lightweight scripts for cross-component usage.
  *
  * @package OnlineSched
- * @author Kurst Hyperyote for Furry Migration
  */
 
 (function(window) {

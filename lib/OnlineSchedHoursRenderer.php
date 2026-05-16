@@ -7,7 +7,6 @@
  * @copyright  2016-2026 Original Authors
  * @license    GPL-2.0-or-later
  *
- * Revised by: Kurst Hyperyote for Furry Migration
  */
 
 if (!defined('ABSPATH')) {

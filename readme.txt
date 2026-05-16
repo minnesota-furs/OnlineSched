@@ -56,6 +56,26 @@ No. Credentials must be entered in the Social Login admin page or provided by pr
 
 Yes. Go to Event Scheduling → Event Settings → Colors in the WordPress admin. Every color the plugin uses has a picker there.
 
+= Does OnlineSched provide calendar feed URLs? =
+
+Yes. OnlineSched includes public read-only calendar endpoints for external calendar clients and displays.
+
+Single event ICS:
+
+    /wp-content/plugins/OnlineSched/ical.php?cal-id=123
+
+Filtered schedule ICS:
+
+    /wp-content/plugins/OnlineSched/icalby.php?room=main-stage
+    /wp-content/plugins/OnlineSched/icalby.php?tag=essentials
+    /wp-content/plugins/OnlineSched/icalby.php?room=main-stage,panel-room-a&tag=essentials&limit=10&textlen=300
+
+JSON room feed:
+
+    /wp-content/plugins/OnlineSched/json.php?room=main-stage
+
+Use room and tag slugs, not display names. Calendar clients may cache feeds, so the website schedule is always the most current source for last-minute changes.
+
 = Can I override the schedule templates? =
 
 Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a matching path in your theme under an onlinesched/ folder. For example, to override the tab bar, create: your-theme/onlinesched/partials/schedule-tabs.php. The full list of overridable partials is in the README on GitHub.

@@ -52,5 +52,5 @@ smoke tests while developing and save the full suite for phase/release sign-off.
 
 ## Attribution
 
-Original authors stay credited. Recent cleanup and refactor work should be credited as revised
-by Kurst Hyperyote for Furry Migration where appropriate.
+Original authors stay credited. Recent cleanup and refactor work should be credited to
+the project contributors where appropriate.

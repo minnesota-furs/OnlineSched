@@ -103,30 +103,81 @@ The dedicated page-template path (assigning the "Online Schedule" template to a 
 has the same constraint for the same reason — only one schedule lives in the DOM at a
 time.
 
-## Migrating Legacy Furry Migration Hours
+## Calendar Feeds and External Endpoints
 
-This section is only for Furry Migration's old ACF-powered Hours of Operations page.
-Fresh OnlineSched installs should use the native **Hours of Operations** block directly.
+OnlineSched exposes public read-only endpoints for calendar clients, kiosks, signage,
+and other external displays. These endpoints return events from the configured schedule
+year only.
 
-Before removing the old theme renderer from a production site, migrate the configured
-Hours page to native OnlineSched blocks:
+### Single Event ICS
 
-```bash
-docker exec fm-php bash -c "cd /var/www/html && wp --allow-root onlinesched migrate-hours --dry-run"
-docker exec fm-php bash -c "cd /var/www/html && wp --allow-root onlinesched migrate-hours --backup"
+Use this when you need one event as an `.ics` file:
+
+```text
+/wp-content/plugins/OnlineSched/ical.php?cal-id=123
 ```
 
-To target a specific page first, pass the page ID:
+Parameters:
 
-```bash
-docker exec fm-php bash -c "cd /var/www/html && wp --allow-root onlinesched migrate-hours 2207 --dry-run"
-docker exec fm-php bash -c "cd /var/www/html && wp --allow-root onlinesched migrate-hours 2207 --backup"
+* `cal-id` - WordPress post ID for an `os_event`.
+
+### Filtered Schedule ICS
+
+Use this for full-schedule or filtered calendar subscriptions:
+
+```text
+/wp-content/plugins/OnlineSched/icalby.php
+/wp-content/plugins/OnlineSched/icalby.php?room=main-stage
+/wp-content/plugins/OnlineSched/icalby.php?tag=essentials
+/wp-content/plugins/OnlineSched/icalby.php?room=main-stage,panel-room-a&tag=essentials&limit=10&textlen=300
+/wp-content/plugins/OnlineSched/icalby.php?room=all
+/wp-content/plugins/OnlineSched/icalby.php?tag=all&textlen=0
 ```
 
-The `--backup` flag stores the previous page content in
-`_onlinesched_hours_premigration`. The migration preserves existing intro copy, removes the
-old `[hours_of_operations]` shortcode, and appends the native Hours block. Do not delete old
-ACF post meta until the schedule Hours tab has been checked on desktop and mobile.
+Parameters:
+
+* `room` or `rooms` - one or more `os_room` slugs, comma separated. Use `all` for all rooms.
+* `tag` or `tags` - one or more `os_tag` slugs, comma separated. Use `all` for all tags.
+* `limit` - maximum number of upcoming events to include.
+* `textlen` - maximum description length. Default is `250`; use `0` or a negative value for full descriptions.
+
+Cancelled events are included with `STATUS:CANCELLED`.
+
+### Room JSON
+
+Use this for signage or lightweight displays that need event data as JSON:
+
+```text
+/wp-content/plugins/OnlineSched/json.php?room=main-stage
+/wp-content/plugins/OnlineSched/json.php?programming=1
+/wp-content/plugins/OnlineSched/json.php?gaming=1
+```
+
+Parameters:
+
+* `room` - one `os_room` slug. Defaults to `main-stage`.
+* `programming=1` - returns the configured programming room group.
+* `gaming=1` - returns the configured gaming/non-programming room group.
+
+The room groups can be customized with the `os_json_room_groups` filter.
+
+### Finding Slugs
+
+Room and tag filter values use WordPress term slugs, not display names. For example, a
+room named `Main Stage` may have the slug `main-stage`.
+
+Admins can place this shortcode on a private utility page to show current endpoint
+examples and copyable room/tag slugs:
+
+```text
+[ical_schedule_cheat_display]
+```
+
+### Feed Caching
+
+Calendar clients control how often they refresh subscriptions. Apple, Google, Outlook,
+and other clients may cache feeds for hours or longer. The schedule page is always the
+most current source when last-minute changes matter.
 
 ## First-Time Setup
 

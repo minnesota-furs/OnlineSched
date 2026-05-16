@@ -1,11 +1,4 @@
 <?php
-/*
- * TODO:
- * - Location/Room Name is broke
-  * - support "room=slug,slug,slug"
- * - Clean code
- * merge with ical code
- */
 require_once( '../../../wp-load.php' );
 
 /*
@@ -32,7 +25,17 @@ gaming=shows all room not programming, consuite, etc
  */
 
 
-$slug = empty($_REQUEST['room']) ? 'main-stage' : $_REQUEST['room'];
+function onlinesched_json_sanitize_slugs($slugs) {
+	if (!is_array($slugs)) {
+		$slugs = array($slugs);
+	}
+
+	return array_values(array_filter(array_map('sanitize_title', $slugs)));
+}
+
+$slug = isset($_REQUEST['room']) && $_REQUEST['room'] !== '' && !is_array($_REQUEST['room'])
+	? sanitize_title(wp_unslash($_REQUEST['room']))
+	: 'main-stage';
 $request = '';
 if (!empty($_REQUEST['programming'] )) {
 	$request = 'programming';
@@ -42,78 +45,87 @@ if (!empty($_REQUEST['programming'] )) {
 
 $args = array(
 	'post_type' => 'os_event',
-	'tax_query' => array(
-		array(
-			'taxonomy' => 'os_room',
-			'field'    => 'slug',
-			'terms'    => $slug,
-		)
-	),
-#	'orderby' => 'title',		## XX Think this is wrong
 	'meta_key'  => 'onlinesched_sorttime',
 	'orderby'   => 'meta_value',
 	'order'     => 'ASC',
 	'nopaging'  => true
 );
 
+if (strtolower($slug) !== 'all' && empty($request)) {
+    $args['tax_query'] = array(
+        array(
+            'taxonomy' => 'os_room',
+            'field'    => 'slug',
+            'terms'    => $slug,
+        )
+    );
+}
+
 if ( $request == 'programming') {
-
 	unset ( $args['tax_query'] );
-	$slug              = array(
-		'mainstage',
-		'panel-room-a',
-		'panel-room-b',
-		'regency',
-		'special-events',
-		'workshop-room',
-		'youth-programming',
-		'flex-space',
-		'main-stage',
-		'greenway-aandb',
-		'greenway-f',
-		'greenway-g',
-		'greenway-h',
-		'greenway-iandj',
-		'lakeshore',
-		'flex-space',
+	$groups = apply_filters('os_json_room_groups', array(
+		'programming' => array(
+			'mainstage',
+			'panel-room-a',
+			'panel-room-b',
+			'regency',
+			'special-events',
+			'workshop-room',
+			'youth-programming',
+			'flex-space',
+			'main-stage',
+			'greenway-aandb',
+			'greenway-f',
+			'greenway-g',
+			'greenway-h',
+			'greenway-iandj',
+			'lakeshore',
+			'flex-space',
+		)
+	));
 
-	);
+	$slug = $groups['programming'] ?? array();
+	$slug = onlinesched_json_sanitize_slugs($slug);
+
 	$args['tax_query'] = array(
 		array(
 			'taxonomy' => 'os_room',
 			'field'    => 'slug',
 			'terms'    => $slug,
 			'operator' => 'IN'
-
 		)
 	);
-
 }
 
 if ( $request == 'gaming') {
-
 	unset ( $args['tax_query'] );
-	$slug              = array(
-		'mainstage',
-		'panel-room-a',
-		'panel-room-b',
-		'regency',
-		'special-events',
-		'workshop-room',
-		'youth-programming',
-		'main-stage',
-		'greenway-aandb',
-		'greenway-f',
-		'greenway-g',
-		'greenway-h',
-		'greenway-iandj',
-		'lakeshore',
-		'flex-space',
-		'art-jam',
-		'consuite',
-		'room-party',
-		'registration'
-	);
+	$groups = apply_filters('os_json_room_groups', array(
+		'gaming_exclude' => array(
+			'mainstage',
+			'panel-room-a',
+			'panel-room-b',
+			'regency',
+			'special-events',
+			'workshop-room',
+			'youth-programming',
+			'main-stage',
+			'greenway-aandb',
+			'greenway-f',
+			'greenway-g',
+			'greenway-h',
+			'greenway-iandj',
+			'lakeshore',
+			'flex-space',
+			'art-jam',
+			'consuite',
+			'room-party',
+			'registration'
+		)
+	));
+
+	$slug = $groups['gaming_exclude'] ?? array();
+	$slug = onlinesched_json_sanitize_slugs($slug);
+
 	$args['tax_query'] = array(
 		'relation' => 'AND',
 		array(
@@ -121,30 +133,22 @@ if ( $request == 'gaming') {
 			'field'    => 'slug',
 			'terms'    => $slug,
 			'operator' => 'NOT IN'
-
 		),
 		array(
 			'taxonomy' => 'os_tag',
 			'field'    => 'slug',
 			'terms'    => 'open-gaming',
 			'operator' => 'NOT IN',
-
 		)
 	);
-
 }
 
-$limit = - 1;
-$limit = 1; // One back now
-if ( isset( $_REQUEST['limit'] ) ) {
-	$limit = intval( $_REQUEST['limit'] );
+$limit = -1;
+if ( isset( $_REQUEST['limit'] ) && ! is_array( $_REQUEST['limit'] ) ) {
+	$limit = intval( wp_unslash( $_REQUEST['limit'] ) );
 }
 $loop = new WP_Query( $args );
-if ( empty( $loop->posts ) ) {
-	exit();
-}
-
-$postsArr = $loop->posts;
+$postsArr = empty( $loop->posts ) ? array() : $loop->posts;
 
 $dnt = new DateTime();
 $dnt->setTimestamp(current_time('timestamp', true));

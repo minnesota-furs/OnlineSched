@@ -1,4 +1,3 @@
-// @author Kurst Hyperyote for Furry Migration
 import { openModal, closeModal } from './osModal.js';
 
 export function rewriteGoogleCalendarUrlForAndroid(url) {

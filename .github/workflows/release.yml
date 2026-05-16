@@ -1,8 +1,19 @@
 name: Release
 
 on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag to publish, such as v1.0.0. Defaults to the current ref name.'
+        required: false
   release:
     types: [published]
+
+permissions:
+  contents: write
 
 jobs:
   package:
@@ -37,4 +48,5 @@ jobs:
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
           files: dist/OnlineSched-*.zip

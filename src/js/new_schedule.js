@@ -940,11 +940,15 @@ export function new_schedule() {
     });
 
     document.addEventListener('click', function (e) {
-        const termItem = e.target.closest('.os-term-item');
+        const clickedTermItem = e.target.closest('.os-term-item');
         const tagsContainer = e.target.closest('.schedule-tags.schedule-filter-link');
 
-        if (!termItem || !tagsContainer) return;
+        if (!tagsContainer) return;
 
+        const termItem = clickedTermItem || tagsContainer.querySelector('.os-term-item');
+        if (!termItem) return;
+
+        e.preventDefault();
         const tagText = termItem.textContent.trim();
         if (!tagText) return;
 

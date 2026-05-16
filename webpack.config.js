@@ -27,7 +27,7 @@ module.exports = {
         assetFilter: (assetFilename) => !/\.(?:woff2?|ttf|eot|svg)$/i.test(assetFilename),
     },
 
-    devtool: 'source-map',
+    devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
 
     resolve: {
         extensions: ['.js', '.jsx', '.css', '.scss', '.sass'],

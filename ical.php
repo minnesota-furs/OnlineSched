@@ -85,13 +85,9 @@ class iCalGen {
 	}
 }
 
-//$table = TablePress::$controller->model_table->load( 3 );
-
-//$list = explode(",", $_GET['uuid']);
-
-// XXX - No validation check on $_GET/$list
-
-$id = intval($_REQUEST['cal-id']);
+$id = isset($_REQUEST['cal-id']) && !is_array($_REQUEST['cal-id'])
+	? absint(wp_unslash($_REQUEST['cal-id']))
+	: 0;
 if ($id <= 0 ) {
 	exit();
 }

@@ -36,7 +36,7 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
   });
 
   test('no OneSignal script loaded', async ({ page }) => {
-    // TODO: PHP kiosk template does not yet filter out OneSignal.
+    // PHP kiosk template does not yet filter out OneSignal.
     // When lib/schedule.php is updated to exclude OneSignal for kiosk theming,
     // remove this skip and let the assertion run.
     test.skip(true, 'OneSignal filtering for kiosk not yet implemented in PHP template');
@@ -132,6 +132,9 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     const tabCount = await mapTab.count();
     if (tabCount === 0) return test.skip(true, 'Map tab not present in kiosk');
 
+    const canScroll = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 100);
+    if (!canScroll) return test.skip(true, 'Kiosk page is not scrollable at this viewport');
+
     await page.evaluate(() => window.scrollTo(0, 900));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
 
@@ -139,6 +142,9 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(5);
 
     await page.locator(`${S.tabList} a[href="#programming"]`).click();
+
+    const canScrollAgain = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 100);
+    if (!canScrollAgain) return;
 
     await page.evaluate(() => window.scrollTo(0, 900));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);

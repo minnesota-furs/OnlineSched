@@ -1,7 +1,6 @@
 /**
  * Release packager for OnlineSched.
  *
- * Revised by: Kurst Hyperyote for Furry Migration
  */
 
 const fs = require('fs');
@@ -74,6 +73,9 @@ function isPrivatePlanningFile(filePath) {
     return basename === 'OPEN_SOURCE_PLAN.md'
         || basename === 'REFACTOR_PLAN.md'
         || basename === 'POST_LAUNCH_CLEANUP_PLAN.md'
+        || basename === 'PHASE_12_POST_LAUNCH_CLEANUP.md'
+        || basename === 'PHASE_13_DISTRO_CLEANUP.md'
+        || basename === 'PHASE_10_SCENT_TRAIL.md'
         || /^PHASE_[A-Za-z0-9_.-]+\.md$/.test(basename)
         || /^plan-[A-Za-z0-9_.-]+\.md$/.test(basename)
         || /_PLAN\.md$/.test(basename);
@@ -148,6 +150,7 @@ function shouldSkipBuildFile(sourcePath) {
 function shouldSkipDirectoryEntry(sourcePath) {
     const relative = relativePath(sourcePath);
     const basename = path.basename(sourcePath);
+    const pathParts = relative.split('/');
 
     if (isPrivatePlanningFile(sourcePath)) {
         return true;
@@ -169,13 +172,16 @@ function shouldSkipDirectoryEntry(sourcePath) {
         'phpunit.xml',
         'ISSUE_TEMPLATE.md',
         'PULL_REQUEST_TEMPLATE.md',
+        'google_test.php',
+        'icalbyroomx.php',
+        'icalbyroom-backup.php',
     ].includes(basename)) {
         return true;
     }
 
-    return relative.includes('/tests/')
-        || relative.includes('/test-results/')
-        || relative.includes('/playwright-report/');
+    return pathParts.includes('tests')
+        || pathParts.includes('test-results')
+        || pathParts.includes('playwright-report');
 }
 
 function copyFile(source, destination) {

@@ -160,13 +160,16 @@ class OS_Migration {
             }
             error_log("OnlineSched migration: updated capabilities on roles");
 
-            // Step 5: Mark migration complete
+            // Step 5: Broad cleanup of any remaining legacy caps on ALL roles
+            self::cleanup_legacy_caps();
+
+            // Step 6: Mark migration complete
             update_option('onlinesched_db_version', self::TARGET_VERSION);
 
             $wpdb->query('COMMIT');
             error_log("OnlineSched migration: completed successfully to version " . self::TARGET_VERSION);
 
-            // Step 6: Flush rewrite rules (must run after commit)
+            // Step 7: Flush rewrite rules (must run after commit)
             flush_rewrite_rules();
 
         } catch (Throwable $e) {
@@ -174,6 +177,41 @@ class OS_Migration {
             error_log("OnlineSched migration FAILED: " . $e->getMessage());
             // Do NOT update onlinesched_db_version on failure — let maybe_migrate() try
             // again on the next admin pageload after the underlying issue is fixed.
+        }
+    }
+
+    /**
+     * Iterates through all roles and removes any capability starting with legacy prefixes.
+     * Phase 12: Sterile Scour.
+     */
+    public static function cleanup_legacy_caps() {
+        global $wp_roles;
+        if (!isset($wp_roles)) {
+            $wp_roles = new WP_Roles();
+        }
+
+        $legacy_prefixes = array(
+            'manage_event_schedule_',
+            'edit_event_schedule_',
+            'delete_event_schedule_',
+            'assign_event_schedule_',
+        );
+
+        foreach ($wp_roles->roles as $role_name => $role_info) {
+            $role = get_role($role_name);
+            if (!$role) {
+                continue;
+            }
+
+            foreach ($role->capabilities as $cap => $granted) {
+                foreach ($legacy_prefixes as $prefix) {
+                    if (strpos($cap, $prefix) === 0) {
+                        $role->remove_cap($cap);
+                        error_log("OnlineSched migration: removed legacy cap {$cap} from role {$role_name}");
+                        break;
+                    }
+                }
+            }
         }
     }
 }

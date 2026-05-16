@@ -1,10 +1,4 @@
 <?php
-/*
- * TODO:
- * - Location/Room Name is broke
- * - support "room=slug,slug,slug"
- * - Clean code
- */
 
 /**
  * Full Content Template

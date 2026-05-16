@@ -57,7 +57,7 @@ echo '<dl class="os-col-md-2 os-col-sm-3' . $hideTime . '">';
 echo '<dt><i class="far fa-clock" aria-hidden="true"></i></dt>';
 echo '<dd class="schedule-time"><span class="os-sr-only">' . date('g:i A', $sorttime) . '</span>' . esc_html($hourduration) . '</dd>';
 echo '</dl>';
-echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . '">';
+echo '<dl class="os-col-md-2 os-col-sm-3 os-hide-mobile' . $hiddenLg . '">';
 if ($tags != 'None') {
     echo '<dt><i class="fa fa-tags" aria-hidden="true"></i></dt>';
     echo '<dd class="schedule-tags' . $filterLinkClass . '">' . $tags . '</dd>';

@@ -1,4 +1,3 @@
-// @author Kurst Hyperyote for Furry Migration
 
 export function openModal(id) {
     const el = document.getElementById(id);

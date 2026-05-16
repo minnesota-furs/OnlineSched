@@ -1,6 +1,6 @@
 <?php
 // Shortcode: [ical_schedule_cheat_display]
-// Outputs a cheat sheet for iCal endpoints and parameters
+// Outputs a reference for iCal endpoints and parameters
 add_shortcode('ical_schedule_cheat_display', function() {
     // Enqueue the stylesheet only when shortcode is used
 	wp_enqueue_style( 'online-schedule-css', plugin_dir_url(__DIR__)."build/main.css", array(),   filemtime(plugin_dir_path(__DIR__)."build/main.css"));
@@ -47,7 +47,7 @@ add_shortcode('ical_schedule_cheat_display', function() {
     ob_start();
     ?>
     <div class="ical-cheat-sheet">
-        <h2>iCal Cheat Sheet</h2>
+        <h2>Calendar Feed Reference</h2>
         <h3>Endpoints</h3>
         <ul>
             <li><strong>All Events:</strong> <code><?php echo esc_html($icalby_url); ?></code> <br><em>Returns all events. Supports filtering by room, tag, and limit.</em></li>
