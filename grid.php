@@ -70,7 +70,7 @@ while ( $loop->have_posts() ) : $loop->the_post();
 			$dayofweek = $newdayofweek;
 			$hour = "none";
 
-			echo '<div class="os_dow">Events & Panels: ' . $dayofweek  . '</div>';
+			echo '<div class="os_dow">Events & Panels: ' . esc_html($dayofweek)  . '</div>';
 		}
 
 		$newhour = date('h:i A', $sorttime);
@@ -81,7 +81,7 @@ while ( $loop->have_posts() ) : $loop->the_post();
 		
 
 		echo '<div class="os_room">' . $rooms . '</div>';
-		echo '<div class="os_title">' . get_the_title(get_the_ID()) . '</div>';
+		echo '<div class="os_title">' . esc_html(get_the_title(get_the_ID())) . '</div>';
 		echo '<div class="os_timelen"><span class="os_timelen_label">Length:</span> ' . esc_html(get_post_meta(get_the_ID(), 'onlinesched_timelen', true)) . ' Min(s)</div>';
 		if ($tags != "None") {
 			echo '<div class="os_tag"><span class="os_tag_label">Tag(s):</span> ' . $tags . '</div>';
@@ -89,7 +89,7 @@ while ( $loop->have_posts() ) : $loop->the_post();
 		if ($panelists != "None") {
 		    	echo '<div class="os_panelist">' . $panelists . '<div>';
 		}
-		echo '<div class="os_desc">' .  get_the_content() . '</div>';
+		echo '<div class="os_desc">' . wp_kses_post(apply_filters('the_content', get_the_content())) . '</div>';
 		echo '<br/>';
 	}
 endwhile;

@@ -52,6 +52,10 @@ To keep the bundle but switch to a different font, override the CSS variable ins
 
 No. Credentials must be entered in the Social Login admin page or provided by private constants. No login providers appear on a fresh install until credentials are configured.
 
+= How do favorites work without logging in? =
+
+Visitors can star events without logging in. Logged-out favorites are stored only in that visitor's browser as local schedule state, are not private account data, and are not synced to the server. If Social Login is configured and the visitor logs in, OnlineSched ties synced favorites to the active OAuth session and merges the local browser favorites into that server-side favorite list. Logging out ends the synced session while the local browser favorites feature continues to work.
+
 = Can I change the colors without editing CSS? =
 
 Yes. Go to Event Scheduling → Event Settings → Colors in the WordPress admin. Every color the plugin uses has a picker there.

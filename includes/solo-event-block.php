@@ -129,7 +129,7 @@ function onlinesched_render_solo_event_block( $attributes ) {
 		<div class="os-solo-event-card__body">
 			<?php if ( ! $data['is_cancelled'] && ! empty( $data['description'] ) ) : ?>
 				<div class="os-solo-event-card__description schedule-description">
-					<?php echo $data['description']; ?>
+					<?php echo wp_kses_post( $data['description'] ); ?>
 				</div>
 			<?php endif; ?>
 
@@ -145,19 +145,19 @@ function onlinesched_render_solo_event_block( $attributes ) {
 				<?php if ( ! empty( $data['rooms'] ) ) : ?>
 					<div class="os-solo-event-card__meta-item">
 						<i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-						<span class="schedule-room"><?php echo $data['rooms']; ?></span>
+						<span class="schedule-room"><?php echo wp_kses_post( $data['rooms'] ); ?></span>
 					</div>
 				<?php endif; ?>
 				<?php if ( ! empty( $data['panelists'] ) ) : ?>
 					<div class="os-solo-event-card__meta-item">
 						<i class="fas fa-users" aria-hidden="true"></i>
-						<span class="schedule-panelists"><?php echo ! is_wp_error( $data['panelists'] ) ? $data['panelists'] : ''; ?></span>
+						<span class="schedule-panelists"><?php echo ! is_wp_error( $data['panelists'] ) ? esc_html( $data['panelists'] ) : ''; ?></span>
 					</div>
 				<?php endif; ?>
 				<?php if ( ! empty( $data['tags'] ) ) : ?>
 					<div class="os-solo-event-card__meta-item">
 						<i class="fas fa-tags" aria-hidden="true"></i>
-						<span class="schedule-tags"><?php echo $data['tags']; ?></span>
+						<span class="schedule-tags"><?php echo wp_kses_post( $data['tags'] ); ?></span>
 					</div>
 				<?php endif; ?>
 			</div>

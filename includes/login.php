@@ -157,6 +157,27 @@ if (!function_exists('onlinesched_login_render_popup_response')) {
 	}
 }
 
+if (!function_exists('onlinesched_login_expire_identifier_cookie')) {
+	function onlinesched_login_expire_identifier_cookie()
+	{
+		if (headers_sent()) {
+			return;
+		}
+
+		setcookie(
+			'onlinesched_identifier',
+			'',
+			array(
+				'expires' => time() - 3600,
+				'path' => '/',
+				'secure' => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Lax',
+			)
+		);
+	}
+}
+
 $config = [
     'callback' =>  $plugin_url,
     'providers' => $social_config['providers'],
@@ -198,25 +219,14 @@ try {
 			$adapter = $hybridauth->getAdapter($resolved_logout);
 			$adapter->disconnect();
 
-			global $wpdb;
-			$table_name = $wpdb->prefix . 'onlinesched_favorites';
-			// Try to get identifier from session or cookiee
-			$provider_db = strtolower($resolved_logout);
-			$identifier_db = isset($_COOKIE['onlinesched_identifier']) ? sanitize_text_field(wp_unslash($_COOKIE['onlinesched_identifier'])) : '';
-			// don't delete the entry in db for logout
-			//		if ($identifier_db) {
-			//		$wpdb->delete($table_name, array('provider' => $provider_db, 'identifier' => $identifier_db));
-			//	}
-
-			// --- Clear session and identifier cookie ---
-			if (isset($_SESSION['provider'])) unset($_SESSION['provider']);
-			if (function_exists('onlinesched_clear_favorites_session_token')) {
-				onlinesched_clear_favorites_session_token();
+			if (function_exists('onlinesched_clear_favorites_session_identity')) {
+				onlinesched_clear_favorites_session_identity();
+			} else {
+				unset($_SESSION['provider'], $_SESSION['onlinesched_identifier'], $_SESSION['onlinesched_favorites_token']);
 			}
-			setcookie('onlinesched_identifier', '', time() - 3600, '/');
+			onlinesched_login_expire_identifier_cookie();
 
-			$logout_script = "document.cookie = 'schedule_favorites=; Max-Age=0; path=/; SameSite=Lax';\n";
-			$logout_script .= "document.cookie = 'onlinesched_identifier=; Max-Age=0; path=/; SameSite=Lax';\n";
+			$logout_script = "document.cookie = 'onlinesched_identifier=; Max-Age=0; path=/; SameSite=Lax';\n";
 			onlinesched_login_render_popup_response(
 				'Logged out',
 				'Logout complete. This window should close automatically.',
@@ -266,19 +276,23 @@ try {
 			'photoURL' => strtok($userProfile->photoURL, '?'),
 		];
 
-		// --- Set session and cookie for AJAX login state ---
-		$_SESSION['provider'] = $provider;
+		$provider_db = strtolower(sanitize_key($provider));
+		$identifier_db = sanitize_text_field($userProfile->email ? $userProfile->email : $userProfile->identifier);
+
+		if (function_exists('onlinesched_set_favorites_session_identity')) {
+			onlinesched_set_favorites_session_identity($provider_db, $identifier_db);
+		} else {
+			$_SESSION['provider'] = $provider_db;
+			$_SESSION['onlinesched_identifier'] = $identifier_db;
+		}
 		if (function_exists('onlinesched_rotate_favorites_session_token')) {
 			onlinesched_rotate_favorites_session_token();
 		}
-		$identifier_db = sanitize_text_field($userProfile->email ? $userProfile->email : $userProfile->identifier);
-		setcookie('onlinesched_identifier', $identifier_db, time() + 60*60*24*30, '/');
+		onlinesched_login_expire_identifier_cookie();
 
 		// --- FAVORITES SYNC LOGIC ---
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'onlinesched_favorites';
-		$provider_db = strtolower($provider);
-		$identifier_db = sanitize_text_field($userProfile->email ? $userProfile->email : $userProfile->identifier);
 		// Update last_logged_in timestamp
 		$row = $wpdb->get_row($wpdb->prepare(
 			"SELECT * FROM $table_name WHERE provider = %s AND identifier = %s",
@@ -307,20 +321,10 @@ try {
 			);
 		}
 
-		$favorites = $row && function_exists('onlinesched_sanitize_favorites')
-			? onlinesched_sanitize_favorites($row->favorites)
-			: array();
-		$success_script = 'var serverFavorites = ' . wp_json_encode($favorites) . ";\n";
-		$success_script .= "try {\n";
-		$success_script .= "  if (serverFavorites.length && window.opener && !window.opener.closed && window.opener.setFavoritesCookie) {\n";
-		$success_script .= "    window.opener.setFavoritesCookie(serverFavorites);\n";
-		$success_script .= "  }\n";
-		$success_script .= "} catch (e) {}\n";
 		onlinesched_login_render_popup_response(
 			'Login complete',
 			'Login complete. This window should close automatically.',
-			$schedule_url,
-			$success_script
+			$schedule_url
 		);
 		exit;
 	}

@@ -67,6 +67,33 @@ function onlinesched_clear_favorites_session_token()
     }
 }
 
+function onlinesched_set_favorites_session_identity($provider, $identifier)
+{
+    onlinesched_maybe_start_session();
+
+    $provider = strtolower(sanitize_key($provider));
+    $identifier = sanitize_text_field($identifier);
+
+    if ('' === $provider || '' === $identifier) {
+        unset($_SESSION['provider'], $_SESSION['onlinesched_identifier']);
+        return false;
+    }
+
+    $_SESSION['provider'] = $provider;
+    $_SESSION['onlinesched_identifier'] = $identifier;
+
+    return true;
+}
+
+function onlinesched_clear_favorites_session_identity()
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        unset($_SESSION['provider'], $_SESSION['onlinesched_identifier']);
+    }
+
+    onlinesched_clear_favorites_session_token();
+}
+
 function onlinesched_verify_favorites_session_token($token = null)
 {
     onlinesched_maybe_start_session();
@@ -86,22 +113,19 @@ function onlinesched_verify_favorites_session_token($token = null)
 
 function onlinesched_get_favorites_identity()
 {
+    onlinesched_maybe_start_session();
+
     $social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
     $valid_providers = array_map('strtolower', array_keys((array) ($social_config['providers'] ?? array())));
 
-    $identifier = isset($_COOKIE['onlinesched_identifier'])
-        ? sanitize_text_field(wp_unslash($_COOKIE['onlinesched_identifier']))
+    $provider = isset($_SESSION['provider']) && !is_array($_SESSION['provider'])
+        ? strtolower(sanitize_key(wp_unslash($_SESSION['provider'])))
+        : '';
+    $identifier = isset($_SESSION['onlinesched_identifier']) && !is_array($_SESSION['onlinesched_identifier'])
+        ? sanitize_text_field(wp_unslash($_SESSION['onlinesched_identifier']))
         : '';
 
-    if (!$identifier) {
-        return new WP_Error('onlinesched_no_identity', 'No OnlineSched social-login identity is active.');
-    }
-
-    onlinesched_maybe_start_session();
-
-    $provider = isset($_SESSION['provider']) ? strtolower(sanitize_key(wp_unslash($_SESSION['provider']))) : '';
-
-    if (!$provider || !in_array($provider, $valid_providers, true)) {
+    if (!$provider || !$identifier || !in_array($provider, $valid_providers, true)) {
         return new WP_Error('onlinesched_no_identity', 'No OnlineSched social-login identity is active.');
     }
 

@@ -2,6 +2,7 @@
 require_once('../../../wp-load.php');
 
 require_once('html2text/html2text.php');
+require_once('lib/ical.php');
 /**
  * Full Content Template
  *
@@ -27,7 +28,6 @@ limit = 2 limits to the newest 2.
 textlen = <number> limits description length (default 250). If textlen is 0 or negative, shows full description.
 */
 
-define('DATE_ICAL', 'Ymd\THis\Z');
 define('EOL', "\r\n");
 
 function onlinesched_get_request_value(array $keys) {
@@ -62,11 +62,6 @@ class iCalGen {
         $this->prodid = function_exists('onlinesched_get_ical_prodid') ? onlinesched_get_ical_prodid() : '-//OnlineSched//Event Schedule//EN';
     }
 
-	private function escapeString($string) {
-		return preg_replace('/([\,;])/','\\\$1', $string);
-	}
-
-	// categories need to be pre-escaped otherwise could be double escpaed wrong
 	function add($uid,
 		     $startTime,
 		     $endTime,
@@ -75,26 +70,23 @@ class iCalGen {
 		     $desc,
 			 $categories,
 			     $cancelled) {
-		$start = new DateTime();
-		$start->setTimestamp(strtotime($startTime));
+		$start = new DateTime('@' . absint($startTime));
 		$utc = new DateTimeZone('UTC');
 		$start->setTimezone($utc);
 
-		$end = new DateTime();
-		$end->setTimestamp(strtotime($endTime));
-		$utc = new DateTimeZone('UTC');
+		$end = new DateTime('@' . absint($endTime));
 		$end->setTimezone($utc);
 
 		$this->output .= 'BEGIN:VEVENT' . EOL .
-			"DTSTAMP:" . gmdate(DATE_ICAL) . "\r\n" .
-		    'DTSTART:' . $start->format(DATE_ICAL) . EOL .
-		    'DTEND:' . $end->format(DATE_ICAL) . EOL .
-		    'SUMMARY:' . $this->escapeString($title) . EOL .
-		    'DESCRIPTION:' . str_replace(array("\n", "\r"), '', $this->escapeString($desc)) . EOL .
-		    'LOCATION:' . $this->escapeString($location) . EOL .
-			'CATEGORIES:'. $categories. EOL .
-			"STATUS:" . ($cancelled ? 'CANCELLED' : 'CONFIRMED') . "\r\n" .
-		    'UID:' . $uid  . EOL .
+			onlinesched_ical_line('DTSTAMP', gmdate(ONLINESCHED_ICAL_DATE_FORMAT), false) .
+		    onlinesched_ical_line('DTSTART', $start->format(ONLINESCHED_ICAL_DATE_FORMAT), false) .
+		    onlinesched_ical_line('DTEND', $end->format(ONLINESCHED_ICAL_DATE_FORMAT), false) .
+		    onlinesched_ical_line('SUMMARY', $title) .
+		    onlinesched_ical_line('DESCRIPTION', $desc) .
+		    onlinesched_ical_line('LOCATION', $location) .
+			onlinesched_ical_line('CATEGORIES', $categories, false) .
+			onlinesched_ical_line('STATUS', ($cancelled ? 'CANCELLED' : 'CONFIRMED'), false) .
+		    onlinesched_ical_line('UID', $uid, false) .
 		    'END:VEVENT' . EOL;
 	}
 
@@ -103,7 +95,7 @@ class iCalGen {
 		    'VERSION:2.0'. EOL .
 		    'CALSCALE:GREGORIAN' . EOL .
 		    'METHOD:PUBLISH' . EOL .
-		    'PRODID:' . $this->prodid . EOL .
+		    onlinesched_ical_line('PRODID', $this->prodid, false) .
 		    'X-WR-TIMEZONE:GMT' . EOL .
 		    $this->output .
 		    'END:VCALENDAR'. EOL;
@@ -189,19 +181,19 @@ foreach ($postsArr as $item) {
 	}
 
 	## Figure out Times
-	$startTime = intval(get_post_meta($postId, 'onlinesched_sorttime', true));
-	$duration = intval(get_post_meta($postId, 'onlinesched_timelen', true));
+	$startTimeRaw = get_post_meta($postId, 'onlinesched_sorttime', true);
+	if (!is_numeric($startTimeRaw)) {
+		continue;
+	}
+
+	$durationRaw = get_post_meta($postId, 'onlinesched_timelen', true);
+	$startTime = intval($startTimeRaw);
+	$duration = (is_numeric($durationRaw) && intval($durationRaw) >= 0) ? intval($durationRaw) : 0;
 	$endTime = $startTime + ($duration * 60);
 
-	$dst = new DateTime('@'.$startTime);
-	$dst->setTimeZone(wp_timezone());
-	$dst->setTimeZone(new DateTimeZone('UTC'));
-
-	$det = new DateTime('@'.$endTime);
-	$det->setTimeZone(wp_timezone());
-	$det->setTimeZone(new DateTimeZone('UTC'));
-
 	## If the limiting, skip any events clearly in the past
+	$det = new DateTime('@'.$endTime);
+	$det->setTimeZone(new DateTimeZone('UTC'));
 	if ($limit > 0 && $det < $dnt) {
 		continue;
 	}
@@ -239,32 +231,17 @@ foreach ($postsArr as $item) {
 	} // If textlen is -1, show full description
 
 	$iCal->add('onlinesched-'.$postId,
-		   $dst->format("m/d/Y H:i"),
-		   $det->format("m/d/Y H:i"),
+		   $startTime,
+		   $endTime,
 		   $rooms,
 		   html_entity_decode($item->post_title . $addAdultTag),
 		   $content,
-		   getEscapedCategoriesForICal($postId, 'os_tag'),
+		   onlinesched_ical_categories($postId, 'os_tag'),
 		$eventCancelled
 	);
 }
 
-header('Content-type: text/calendar');
+header('Content-Type: text/calendar; charset=UTF-8');
 $filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
-header('Content-Disposition: attachment; filename="' . $filename_prefix . $filename . '.ics"');
+header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename_prefix . $filename . '.ics') . '"');
 echo $iCal->display();
-
-function getEscapedCategoriesForICal($post_id, $tag = 'os_tag') {
-	// Get the terms for the specified custom taxonomy
-	$terms = wp_get_post_terms($post_id, $tag, array('fields' => 'names'));
-
-	// Escape commas in each term name
-	$escapedCategories = array_map(function($term) {
-		preg_replace('/([\,;])/','\\\$1', $term);
-		$term = html_entity_decode($term);
-		return str_replace(',', '\,', $term);
-	}, $terms);
-
-	// Join categories into a single string separated by commas
-	return implode(',', $escapedCategories);
-}

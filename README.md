@@ -143,6 +143,17 @@ Parameters:
 
 Cancelled events are included with `STATUS:CANCELLED`.
 
+## Favorites and Privacy
+
+Visitors can star events without logging in. Those logged-out favorites are stored only
+in that visitor's browser as local schedule state, are not private account data, and are
+not synced to the server. They can be changed by anyone using the same browser profile.
+
+If Social Login is configured and the visitor logs in, OnlineSched ties synced favorites
+to the active OAuth session and merges the browser-local favorites into that server-side
+favorite list. Logging out ends the synced session; the local browser favorites feature
+continues to work without requiring login.
+
 ### Room JSON
 
 Use this for signage or lightweight displays that need event data as JSON:

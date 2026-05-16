@@ -46,7 +46,7 @@ foreach ($badge_types_present as $type => $terms) {
 
 $badgeSpans = apply_filters('os_event_badge_html', $badgeSpans, get_the_ID());
 
-echo '<div class="os-col-md-3 os-col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule">' . get_the_title(get_the_ID()) . '</a>' . $badgeSpans . '</div>';
+echo '<div class="os-col-md-3 os-col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule">' . esc_html(get_the_title(get_the_ID())) . '</a>' . $badgeSpans . '</div>';
 echo '<hr class="visible-sm">';
 $filterLinkClass = ($theming != 'schedule') ? ' schedule-filter-link' : '';
 echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . '">';
@@ -78,9 +78,9 @@ if (!$eventCancelled) {
         $ical_base_url = preg_replace('/^https?:\/\//', '', $ical_base_url);
         $ical_link = 'webcal://' . $ical_base_url . 'ical.php?cal-id=' . get_the_ID();
         echo '<button title="copy to clipboard" class="schedule-clipboard"><i class="fas fa-copy" aria-hidden="true"></i></button>';
-        echo '<a href="' . $ical_link . '" title="Add to Apple Calendar" class="schedule-ical" target="_blank" onclick="return confirmCalendarAppleSubscription(this);"><i class="fab fa-apple" aria-hidden="true"></i></a>';
+        echo '<a href="' . esc_url($ical_link) . '" title="Add to Apple Calendar" class="schedule-ical" target="_blank" onclick="return confirmCalendarAppleSubscription(this);"><i class="fab fa-apple" aria-hidden="true"></i></a>';
         $googleLink = 'https://calendar.google.com/calendar/r?cid=' . urlencode($ical_link);
-        echo '<a href="' . $googleLink . '" title="Add to Google Calendar" class="schedule-google" target="_blank" onclick="return confirmCalendarGoogleSubscription(this);"><i class="fab fa-google" aria-hidden="true"></i></a>';
+        echo '<a href="' . esc_url($googleLink) . '" title="Add to Google Calendar" class="schedule-google" target="_blank" onclick="return confirmCalendarGoogleSubscription(this);"><i class="fab fa-google" aria-hidden="true"></i></a>';
     }
 }
 echo '</div>';
@@ -92,7 +92,7 @@ if (!$eventCancelled) {
     }
 
 
-    echo '<div class="schedule-description">' . $eventDescription . '</div>';
+    echo '<div class="schedule-description">' . wp_kses_post($eventDescription) . '</div>';
 }
 
 echo '</div>';
