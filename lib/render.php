@@ -82,10 +82,13 @@ function onlinesched_render_schedule($args = array()) {
 
         // If it's not the dedicated page, we might want to skip printing h1/content here
         // But for now we stick to the structure that was in page-schedule.php
-        if (is_page() && !has_shortcode(get_post()->post_content, 'onlinesched_schedule')) {
+        $current_post = get_post();
+        if ($current_post instanceof WP_Post && is_page() && !has_shortcode($current_post->post_content, 'onlinesched_schedule')) {
             echo '<h1>' . esc_html(get_the_title()) . '</h1>';
-            if (has_excerpt()) {
-                echo '<p class="os-lead">' . esc_html(get_the_excerpt()) . '</p>';
+            if (has_excerpt($current_post)) {
+                $allowed_intro_html = wp_kses_allowed_html('post');
+                $allowed_intro_html['style'] = array();
+                echo '<div class="os-lead">' . wp_kses(get_the_excerpt($current_post), $allowed_intro_html) . '</div>';
             }
             edit_post_link(__('Edit', 'onlinesched'), '<div class="edit-link">', '</div>');
         }

@@ -47,7 +47,7 @@ foreach ($badge_types_present as $type => $terms) {
 $badgeSpans = apply_filters('os_event_badge_html', $badgeSpans, get_the_ID());
 
 echo '<div class="os-col-md-3 os-col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule">' . esc_html(get_the_title(get_the_ID())) . '</a>' . $badgeSpans . '</div>';
-echo '<hr class="visible-sm">';
+echo '<hr class="os-schedule-separator-sm">';
 $filterLinkClass = ($theming != 'schedule') ? ' schedule-filter-link' : '';
 echo '<dl class="os-col-md-2 os-col-sm-3' . $hiddenLg . '">';
 echo '<dt><i class="fa ' . $roomClassMarker . '" aria-hidden="true"></i></dt>';
