@@ -65,20 +65,13 @@ onlinesched_ical_line('UID', $uid, false) .
 	}
 
 	function display() {
-		return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n".
-	/* Disabled for one event */
-			/* "X-WR-CALNAME:" . 
-		    $this->calname . "\nX-WR-CALDESC:Event Calendar\n" . */
-		    "CALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n" .
-		    onlinesched_ical_line('PRODID', $this->prodid, false) . "X-WR-TIMEZONE:GMT\r\n" .
-		    $this->output . "END:VCALENDAR\r\n";
+		return onlinesched_ical_calendar_header() . $this->output . onlinesched_ical_calendar_footer();
 	}
 }
 
 function onlinesched_ical_send_response($body, $filename)
 {
-	header('Content-Type: text/calendar; charset=UTF-8');
-	header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+	onlinesched_ical_send_headers($filename);
 	echo $body;
 	exit;
 }
@@ -131,7 +124,7 @@ if ($eventCancelled) {
 
 $content = convert_html_to_text($_post->post_content);
 
-$iCal->add('onlinesched-'.$id,
+$iCal->add(onlinesched_ical_uid($id),
 	   $startTime,
 	   $endTime,
 	   //	   date("m/d/Y H:i", $endTime),

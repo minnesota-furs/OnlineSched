@@ -25,6 +25,50 @@ function onlinesched_ical_sanitize_raw_value($value)
     return preg_replace('/[\r\n\x00-\x1F\x7F]/', '', (string) $value);
 }
 
+function onlinesched_ical_timezone_id()
+{
+    $timezone = get_option('timezone_string');
+    if (!is_string($timezone) || '' === trim($timezone)) {
+        $timezone = 'UTC';
+    }
+
+    return apply_filters('os_ical_timezone', $timezone);
+}
+
+function onlinesched_ical_calendar_name()
+{
+    if (function_exists('onlinesched_get_calendar_name')) {
+        return onlinesched_get_calendar_name();
+    }
+
+    $site_name = get_bloginfo('name');
+
+    return $site_name ? $site_name : 'OnlineSched';
+}
+
+function onlinesched_ical_calendar_description()
+{
+    return apply_filters('os_ical_calendar_description', 'Event Schedule');
+}
+
+function onlinesched_ical_uid($post_id, $context = 'event')
+{
+    $host = wp_parse_url(home_url('/'), PHP_URL_HOST);
+    $host = is_string($host) ? strtolower(preg_replace('/[^a-z0-9.-]/i', '', $host)) : '';
+    if ('' === $host) {
+        $host = 'onlinesched.local';
+    }
+
+    $prefix = apply_filters('os_ical_uid_prefix', 'os-');
+    $prefix = preg_replace('/[^a-z0-9._-]/i', '', (string) $prefix);
+    $prefix = '' !== $prefix ? $prefix : 'os-';
+
+    $context = sanitize_key($context);
+    $context = '' !== $context ? $context : 'event';
+
+    return $prefix . $context . '-' . absint($post_id) . '@' . $host;
+}
+
 function onlinesched_ical_escape_text($value)
 {
     $charset = get_option('blog_charset') ?: 'UTF-8';
@@ -88,15 +132,37 @@ function onlinesched_ical_categories($post_id, $taxonomy = 'os_tag')
     return implode(',', array_map('onlinesched_ical_escape_text', $terms));
 }
 
-function onlinesched_ical_empty_calendar()
+function onlinesched_ical_calendar_header($calendar_name = '')
 {
     $prodid = function_exists('onlinesched_get_ical_prodid') ? onlinesched_get_ical_prodid() : '-//OnlineSched//Event Schedule//EN';
+    $calendar_name = '' !== (string) $calendar_name ? $calendar_name : onlinesched_ical_calendar_name();
+    $calendar_description = onlinesched_ical_calendar_description();
+    $timezone = onlinesched_ical_timezone_id();
 
     return 'BEGIN:VCALENDAR' . ONLINESCHED_ICAL_EOL .
         'VERSION:2.0' . ONLINESCHED_ICAL_EOL .
         'CALSCALE:GREGORIAN' . ONLINESCHED_ICAL_EOL .
         'METHOD:PUBLISH' . ONLINESCHED_ICAL_EOL .
         onlinesched_ical_line('PRODID', $prodid, false) .
-        'X-WR-TIMEZONE:GMT' . ONLINESCHED_ICAL_EOL .
-        'END:VCALENDAR' . ONLINESCHED_ICAL_EOL;
+        onlinesched_ical_line('NAME', $calendar_name) .
+        onlinesched_ical_line('X-WR-CALNAME', $calendar_name) .
+        onlinesched_ical_line('X-WR-CALDESC', $calendar_description) .
+        onlinesched_ical_line('X-WR-TIMEZONE', $timezone, false);
+}
+
+function onlinesched_ical_calendar_footer()
+{
+    return 'END:VCALENDAR' . ONLINESCHED_ICAL_EOL;
+}
+
+function onlinesched_ical_empty_calendar()
+{
+    return onlinesched_ical_calendar_header() . onlinesched_ical_calendar_footer();
+}
+
+function onlinesched_ical_send_headers($filename)
+{
+    header('Content-Type: text/calendar; charset=UTF-8; method=PUBLISH');
+    header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 }

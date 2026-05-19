@@ -143,6 +143,13 @@ Parameters:
 
 Cancelled events are included with `STATUS:CANCELLED`.
 
+ICS output uses UTC `DTSTART`/`DTEND` values with trailing `Z`, CRLF line endings,
+folded content lines, `METHOD:PUBLISH`, and `text/calendar; method=PUBLISH` response
+headers for broad compatibility with Google Calendar/Gmail, Outlook, Microsoft 365,
+Apple Calendar, and Android calendar apps. Calendar metadata includes the configured
+calendar name and the site's WordPress timezone. Event UIDs are generated as globally
+scoped values using the site host.
+
 ## Favorites and Privacy
 
 Visitors can star events without logging in. Those logged-out favorites are stored only
@@ -390,6 +397,9 @@ The plugin fires these actions and filters so themes and other plugins can exten
 | `os_event_badge_html` | filter | Filters the badge HTML for a row, receives `($html, $post_id)` |
 | `os_render_schedule_args` | filter | Filters the full args array before rendering |
 | `os_sticky_offsets` | filter | Array of sticky pixel offsets for the tab bar; use this if your theme has a sticky header |
+| `os_ical_uid_prefix` | filter | Prefix for generated iCal event UIDs; defaults to `os-` |
+| `os_ical_timezone` | filter | Calendar metadata timezone; defaults to the site's named WordPress timezone or `UTC` |
+| `os_ical_calendar_description` | filter | Description used in iCal calendar metadata |
 | `os_kiosk_head_styles` | filter | Array of stylesheet URLs injected into the kiosk page `<head>` |
 | `onlinesched_load_fontawesome` | filter | Return `false` to skip loading the plugin's Font Awesome bundle |
 | `onlinesched_load_fonts` | filter | Return `false` to skip loading the plugin's Metropolis font bundle |

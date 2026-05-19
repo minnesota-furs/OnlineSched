@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -88,11 +88,17 @@ Sites can define named JSON groups with the os_json_room_groups filter. The comp
 
 Calendar clients may cache feeds, so the website schedule is always the most current source for last-minute changes.
 
+ICS feeds use UTC event timestamps, CRLF line endings, folded content lines, METHOD:PUBLISH, and text/calendar response headers for compatibility with Google Calendar/Gmail, Outlook, Microsoft 365, Apple Calendar, and Android calendar apps. Calendar metadata includes the configured calendar name and the site's WordPress timezone.
+
 = Can I override the schedule templates? =
 
 Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a matching path in your theme under an onlinesched/ folder. For example, to override the tab bar, create: your-theme/onlinesched/partials/schedule-tabs.php. The full list of overridable partials is in the README on GitHub.
 
 == Changelog ==
+
+= 1.1.0 =
+
+Post-launch cleanup release.
 
 = 1.0.0 =
 
