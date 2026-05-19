@@ -67,9 +67,9 @@ class OnlineSchedEventViewModel {
 		$this->data['rooms'] = $this->get_linked_terms( 'os_room', $schedule_url, '#room-' );
 		$this->data['tags'] = $this->get_linked_terms( 'os_tag', $schedule_url, '#tag-' );
 
-		// Panelists: Plain text to avoid 404 links to non-existent archive pages
+		// Panelists: Plain text to avoid 404 links to non-existent archive pages.
 		$panelist_terms = wp_get_post_terms( $this->id, 'os_panelist' );
-		$this->data['panelists'] = ! is_wp_error( $panelist_terms ) ? implode( ', ', wp_list_pluck( $panelist_terms, 'name' ) ) : '';
+		$this->data['panelists'] = $this->format_term_list( $panelist_terms );
 
 		// Status checks from event tags to avoid false positives.
 		$tag_objects = wp_get_post_terms( $this->id, 'os_tag' );
@@ -89,20 +89,39 @@ class OnlineSchedEventViewModel {
 	 */
 	protected function get_linked_terms( $taxonomy, $base_url, $hash_prefix ) {
 		$terms = wp_get_post_terms( $this->id, $taxonomy );
+		return $this->format_term_list( $terms, $base_url, $hash_prefix );
+	}
+
+	/**
+	 * Format terms as inline units so separators stay attached when text wraps.
+	 */
+	protected function format_term_list( $terms, $base_url = '', $hash_prefix = '' ) {
 		if ( is_wp_error( $terms ) || empty( $terms ) ) {
 			return '';
 		}
 
-		$links = [];
-		foreach ( $terms as $term ) {
-			$links[] = sprintf(
-				'<a href="%s" class="os-filter-link">%s</a>',
-				esc_url( $base_url . $hash_prefix . $term->slug ),
-				esc_html( $term->name )
-			);
+		$items = [];
+		$term_count = count( $terms );
+		foreach ( $terms as $index => $term ) {
+			$attrs = ' data-os-term-label="' . esc_attr( $term->name ) . '"';
+			if ( 'os_tag' === $term->taxonomy ) {
+				$attrs .= ' data-os-tag-route="' . esc_attr( preg_replace( '/[^a-z0-9]/', '', strtolower( remove_accents( $term->name ) ) ) ) . '"';
+			}
+
+			$label = esc_html( $term->name );
+			if ( '' !== $base_url ) {
+				$label = sprintf(
+					'<a href="%s" class="os-filter-link">%s</a>',
+					esc_url( $base_url . $hash_prefix . $term->slug ),
+					$label
+				);
+			}
+
+			$separator = ( $index < $term_count - 1 ) ? '<span class="os-term-separator" aria-hidden="true">,</span>' : '';
+			$items[] = '<span class="os-term-item"' . $attrs . '>' . $label . $separator . '</span>';
 		}
 
-		return implode( ', ', $links );
+		return implode( ' ', $items );
 	}
 
 	/**

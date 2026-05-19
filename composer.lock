@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9d79cb572f7041049ec346877697ee4c",
+    "content-hash": "8310acafb8d63abae48e60e7cc7a54c5",
     "packages": [
         {
             "name": "hybridauth/hybridauth",

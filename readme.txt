@@ -77,8 +77,16 @@ Filtered schedule ICS:
 JSON room feed:
 
     /wp-content/plugins/OnlineSched/json.php?room=main-stage
+    /wp-content/plugins/OnlineSched/json.php?rooms=main-stage,panel-room-a
+    /wp-content/plugins/OnlineSched/json.php?tag=essential
+    /wp-content/plugins/OnlineSched/json.php?room=all
+    /wp-content/plugins/OnlineSched/json.php?group=programming
 
-Use room and tag slugs, not display names. Calendar clients may cache feeds, so the website schedule is always the most current source for last-minute changes.
+The JSON feed is meant for signs, lobby screens, static pages, and other lightweight displays. Use room and tag slugs, not display names. A positive limit value returns up to that many upcoming events.
+
+Sites can define named JSON groups with the os_json_room_groups filter. The compatibility URLs programming=1 and gaming=1 use the programming and gaming group keys. If a requested group is not configured, OnlineSched returns an empty JSON array instead of guessing.
+
+Calendar clients may cache feeds, so the website schedule is always the most current source for last-minute changes.
 
 = Can I override the schedule templates? =
 

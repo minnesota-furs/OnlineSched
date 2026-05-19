@@ -60,7 +60,7 @@ export function new_schedule() {
     function getScheduleTagItems(tagsEl) {
         const termItems = $$('.os-term-item', tagsEl)
             .map((termItem) => ({
-                label: termItem.textContent.trim(),
+                label: (termItem.dataset.osTermLabel || termItem.textContent.replace(/,\s*$/, '')).trim(),
                 route: termItem.dataset.osTagRoute || getTagRouteValueFromText(termItem.textContent),
             }))
             .filter((tag) => tag.label);
@@ -949,7 +949,7 @@ export function new_schedule() {
         if (!termItem) return;
 
         e.preventDefault();
-        const tagText = termItem.textContent.trim();
+        const tagText = (termItem.dataset.osTermLabel || termItem.textContent.replace(/,\s*$/, '')).trim();
         if (!tagText) return;
 
         const select = $('#schedule-select-tags');

@@ -154,23 +154,84 @@ to the active OAuth session and merges the browser-local favorites into that ser
 favorite list. Logging out ends the synced session; the local browser favorites feature
 continues to work without requiring login.
 
-### Room JSON
+### JSON Feed
 
-Use this for signage or lightweight displays that need event data as JSON:
+OnlineSched includes a small public JSON feed for signs, lobby screens, static pages,
+and other lightweight displays that need schedule data without loading the full
+interactive schedule.
+
+Examples:
 
 ```text
 /wp-content/plugins/OnlineSched/json.php?room=main-stage
+/wp-content/plugins/OnlineSched/json.php?rooms=main-stage,panel-room-a
+/wp-content/plugins/OnlineSched/json.php?tag=essential
+/wp-content/plugins/OnlineSched/json.php?room=all
+/wp-content/plugins/OnlineSched/json.php?group=programming
 /wp-content/plugins/OnlineSched/json.php?programming=1
 /wp-content/plugins/OnlineSched/json.php?gaming=1
 ```
 
 Parameters:
 
-* `room` - one `os_room` slug. Defaults to `main-stage`.
-* `programming=1` - returns the configured programming room group.
-* `gaming=1` - returns the configured gaming/non-programming room group.
+* `room` or `rooms` - one or more `os_room` slugs, comma separated. Defaults to `main-stage`. Use `all` to include every room.
+* `tag` or `tags` - one or more `os_tag` slugs, comma separated. Use `all` to include every tag.
+* `group` - a named room/tag group configured by your theme or custom plugin.
+* `programming=1` - compatibility shortcut for `group=programming`.
+* `gaming=1` - compatibility shortcut for `group=gaming`.
+* `limit` - when set to a positive number, returns up to that many upcoming events. When omitted, the feed returns events for the active schedule year.
 
-The room groups can be customized with the `os_json_room_groups` filter.
+Each item contains:
+
+* `room` - the room name text.
+* `title` - the event title. Restricted events include ` [Adult]` for display compatibility.
+* `startTime` - the event start time in the site's WordPress timezone.
+* `description` - the event description with normal post HTML sanitized.
+
+Room and tag values are WordPress term slugs, not display names. For example, a room
+named `Main Stage` may have the slug `main-stage`.
+
+#### JSON Groups
+
+Groups let a site keep short, readable feed URLs for signs and external displays.
+OnlineSched does not ship organization-specific groups by default. If a group is
+requested but not configured, the feed returns an empty JSON array instead of guessing.
+
+Add groups from a theme or small site plugin with the `os_json_room_groups` filter:
+
+```php
+add_filter(
+	'os_json_room_groups',
+	function ( $groups ) {
+		$groups['programming'] = array(
+			'rooms' => array(
+				'main-stage',
+				'panel-room-a',
+				'panel-room-b',
+				'workshop-room',
+			),
+		);
+
+		$groups['gaming'] = array(
+			'exclude_rooms' => array(
+				'main-stage',
+				'panel-room-a',
+				'panel-room-b',
+				'registration',
+			),
+			'exclude_tags' => array(
+				'open-gaming',
+			),
+		);
+
+		return $groups;
+	}
+);
+```
+
+The available group keys are up to your site. For example, a site could use
+`group=dealers`, `group=main-events`, or `group=kids-track` as long as those keys are
+registered through the filter.
 
 ### Finding Slugs
 

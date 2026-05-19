@@ -57,7 +57,6 @@ require_once('includes/privacy.php');
 require_once("OnlineSchedBadgeTypes.php");
 require_once('OnlineSchedEssentials.php');
 require_once('OnlineSchedSocialLogin.php');
-require_once('includes/class-os-migration.php');
 
 // Define Actions
 add_action('init', 'OnlineSched_init');
@@ -78,8 +77,6 @@ add_filter('post_row_actions', 'OnlineSched_remove_row_actions', 10, 2);
 register_activation_hook(__FILE__, 'OnlineSched_plugin_activate');
 register_activation_hook(__FILE__, 'onlinesched_create_favorites_table');
 register_activation_hook(__FILE__, 'onlinesched_auto_detect_pages');
-register_activation_hook(__FILE__, array('OS_Migration', 'maybe_migrate'));
-add_action('admin_init', array('OS_Migration', 'maybe_migrate'));
 //
 // Changing Taxonomy - If change update all the dates
 //
@@ -321,7 +318,6 @@ function OnlineSched_columns_content($column, $post_ID)
 	}
 }
 
-
 function OnlineSched_init()
 {
 	register_post_type(
@@ -463,152 +459,6 @@ function OnlineSched_init()
 				'edit_terms' => 'edit_os_panelist',
 				'delete_terms' => 'delete_os_panelist',
 				'assign_terms' => 'assign_os_panelist',
-			)
-		)
-	);
-
-		// Legacy registrations for grace period.
-		// Remove this block in 1.1.0 and track it as a public cleanup issue after 1.0.0 ships.
-
-	register_post_type(
-		'event_schedule',
-		array(
-			'labels' => array(
-				'name' => 'Event Scheduling',
-				'singular_name' => 'Event Schedule Entry',
-				'add_new' => 'Add Event',
-				'add_new_item' => 'Add New Event',
-				'edit' => 'Edit',
-				'edit_item' => 'Edit Event',
-				'new_item' => 'New Event',
-				'view' => 'View',
-				'view_item' => 'View Event',
-				'search_items' => 'Search Event',
-				'not_found' => 'No Events found',
-				'not_found_in_trash' => 'No Events found in Trash',
-				'parent' => 'Parent Event'
-			),
-			'public' => false,
-			'show_in_nav_menus' => true,
-			'show_ui' => true,
-			'menu_position' => 20,
-			'supports' => array(
-				'title',
-				'editor',
-			),
-			'taxonomies' => array(''),
-			//		'menu_icon' => plugins_url('event-16x16.png', __FILE__),	// XXX - Generate an icon some day
-			'has_archive' => false,
-			'publicly_queryable' => false,
-			'capability_type' => 'onlinesched_event_schedule',
-			'capabilities' => array(
-				'edit_post' => 'edit_onlinesched_event_schedules',
-				'read_post' => 'read_onlinesched_event_schedules',
-				'delete_post' => 'delete_onlinesched_event_schedules',
-				'edit_posts' => 'edit_onlinesched_event_schedules',
-				'edit_others_posts' => 'edit_onlinesched_event_schedules',
-				'publish_posts' => 'publish_onlinesched_event_schedules',
-				'read_private_posts' => 'read_onlinesched_event_schedules',
-				'delete_posts' => 'delete_onlinesched_event_schedules',
-				'delete_private_posts' => 'delete_onlinesched_event_schedules',
-				'delete_published_posts' => 'delete_onlinesched_event_schedules',
-				'delete_others_posts' => 'delete_onlinesched_event_schedules',
-				'edit_private_posts' => 'edit_onlinesched_event_schedules',
-				'edit_published_posts' => 'edit_onlinesched_event_schedules',
-				'create_posts' => 'publish_onlinesched_event_schedules',
-			),
-		)
-	);
-
-	register_taxonomy(
-		'event_schedule_room_type',
-		'event_schedule',
-		array(
-			'labels' => array(
-				'name' => 'Room Type',
-				'add_new_item' => 'Add New Room Type',
-				'new_item_name' => "New Room Type Name"
-			),
-			'show_ui' => true,
-			'show_tagcloud' => false,
-			'publicly_queryable' => false,
-			'hierarchical' => false,
-			'show_admin_column' => true,
-			'meta_box_cb' => false,
-			'capabilities' => array(
-				'manage_terms' => 'manage_event_schedule_room_type',
-				'edit_terms' => 'edit_event_schedule_room_type',
-				'delete_terms' => 'delete_event_schedule_room_type',
-				'assign_terms' => 'assign_event_schedule_room_type',
-			)
-		)
-	);
-
-	register_taxonomy(
-		'event_schedule_tags_type',
-		'event_schedule',
-		array(
-			'labels' => array(
-				'name' => 'Tag Type',
-				'add_new_item' => 'Add New Tag Type',
-				'new_item_name' => "New Tag Type Name"
-			),
-			'show_ui' => true,
-			'hierarchical' => false, // Remove parent category field
-			'show_admin_column' => true,
-			'publicly_queryable' => false,
-			'capabilities' => array(
-				'manage_terms' => 'manage_event_schedule_tags_type',
-				'edit_terms' => 'edit_event_schedule_tags_type',
-				'delete_terms' => 'delete_event_schedule_tags_type',
-				'assign_terms' => 'assign_event_schedule_tags_type',
-			)
-		)
-	);
-
-	register_taxonomy(
-		'event_schedule_day_type',
-		'event_schedule',
-		array(
-			'labels' => array(
-				'name' => 'Day Type',
-				'add_new_item' => 'Add Day Tag Type',
-				'new_item_name' => "New Day Type Name"
-			),
-			'show_ui' => true,
-			'show_tagcloud' => false,
-			'hierarchical' => false,
-			'show_admin_column' => true,
-			'publicly_queryable' => false,
-			'meta_box_cb' => false,
-			'capabilities' => array(
-				'manage_terms' => 'manage_event_schedule_day_type',
-				'edit_terms' => 'edit_event_schedule_day_type',
-				'delete_terms' => 'delete_event_schedule_day_type',
-				'assign_terms' => 'assign_event_schedule_day_type',
-			)
-		)
-	);
-
-	register_taxonomy(
-		'event_schedule_panelist_type',
-		'event_schedule',
-		array(
-			'labels' => array(
-				'name' => 'Panelist Type',
-				'add_new_item' => 'Add New Panelist Type',
-				'new_item_name' => "New Panelist Type Name"
-			),
-			'show_ui' => true,
-			'show_tagcloud' => false,
-			'hierarchical' => false,
-			'show_admin_column' => true,
-			'publicly_queryable' => false,
-			'capabilities' => array(
-				'manage_terms' => 'manage_event_schedule_panelist_type',
-				'edit_terms' => 'edit_event_schedule_panelist_type',
-				'delete_terms' => 'delete_event_schedule_panelist_type',
-				'assign_terms' => 'assign_event_schedule_panelist_type',
 			)
 		)
 	);
