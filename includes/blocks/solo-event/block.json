@@ -10,6 +10,10 @@
     "eventId": {
       "type": "integer",
       "default": 0
+    },
+    "fullWidth": {
+      "type": "boolean",
+      "default": false
     }
   },
   "supports": {
