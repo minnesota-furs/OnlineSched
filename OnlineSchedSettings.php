@@ -344,9 +344,10 @@ function OnlineSched_options_page()
                         $current_icon        = get_option('onlinesched_header_flare_icon', 'fa-paw');
                         $current_custom      = get_option('onlinesched_header_flare_custom_class', '');
                         $preset_icons = [
-                            'fa-paw'    => 'Paw',
-                            'fa-dog'    => 'Dog',
-                            'fa-cat'    => 'Cat',
+                            'fa-paw'                 => 'Paw',
+                            'fa-dog'                 => 'Dog',
+                            'fa-wolf-pack-battalion' => 'Wolf',
+                            'fa-cat'                 => 'Cat',
                             'fa-crow'   => 'Crow',
                             'fa-horse'  => 'Horse',
                             'fa-dragon' => 'Dragon',
@@ -367,7 +368,12 @@ function OnlineSched_options_page()
                                 <?php endforeach; ?>
                             </select>
                             <span id="os-flare-icon-preview-wrap" style="margin-left:12px; font-size:1.5em; width:30px; text-align:center;">
-                                <i id="os-flare-icon-preview" class="fas <?php echo ($current_icon === 'fa-custom') ? esc_attr($current_custom) : esc_attr($current_icon); ?>"></i>
+                                <?php
+                                $preview_key  = ($current_icon === 'fa-custom') ? $current_custom : $current_icon;
+                                $preview_slug = preg_replace('/^fa\-/', '', preg_replace('/[^a-z0-9\-]/', '', $preview_key));
+                                $preview_pfx  = in_array($preview_slug, onlinesched_brands_icons(), true) ? 'fab' : 'fas';
+                                echo '<i id="os-flare-icon-preview" class="' . esc_attr($preview_pfx . ' fa-' . $preview_slug) . '"></i>';
+                                ?>
                             </span>
                         </div>
                         <div id="os-flare-custom-wrap" style="margin-top:8px;<?php echo ($current_icon !== 'fa-custom') ? 'display:none;' : ''; ?>">
@@ -402,36 +408,37 @@ function OnlineSched_options_page()
                         var customWrap = document.getElementById('os-flare-custom-wrap');
                         var customInp  = document.getElementById('onlinesched_header_flare_custom_class');
                         var imgInp     = document.getElementById('onlinesched_header_flare_image');
-
-                        var iconPrev   = document.getElementById('os-flare-icon-preview');
                         var iconWrap   = document.getElementById('os-flare-icon-preview-wrap');
                         var imgPrev    = document.getElementById('os-flare-image-preview');
                         var imgWrap    = document.getElementById('os-flare-image-preview-wrap');
+                        var brandsIcons = <?php echo wp_json_encode( onlinesched_brands_icons() ); ?>;
 
                         if (!sel || !customWrap) return;
+
+                        function faClass(key) {
+                            var slug   = key.replace(/^fa-/, '');
+                            var prefix = brandsIcons.indexOf(slug) !== -1 ? 'fab' : 'fas';
+                            return prefix + ' fa-' + slug;
+                        }
 
                         function updateFlarePreview() {
                             var imgUrl = imgInp.value.trim();
                             if (imgUrl) {
-                                // Image overrides icon
                                 iconWrap.style.display = 'none';
                                 imgWrap.style.display = '';
                                 imgPrev.src = imgUrl;
+                                return;
+                            }
+                            imgWrap.style.display = 'none';
+                            iconWrap.style.display = '';
+
+                            var key  = sel.value === 'fa-custom' ? (customInp.value.trim() || 'fa-question') : sel.value;
+                            var prev = document.getElementById('os-flare-icon-preview');
+                            var cls  = key === 'fa-none' ? '' : faClass(key);
+                            if (prev) {
+                                prev.className = cls;
                             } else {
-                                // Show icon
-                                imgWrap.style.display = 'none';
-                                iconWrap.style.display = '';
-
-                                var iconClass = sel.value;
-                                if (iconClass === 'fa-custom') {
-                                    iconClass = customInp.value.trim() || 'fa-question';
-                                }
-
-                                if (iconClass === 'fa-none') {
-                                    iconPrev.className = '';
-                                } else {
-                                    iconPrev.className = 'fas ' + iconClass;
-                                }
+                                iconWrap.innerHTML = '<i id="os-flare-icon-preview" class="' + cls + '"></i>';
                             }
                         }
 
@@ -439,11 +446,8 @@ function OnlineSched_options_page()
                             customWrap.style.display = (sel.value === 'fa-custom') ? '' : 'none';
                             updateFlarePreview();
                         });
-
                         customInp.addEventListener('input', updateFlarePreview);
                         imgInp.addEventListener('input', updateFlarePreview);
-
-                        // Initial run
                         updateFlarePreview();
                     })();
                 </script>
