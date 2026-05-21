@@ -20,6 +20,15 @@ test.describe('07 — Hash Routing', () => {
     expect(selectedText?.toLowerCase()).toContain('essential');
   });
 
+  test('#tag- hash with hyphenated slug (multi-word tag) selects matching tag', async ({ page }) => {
+    // Slug "special-event" must normalize to match dropdown option "Special Event".
+    await page.goto('/schedule/#tag-special-event');
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(1000);
+    const selectedText = await page.locator(`${S.selectTags} option:checked`).textContent();
+    expect(selectedText?.toLowerCase()).toContain('special event');
+  });
+
   test('#evt= hash opens the matching event modal', async ({ page }) => {
     // Get a valid event ID from the schedule
     await page.goto('/schedule/');

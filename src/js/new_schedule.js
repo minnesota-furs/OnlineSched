@@ -115,10 +115,12 @@ export function new_schedule() {
     function selectTagFromRouteValue(tagSlug) {
         const select = $('#schedule-select-tags');
         if (!select || !tagSlug) return;
+        // Normalize slug so hyphens in WP term slugs don't prevent a match.
+        const normalizedTag = normalizeRouteKey(tagSlug);
         for (const option of select.options) {
             const text = option.textContent.trim();
             const optionSlug = normalizeRouteKey(text);
-            if (optionSlug === tagSlug) {
+            if (optionSlug === normalizedTag) {
                 select.value = option.value;
                 return;
             }
