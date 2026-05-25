@@ -32,6 +32,8 @@ div.os_room 	{ color: white; font-weight: bold; text-align: center; font-size: 2
 div.os_title 	{ color: black; font-weight: bold; font-size: 14px; }
 div.os_desc 	{ color: black; font-size: 12px; }
 div.os_panelist { color: black; font-size: 12px; font-style: italic; }
+span.os-term-item { display: inline; }
+span.os-term-separator { white-space: nowrap; }
 span.os_tag_label { color: black; font-size: 12px; font-style: bold; }
 div.os_tag	 { color: black; font-size: 12px; font-style: italic; }
 span.os_timelen_label { color: black; font-size: 12px; font-style: bold; }
@@ -87,7 +89,7 @@ while ( $loop->have_posts() ) : $loop->the_post();
 			echo '<div class="os_tag"><span class="os_tag_label">Tag(s):</span> ' . $tags . '</div>';
 		}
 		if ($panelists != "None") {
-		    	echo '<div class="os_panelist">' . $panelists . '<div>';
+			echo '<div class="os_panelist">' . $panelists . '</div>';
 		}
 		echo '<div class="os_desc">' . wp_kses_post(apply_filters('the_content', get_the_content())) . '</div>';
 		echo '<br/>';

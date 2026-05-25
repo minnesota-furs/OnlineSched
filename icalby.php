@@ -91,14 +91,7 @@ class iCalGen {
 	}
 
 	function display() {
-		return 'BEGIN:VCALENDAR' . EOL .
-		    'VERSION:2.0'. EOL .
-		    'CALSCALE:GREGORIAN' . EOL .
-		    'METHOD:PUBLISH' . EOL .
-		    onlinesched_ical_line('PRODID', $this->prodid, false) .
-		    'X-WR-TIMEZONE:GMT' . EOL .
-		    $this->output .
-		    'END:VCALENDAR'. EOL;
+		return onlinesched_ical_calendar_header() . $this->output . onlinesched_ical_calendar_footer();
 	}
 }
 
@@ -230,7 +223,7 @@ foreach ($postsArr as $item) {
 		$content = substr($content, 0, $textlen).'&#8230;';
 	} // If textlen is -1, show full description
 
-	$iCal->add('onlinesched-'.$postId,
+	$iCal->add(onlinesched_ical_uid($postId),
 		   $startTime,
 		   $endTime,
 		   $rooms,
@@ -241,7 +234,6 @@ foreach ($postsArr as $item) {
 	);
 }
 
-header('Content-Type: text/calendar; charset=UTF-8');
 $filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
-header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename_prefix . $filename . '.ics') . '"');
+onlinesched_ical_send_headers($filename_prefix . $filename . '.ics');
 echo $iCal->display();

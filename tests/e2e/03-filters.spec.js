@@ -198,10 +198,14 @@ test.describe('03 — Filters', () => {
     expect(tagCount).toBeGreaterThanOrEqual(2);
 
     const secondTag = tagItems.nth(1);
-    const tagText = (await secondTag.textContent())?.trim();
+    const tagText = (
+      await secondTag.getAttribute('data-os-term-label') ||
+      (await secondTag.textContent())?.replace(/,\s*$/, '')
+    )?.trim();
     if (!tagText) return test.skip(true, 'Second tag text missing');
 
-    const routeValue = tagText.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const routeValue = await secondTag.getAttribute('data-os-tag-route') ||
+      tagText.toLowerCase().replace(/[^a-z0-9]/g, '');
     await secondTag.click();
     await page.waitForTimeout(400);
 

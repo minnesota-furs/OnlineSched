@@ -17,5 +17,5 @@
  */
 
 
-// just a redirect so Rico doesn't have to change signs atm
+// Compatibility wrapper for older room-feed URLs.
 require_once('icalby.php');

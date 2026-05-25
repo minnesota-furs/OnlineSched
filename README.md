@@ -143,6 +143,13 @@ Parameters:
 
 Cancelled events are included with `STATUS:CANCELLED`.
 
+ICS output uses UTC `DTSTART`/`DTEND` values with trailing `Z`, CRLF line endings,
+folded content lines, `METHOD:PUBLISH`, and `text/calendar; method=PUBLISH` response
+headers for broad compatibility with Google Calendar/Gmail, Outlook, Microsoft 365,
+Apple Calendar, and Android calendar apps. Calendar metadata includes the configured
+calendar name and the site's WordPress timezone. Event UIDs are generated as globally
+scoped values using the site host.
+
 ## Favorites and Privacy
 
 Visitors can star events without logging in. Those logged-out favorites are stored only
@@ -154,23 +161,84 @@ to the active OAuth session and merges the browser-local favorites into that ser
 favorite list. Logging out ends the synced session; the local browser favorites feature
 continues to work without requiring login.
 
-### Room JSON
+### JSON Feed
 
-Use this for signage or lightweight displays that need event data as JSON:
+OnlineSched includes a small public JSON feed for signs, lobby screens, static pages,
+and other lightweight displays that need schedule data without loading the full
+interactive schedule.
+
+Examples:
 
 ```text
 /wp-content/plugins/OnlineSched/json.php?room=main-stage
+/wp-content/plugins/OnlineSched/json.php?rooms=main-stage,panel-room-a
+/wp-content/plugins/OnlineSched/json.php?tag=essential
+/wp-content/plugins/OnlineSched/json.php?room=all
+/wp-content/plugins/OnlineSched/json.php?group=programming
 /wp-content/plugins/OnlineSched/json.php?programming=1
 /wp-content/plugins/OnlineSched/json.php?gaming=1
 ```
 
 Parameters:
 
-* `room` - one `os_room` slug. Defaults to `main-stage`.
-* `programming=1` - returns the configured programming room group.
-* `gaming=1` - returns the configured gaming/non-programming room group.
+* `room` or `rooms` - one or more `os_room` slugs, comma separated. Defaults to `main-stage`. Use `all` to include every room.
+* `tag` or `tags` - one or more `os_tag` slugs, comma separated. Use `all` to include every tag.
+* `group` - a named room/tag group configured by your theme or custom plugin.
+* `programming=1` - compatibility shortcut for `group=programming`.
+* `gaming=1` - compatibility shortcut for `group=gaming`.
+* `limit` - when set to a positive number, returns up to that many upcoming events. When omitted, the feed returns events for the active schedule year.
 
-The room groups can be customized with the `os_json_room_groups` filter.
+Each item contains:
+
+* `room` - the room name text.
+* `title` - the event title. Restricted events include ` [Adult]` for display compatibility.
+* `startTime` - the event start time in the site's WordPress timezone.
+* `description` - the event description with normal post HTML sanitized.
+
+Room and tag values are WordPress term slugs, not display names. For example, a room
+named `Main Stage` may have the slug `main-stage`.
+
+#### JSON Groups
+
+Groups let a site keep short, readable feed URLs for signs and external displays.
+OnlineSched does not ship organization-specific groups by default. If a group is
+requested but not configured, the feed returns an empty JSON array instead of guessing.
+
+Add groups from a theme or small site plugin with the `os_json_room_groups` filter:
+
+```php
+add_filter(
+	'os_json_room_groups',
+	function ( $groups ) {
+		$groups['programming'] = array(
+			'rooms' => array(
+				'main-stage',
+				'panel-room-a',
+				'panel-room-b',
+				'workshop-room',
+			),
+		);
+
+		$groups['gaming'] = array(
+			'exclude_rooms' => array(
+				'main-stage',
+				'panel-room-a',
+				'panel-room-b',
+				'registration',
+			),
+			'exclude_tags' => array(
+				'open-gaming',
+			),
+		);
+
+		return $groups;
+	}
+);
+```
+
+The available group keys are up to your site. For example, a site could use
+`group=dealers`, `group=main-events`, or `group=kids-track` as long as those keys are
+registered through the filter.
 
 ### Finding Slugs
 
@@ -329,6 +397,9 @@ The plugin fires these actions and filters so themes and other plugins can exten
 | `os_event_badge_html` | filter | Filters the badge HTML for a row, receives `($html, $post_id)` |
 | `os_render_schedule_args` | filter | Filters the full args array before rendering |
 | `os_sticky_offsets` | filter | Array of sticky pixel offsets for the tab bar; use this if your theme has a sticky header |
+| `os_ical_uid_prefix` | filter | Prefix for generated iCal event UIDs; defaults to `os-` |
+| `os_ical_timezone` | filter | Calendar metadata timezone; defaults to the site's named WordPress timezone or `UTC` |
+| `os_ical_calendar_description` | filter | Description used in iCal calendar metadata |
 | `os_kiosk_head_styles` | filter | Array of stylesheet URLs injected into the kiosk page `<head>` |
 | `onlinesched_load_fontawesome` | filter | Return `false` to skip loading the plugin's Font Awesome bundle |
 | `onlinesched_load_fonts` | filter | Return `false` to skip loading the plugin's Metropolis font bundle |

@@ -17,6 +17,11 @@ const excludedRootPhpFiles = new Set([
     'icalbyroom-backup.php',
 ]);
 
+const excludedSourceFiles = new Set([
+    'class-os-migration.php',
+    'MigrateHoursCommand.php',
+]);
+
 const requiredRuntimeFiles = [
     'OnlineSched.php',
     'vendor/autoload.php',
@@ -176,6 +181,10 @@ function shouldSkipDirectoryEntry(sourcePath) {
         'icalbyroomx.php',
         'icalbyroom-backup.php',
     ].includes(basename)) {
+        return true;
+    }
+
+    if (excludedSourceFiles.has(basename)) {
         return true;
     }
 

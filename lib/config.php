@@ -281,6 +281,11 @@ function onlinesched_add_color_inline_style($handle = 'online-schedule-css')
     wp_add_inline_style($handle, $css);
 }
 
+/** FA brand icons that need the fab prefix instead of fas. */
+function onlinesched_brands_icons() {
+    return [ 'wolf-pack-battalion' ];
+}
+
 /**
  * Returns the flare <span> to inject inside day header <h2> elements.
  * Priority: Image URL > Custom FA class text field > Select preset.
@@ -298,7 +303,7 @@ function onlinesched_get_flare_html()
         return '<span class="os-flare-icon" aria-hidden="true"><img src="' . esc_url($image) . '" alt=""></span>';
     }
 
-    // Resolve icon class: custom text field overrides select when set.
+    // Resolve icon: custom text field overrides select when set.
     $icon = get_option('onlinesched_header_flare_icon', 'fa-paw');
     if ($icon === 'fa-custom') {
         $icon = get_option('onlinesched_header_flare_custom_class', '');
@@ -308,13 +313,15 @@ function onlinesched_get_flare_html()
         return '';
     }
 
-    // Allow only valid FA slug characters — no injection risk.
+    // FA icon — allow only valid slug characters, then normalize to bare slug.
     $icon = preg_replace('/[^a-z0-9\-]/', '', $icon);
-    if (empty($icon)) {
+    $slug = preg_replace('/^fa\-/', '', $icon); // strip leading fa- prefix
+    if (empty($slug)) {
         return '';
     }
 
-    return '<span class="os-flare-icon" aria-hidden="true"><i class="fas ' . esc_attr($icon) . '"></i></span>';
+    $prefix = in_array($slug, onlinesched_brands_icons(), true) ? 'fab' : 'fas';
+    return '<span class="os-flare-icon" aria-hidden="true"><i class="' . $prefix . ' fa-' . esc_attr($slug) . '"></i></span>';
 }
 
 function onlinesched_get_provider_icon_allowed_html()

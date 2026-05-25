@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-CONTAINER="onlinesched-vanilla-wp"
+CONTAINER="onlinesched-vanilla-cli"
 WP="wp --allow-root --path=/var/www/html"
 SITE_URL="http://localhost:8081"
 ADMIN_USER="admin"

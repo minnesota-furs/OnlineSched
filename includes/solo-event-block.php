@@ -151,7 +151,7 @@ function onlinesched_render_solo_event_block( $attributes ) {
 				<?php if ( ! empty( $data['panelists'] ) ) : ?>
 					<div class="os-solo-event-card__meta-item">
 						<i class="fas fa-users" aria-hidden="true"></i>
-						<span class="schedule-panelists"><?php echo ! is_wp_error( $data['panelists'] ) ? esc_html( $data['panelists'] ) : ''; ?></span>
+						<span class="schedule-panelists"><?php echo wp_kses_post( $data['panelists'] ); ?></span>
 					</div>
 				<?php endif; ?>
 				<?php if ( ! empty( $data['tags'] ) ) : ?>

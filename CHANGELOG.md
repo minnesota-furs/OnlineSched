@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0
+
+- Removed post-launch legacy migration paths after production data was converted.
+- Kept compatibility endpoints that still have callers while tightening release packaging.
+- Cleaned native Hours block handling after the ACF migration bridge was retired.
+- Refreshed distribution packaging checks for private plans, tests, maps, and local artifacts.
+
 ## 1.0.0
 
 - Prepared OnlineSched for open-source release.
