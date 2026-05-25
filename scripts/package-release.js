@@ -55,14 +55,6 @@ const topLevelDirs = [
     'vendor',
 ];
 
-const html2TextFiles = [
-    'html2text/html2text.php',
-    'html2text/LICENSE.md',
-    'html2text/README.md',
-    'html2text/CHANGELOG.md',
-    'html2text/composer.json',
-];
-
 const skippedSourceDirs = new Set([
     '.git',
     '.github',
@@ -424,8 +416,6 @@ function main() {
         copyDirectory(path.join(root, directory), path.join(stagingDir, directory));
     });
     copyDirectory(path.join(root, 'build'), path.join(stagingDir, 'build'), shouldSkipBuildFile);
-    html2TextFiles.forEach(copyRelativeFile);
-    copyDirectory(path.join(root, 'html2text', 'src'), path.join(stagingDir, 'html2text', 'src'));
     assertNoPrivatePlanningFiles(stagingDir);
 
     const zipPath = zipRelease(version);

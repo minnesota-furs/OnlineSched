@@ -333,9 +333,50 @@ dl.schedule-meta:after {
     text-align: center;
   }
 
+  .schedule-item {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .schedule-item hr.os-schedule-separator-sm {
+    margin-bottom: 5px;
+    margin-top: 5px;
+  }
+
   .schedule-item dl {
-    clear: both;
-    padding-top: 8px;
+    clear: none;
+    padding-top: 4px;
+  }
+
+  .schedule-item .schedule-meta-room,
+  .schedule-item .schedule-meta-time {
+    align-items: center;
+    display: flex;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    padding-right: 14px;
+  }
+
+  .schedule-item .schedule-meta-room dt,
+  .schedule-item .schedule-meta-time dt {
+    flex: 0 0 auto;
+    float: none;
+    margin-right: 4px;
+    width: auto;
+  }
+
+  .schedule-item .schedule-meta-room dd,
+  .schedule-item .schedule-meta-time dd {
+    margin-left: 0;
+  }
+
+  .schedule-item .schedule-meta-time {
+    flex-shrink: 0;
+    justify-content: flex-end;
+    margin-left: auto;
+    padding-right: 8px;
+    white-space: nowrap;
   }
 
   .canceled dl:nth-child(3), .canceled dl:nth-child(4) {

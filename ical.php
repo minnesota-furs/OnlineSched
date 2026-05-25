@@ -4,7 +4,6 @@
 //if ( !defined('ABSPATH')) exit;
 
 require_once('../../../wp-load.php');
-require_once('html2text/html2text.php');
 require_once('lib/ical.php');
 
 /**
@@ -122,7 +121,7 @@ if ($eventCancelled) {
 	$rooms = "Canceled";
 }
 
-$content = convert_html_to_text($_post->post_content);
+$content = onlinesched_ical_html_to_text($_post->post_content);
 
 $iCal->add(onlinesched_ical_uid($id),
 	   $startTime,

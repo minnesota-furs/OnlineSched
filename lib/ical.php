@@ -20,6 +20,31 @@ if (!defined('ONLINESCHED_ICAL_DATE_FORMAT')) {
     define('ONLINESCHED_ICAL_DATE_FORMAT', 'Ymd\THis\Z');
 }
 
+function onlinesched_ical_load_composer_autoload()
+{
+    if (class_exists('\\Soundasleep\\Html2Text')) {
+        return;
+    }
+
+    $autoload = dirname(__DIR__) . '/vendor/autoload.php';
+    if (!is_readable($autoload)) {
+        wp_die(
+            esc_html__('OnlineSched Composer dependencies are missing. Run composer install for the OnlineSched plugin.', 'onlinesched'),
+            esc_html__('OnlineSched dependencies missing', 'onlinesched'),
+            array('response' => 500)
+        );
+    }
+
+    require_once $autoload;
+}
+
+function onlinesched_ical_html_to_text($html)
+{
+    onlinesched_ical_load_composer_autoload();
+
+    return \Soundasleep\Html2Text::convert((string) $html);
+}
+
 function onlinesched_ical_sanitize_raw_value($value)
 {
     return preg_replace('/[\r\n\x00-\x1F\x7F]/', '', (string) $value);

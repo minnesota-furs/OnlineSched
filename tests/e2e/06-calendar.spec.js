@@ -2,6 +2,8 @@
 const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
+const PHP_ERROR_PATTERN = /(?:PHP\s+(?:Deprecated|Fatal error|Notice|Parse error|Warning)|Deprecated:|Fatal error:|Notice:|Parse error:|Warning:)/i;
+
 async function installClipboardShim(page) {
   await page.evaluate(() => {
     let clipboardText = '';
@@ -15,6 +17,29 @@ async function installClipboardShim(page) {
       },
     });
   });
+}
+
+async function expectIcsResponse(response, options = {}) {
+  const { minEvents = 1, exactEvents = null } = options;
+
+  expect(response.ok()).toBeTruthy();
+  expect(response.headers()['content-type']).toContain('text/calendar');
+
+  const body = await response.text();
+  expect(body).toContain('BEGIN:VCALENDAR');
+  expect(body).toContain('END:VCALENDAR');
+  expect(body).toContain('SUMMARY:');
+  expect(body).toContain('DESCRIPTION:');
+  expect(body).not.toMatch(PHP_ERROR_PATTERN);
+
+  const events = body.match(/^BEGIN:VEVENT$/gm) || [];
+  if (exactEvents !== null) {
+    expect(events).toHaveLength(exactEvents);
+  } else {
+    expect(events.length).toBeGreaterThanOrEqual(minEvents);
+  }
+
+  return body;
 }
 
 test.describe('06 — Calendar', () => {
@@ -134,6 +159,24 @@ test.describe('06 — Calendar', () => {
       const section = page.locator(S.addToCalendarSection);
       const count = await section.count();
       expect(count).toBe(1);
+    });
+  });
+
+  test.describe('ICS endpoints', () => {
+    test('ical.php returns one valid event feed without PHP errors', async ({ page }) => {
+      const itemId = await page.locator(S.scheduleItem).first().getAttribute('id');
+      expect(itemId).toMatch(/^onlineevt-\d+$/);
+
+      const postId = itemId.replace('onlineevt-', '');
+      const response = await page.request.get(`/wp-content/plugins/OnlineSched/ical.php?cal-id=${postId}`);
+
+      await expectIcsResponse(response, { exactEvents: 1 });
+    });
+
+    test('icalby.php returns a valid multi-event feed without PHP errors', async ({ page }) => {
+      const response = await page.request.get('/wp-content/plugins/OnlineSched/icalby.php?room=all&tag=all&textlen=0');
+
+      await expectIcsResponse(response, { minEvents: 2 });
     });
   });
 });

@@ -1,5 +1,10 @@
 {
+    "name": "onlinesched/onlinesched",
+    "description": "A flexible event scheduling plugin for WordPress",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
     "require": {
-        "hybridauth/hybridauth": "^v3.13.0"
+        "hybridauth/hybridauth": "^v3.13.0",
+        "soundasleep/html2text": "^2.1"
     }
 }
