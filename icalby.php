@@ -1,7 +1,6 @@
 <?php
 require_once('../../../wp-load.php');
 
-require_once('html2text/html2text.php');
 require_once('lib/ical.php');
 /**
  * Full Content Template
@@ -217,7 +216,7 @@ foreach ($postsArr as $item) {
 		}
 	}
 
-	$content = convert_html_to_text($item->post_content);
+	$content = onlinesched_ical_html_to_text($item->post_content);
 
 	if ($textlen > 0 && strlen($content) > $textlen) {
 		$content = substr($content, 0, $textlen).'&#8230;';

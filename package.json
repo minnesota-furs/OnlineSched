@@ -1,6 +1,6 @@
 {
   "name": "onlinesched",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A flexible event scheduling plugin for WordPress",
   "main": "index.js",
   "repository": {
