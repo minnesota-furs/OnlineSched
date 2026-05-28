@@ -3,7 +3,7 @@
 Plugin Name: OnlineSched
 Plugin URI: https://github.com/onlinesched/OnlineSched
 Description: A flexible event scheduling plugin for conventions and organizations.
-Version: 1.2.0
+Version: 1.3.0
 Requires at least: 6.4
 Requires PHP: 8.2
 License: GPL-2.0-or-later
@@ -60,6 +60,7 @@ require_once('OnlineSchedSocialLogin.php');
 
 // Define Actions
 add_action('init', 'OnlineSched_init');
+add_action('admin_init', 'onlinesched_ensure_roles', 5);
 add_action('admin_init', 'OnlineSched_admin_init');
 add_action('save_post', 'OnlineSched_add_timeslot_fields', 10, 2);
 add_action('manage_os_event_posts_custom_column', 'OnlineSched_columns_content', 10, 2);
@@ -147,125 +148,143 @@ function OnlineSched_remove_row_actions($actions, $post)
 	return $actions;
 }
 
+function onlinesched_capability_map(array $capabilities)
+{
+	return array_fill_keys($capabilities, true);
+}
+
+function onlinesched_editor_capabilities()
+{
+	return onlinesched_capability_map(array(
+		'read',
+		'edit_onlinesched_event_schedules',
+		'publish_onlinesched_event_schedules',
+		'read_onlinesched_event_schedules',
+		'delete_onlinesched_event_schedules',
+		'assign_os_room',
+		'assign_os_tag',
+		'assign_os_day',
+		'manage_os_panelist',
+		'edit_os_panelist',
+		'delete_os_panelist',
+		'assign_os_panelist',
+	));
+}
+
+function onlinesched_admin_capabilities()
+{
+	return onlinesched_capability_map(array(
+		'read',
+		'edit_onlinesched_event_schedules',
+		'publish_onlinesched_event_schedules',
+		'read_onlinesched_event_schedules',
+		'delete_onlinesched_event_schedules',
+		'manage_os_room',
+		'edit_os_room',
+		'delete_os_room',
+		'assign_os_room',
+		'manage_os_tag',
+		'edit_os_tag',
+		'delete_os_tag',
+		'assign_os_tag',
+		'manage_os_day',
+		'edit_os_day',
+		'delete_os_day',
+		'assign_os_day',
+		'manage_os_panelist',
+		'edit_os_panelist',
+		'delete_os_panelist',
+		'assign_os_panelist',
+	));
+}
+
+function onlinesched_remove_numeric_role_capabilities($role)
+{
+	foreach ($role->capabilities as $capability => $granted) {
+		if (is_int($capability) || ctype_digit((string) $capability)) {
+			$role->remove_cap($capability);
+		}
+	}
+}
+
+function onlinesched_is_plugin_role_capability($capability)
+{
+	return false !== strpos($capability, 'onlinesched')
+		|| preg_match('/^(manage|edit|delete|assign)_os_/', $capability);
+}
+
+function onlinesched_known_stale_custom_role_capabilities()
+{
+	return array_fill_keys(array(
+		'level_0',
+		'edit_pages',
+		'edit_others_pages',
+		'publish_pages',
+		'edit_published_pages',
+		'edit_private_pages',
+	), true);
+}
+
+function onlinesched_remove_stale_role_capabilities($role, array $capabilities)
+{
+	$known_stale_capabilities = onlinesched_known_stale_custom_role_capabilities();
+
+	foreach ($role->capabilities as $capability => $granted) {
+		if (isset($capabilities[$capability])) {
+			continue;
+		}
+
+		if (onlinesched_is_plugin_role_capability($capability) || isset($known_stale_capabilities[$capability])) {
+			$role->remove_cap($capability);
+		}
+	}
+}
+
+function onlinesched_apply_capabilities_to_role($role_name, $display_name, array $capabilities)
+{
+	$role = get_role($role_name);
+	if ($role == NULL) {
+		add_role($role_name, $display_name, $capabilities);
+		$role = get_role($role_name);
+	}
+
+	if ($role == NULL) {
+		return;
+	}
+
+	onlinesched_remove_numeric_role_capabilities($role);
+	onlinesched_remove_stale_role_capabilities($role, $capabilities);
+	foreach ($capabilities as $capability => $grant) {
+		if ($grant) {
+			$role->add_cap($capability);
+		}
+	}
+}
+
+function onlinesched_add_capabilities_to_existing_role($role_name, array $capabilities)
+{
+	$role = get_role($role_name);
+	if ($role == NULL) {
+		return;
+	}
+
+	foreach ($capabilities as $capability => $grant) {
+		if ($grant) {
+			$role->add_cap($capability);
+		}
+	}
+}
+
+function onlinesched_ensure_roles()
+{
+	onlinesched_apply_capabilities_to_role('onlinesched_editor', 'OnlineSched Editor', onlinesched_editor_capabilities());
+	onlinesched_apply_capabilities_to_role('onlinesched_admin', 'OnlineSched Admin', onlinesched_admin_capabilities());
+	onlinesched_add_capabilities_to_existing_role('administrator', onlinesched_admin_capabilities());
+}
+
 function OnlineSched_plugin_activate()
 {
-
-	// Our custom roles
-	$role_sched_editor = get_role('onlinesched_editor');
-	if ($role_sched_editor == NULL) {
-		add_role('onlinesched_editor', 'OnlineSched Editor', array(
-
-			// Core Events
-			'read',
-
-			// Basic Events
-			'edit_onlinesched_event_schedules',
-			'publish_onlinesched_event_schedules',
-			'read_onlinesched_event_schedules',
-			'delete_onlinesched_event_schedules',
-
-			// Room Types
-			//'manage_os_room',
-			//'edit_os_room',
-			//'delete_os_room',
-			'assign_os_room',
-
-			// Tags Types
-			//'manage_os_tag',
-			//'edit_os_tag',
-			//'delete_os_tag',
-			'assign_os_tag',
-
-			// Manage day Types
-			//'manage_os_day',
-			//'edit_os_day',
-			//'delete_os_day',
-			'assign_os_day',
-
-			// Manage panelist Types
-			'manage_os_panelist',
-			'edit_os_panelist',
-			'delete_os_panelist',
-			'assign_os_panelist',
-		));
-	}
-
-
-	$role_sched_admin = get_role('onlinesched_admin');
-
-	if ($role_sched_admin == NULL) {
-		add_role('onlinesched_admin', 'OnlineSched Admin', array(
-
-			// Core Events
-			'read',
-
-			// Basic Events
-			'edit_onlinesched_event_schedules',
-			'publish_onlinesched_event_schedules',
-			'read_onlinesched_event_schedules',
-			'delete_onlinesched_event_schedules',
-
-			// Room Types
-			'manage_os_room',
-			'edit_os_room',
-			'delete_os_room',
-			'assign_os_room',
-
-			// Tags Types
-			'manage_os_tag',
-			'edit_os_tag',
-			'delete_os_tag',
-			'assign_os_tag',
-
-			// Manage day Types
-			'manage_os_day',
-			'edit_os_day',
-			'delete_os_day',
-			'assign_os_day',
-
-			// Manage panelist Types
-			'manage_os_panelist',
-			'edit_os_panelist',
-			'delete_os_panelist',
-			'assign_os_panelist',
-		));
-	}
-
-
-	// Native Wordpress roles
-	$role_administrator = get_role('administrator');
-	if ($role_administrator != NULL) {
-
-		// Basic Events
-		$role_administrator->add_cap('edit_onlinesched_event_schedules');
-		$role_administrator->add_cap('publish_onlinesched_event_schedules');
-		$role_administrator->add_cap('read_onlinesched_event_schedules');
-		$role_administrator->add_cap('delete_onlinesched_event_schedules');
-
-		// Manage room Types
-		$role_administrator->add_cap('manage_os_room');
-		$role_administrator->add_cap('edit_os_room');
-		$role_administrator->add_cap('delete_os_room');
-		$role_administrator->add_cap('assign_os_room');
-
-		// Manage tags Types
-		$role_administrator->add_cap('manage_os_tag');
-		$role_administrator->add_cap('edit_os_tag');
-		$role_administrator->add_cap('delete_os_tag');
-		$role_administrator->add_cap('assign_os_tag');
-
-		// Manage day Types
-		$role_administrator->add_cap('manage_os_day');
-		$role_administrator->add_cap('edit_os_day');
-		$role_administrator->add_cap('delete_os_day');
-		$role_administrator->add_cap('assign_os_day');
-
-		// Manage panelist Types
-		$role_administrator->add_cap('manage_os_panelist');
-		$role_administrator->add_cap('edit_os_panelist');
-		$role_administrator->add_cap('delete_os_panelist');
-		$role_administrator->add_cap('assign_os_panelist');
-	}
+	onlinesched_ensure_roles();
 }
 
 function onlinesched_create_favorites_table() {

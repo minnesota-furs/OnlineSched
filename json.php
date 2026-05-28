@@ -37,7 +37,17 @@ function onlinesched_json_sanitize_slugs($slugs) {
 }
 
 function onlinesched_json_get_room_groups() {
-	$groups = apply_filters('os_json_room_groups', array());
+	$groups = get_option('onlinesched_json_room_groups', array());
+	if (is_string($groups) && '' !== trim($groups)) {
+		$decoded_groups = json_decode($groups, true);
+		$groups = is_array($decoded_groups) ? $decoded_groups : array();
+	}
+
+	if (!is_array($groups)) {
+		$groups = array();
+	}
+
+	$groups = apply_filters('os_json_room_groups', $groups);
 	return is_array($groups) ? $groups : array();
 }
 
@@ -82,12 +92,16 @@ function onlinesched_json_get_requested_group_key() {
 		return sanitize_key($group);
 	}
 
-	if (!empty($_REQUEST['programming'])) {
-		return 'programming';
-	}
-
-	if (!empty($_REQUEST['gaming'])) {
-		return 'gaming';
+	$legacy_group_params = apply_filters('os_json_legacy_group_params', array(
+		'programming' => 'programming',
+		'gaming'      => 'gaming',
+	));
+	if (is_array($legacy_group_params)) {
+		foreach ($legacy_group_params as $param => $legacy_group) {
+			if (!empty($_REQUEST[$param]) && !is_array($_REQUEST[$param])) {
+				return sanitize_key($legacy_group);
+			}
+		}
 	}
 
 	return '';
@@ -120,10 +134,6 @@ if ('' !== $group_key) {
 	onlinesched_json_add_tax_clause($tax_query, 'os_tag', $group['exclude_tags'], 'NOT IN');
 } else {
 	$room_slugs = onlinesched_json_get_request_slugs(array('room', 'rooms'));
-	if (empty($room_slugs)) {
-		$room_slugs = array('main-stage');
-	}
-
 	if (!in_array('all', array_map('strtolower', $room_slugs), true)) {
 		onlinesched_json_add_tax_clause($tax_query, 'os_room', $room_slugs);
 	}

@@ -175,17 +175,13 @@ Examples:
 /wp-content/plugins/OnlineSched/json.php?tag=essential
 /wp-content/plugins/OnlineSched/json.php?room=all
 /wp-content/plugins/OnlineSched/json.php?group=programming
-/wp-content/plugins/OnlineSched/json.php?programming=1
-/wp-content/plugins/OnlineSched/json.php?gaming=1
 ```
 
 Parameters:
 
-* `room` or `rooms` - one or more `os_room` slugs, comma separated. Defaults to `main-stage`. Use `all` to include every room.
+* `room` or `rooms` - one or more `os_room` slugs, comma separated. Omit this value or use `all` to include every room.
 * `tag` or `tags` - one or more `os_tag` slugs, comma separated. Use `all` to include every tag.
 * `group` - a named room/tag group configured by your theme or custom plugin.
-* `programming=1` - compatibility shortcut for `group=programming`.
-* `gaming=1` - compatibility shortcut for `group=gaming`.
 * `limit` - when set to a positive number, returns up to that many upcoming events. When omitted, the feed returns events for the active schedule year.
 
 Each item contains:
@@ -239,6 +235,14 @@ add_filter(
 The available group keys are up to your site. For example, a site could use
 `group=dealers`, `group=main-events`, or `group=kids-track` as long as those keys are
 registered through the filter.
+
+Sites that prefer configuration over code can store an array or JSON object in the
+`onlinesched_json_room_groups` option. The filter still runs after the option is read,
+so a theme can add, change, or remove groups for the current site.
+
+Older displays may still call `programming=1` or `gaming=1`. OnlineSched treats those
+as deprecated aliases for `group=programming` and `group=gaming`; new integrations
+should use the `group` parameter directly.
 
 ### Finding Slugs
 

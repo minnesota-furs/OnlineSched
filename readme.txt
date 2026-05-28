@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -84,7 +84,7 @@ JSON room feed:
 
 The JSON feed is meant for signs, lobby screens, static pages, and other lightweight displays. Use room and tag slugs, not display names. A positive limit value returns up to that many upcoming events.
 
-Sites can define named JSON groups with the os_json_room_groups filter. The compatibility URLs programming=1 and gaming=1 use the programming and gaming group keys. If a requested group is not configured, OnlineSched returns an empty JSON array instead of guessing.
+Omit the room parameter, or use room=all, to include every room. Sites can define named JSON groups with the onlinesched_json_room_groups option or the os_json_room_groups filter. If a requested group is not configured, OnlineSched returns an empty JSON array instead of guessing. Older programming=1 and gaming=1 display URLs are treated as deprecated group aliases; new integrations should use group=programming or group=gaming.
 
 Calendar clients may cache feeds, so the website schedule is always the most current source for last-minute changes.
 
@@ -95,6 +95,10 @@ ICS feeds use UTC event timestamps, CRLF line endings, folded content lines, MET
 Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a matching path in your theme under an onlinesched/ folder. For example, to override the tab bar, create: your-theme/onlinesched/partials/schedule-tabs.php. The full list of overridable partials is in the README on GitHub.
 
 == Changelog ==
+
+= 1.3.0 =
+
+Post-launch cleanup release with role repair, generic JSON feed behavior, and clean Hours block transition cleanup.
 
 = 1.1.0 =
 

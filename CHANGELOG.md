@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+- Repaired OnlineSched custom role creation so capabilities are stored as named grants.
+- Added an admin-role repair path for existing installs with malformed capability entries.
+- Made the public JSON feed generic by default and moved site-specific groups to configuration/hooks.
+- Cleaned the final Hours ACF transition path after block output validation.
+- Refreshed release metadata for the v1.3.0 distribution.
+
 ## 1.1.0
 
 - Removed post-launch legacy migration paths after production data was converted.
