@@ -280,6 +280,7 @@ function onlinesched_ensure_roles()
 	onlinesched_apply_capabilities_to_role('onlinesched_editor', 'OnlineSched Editor', onlinesched_editor_capabilities());
 	onlinesched_apply_capabilities_to_role('onlinesched_admin', 'OnlineSched Admin', onlinesched_admin_capabilities());
 	onlinesched_add_capabilities_to_existing_role('administrator', onlinesched_admin_capabilities());
+	onlinesched_add_capabilities_to_existing_role('editor', onlinesched_editor_capabilities());
 }
 
 function OnlineSched_plugin_activate()
