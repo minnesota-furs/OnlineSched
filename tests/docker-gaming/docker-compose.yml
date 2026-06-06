@@ -14,7 +14,7 @@ services:
     networks:
       - onlinesched-gaming-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "wordpress", "-pwordpress"]
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "wordpress", "-pwordpress"]
       timeout: 5s
       retries: 5
 
