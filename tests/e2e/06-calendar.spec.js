@@ -164,13 +164,33 @@ test.describe('06 — Calendar', () => {
 
   test.describe('ICS endpoints', () => {
     test('ical.php returns one valid event feed without PHP errors', async ({ page }) => {
-      const itemId = await page.locator(S.scheduleItem).first().getAttribute('id');
+      const firstItem = page.locator(S.scheduleItem).first();
+      const itemId = await firstItem.getAttribute('id');
       expect(itemId).toMatch(/^onlineevt-\d+$/);
 
       const postId = itemId.replace('onlineevt-', '');
       const response = await page.request.get(`/wp-content/plugins/OnlineSched/ical.php?cal-id=${postId}`);
 
-      await expectIcsResponse(response, { exactEvents: 1 });
+      const body = await expectIcsResponse(response, { exactEvents: 1 });
+      const timezone = body.match(/^X-WR-TIMEZONE:(.+)\r?$/m)?.[1];
+      const start = body.match(/^DTSTART:(\d{8}T\d{6}Z)\r?$/m)?.[1];
+
+      expect(timezone).toBeTruthy();
+      expect(start).toBeTruthy();
+
+      const utcDate = new Date(
+        `${start.slice(0, 4)}-${start.slice(4, 6)}-${start.slice(6, 8)}` +
+        `T${start.slice(9, 11)}:${start.slice(11, 13)}:${start.slice(13, 15)}Z`
+      );
+      const calendarTime = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }).format(utcDate);
+      const displayedTime = await firstItem.locator('xpath=ancestor::div[contains(@class, "schedule-hour")]/h3').textContent();
+
+      expect(calendarTime).toBe(displayedTime.trim());
     });
 
     test('icalby.php returns a valid multi-event feed without PHP errors', async ({ page }) => {

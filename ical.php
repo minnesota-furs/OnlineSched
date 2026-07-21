@@ -41,18 +41,11 @@ class iCalGen {
 		     $title,
 		     $desc,
 			 $categories,
-	         $cancelled = false) {
-		$start = new DateTime('@' . absint($startTime));
-		$utc = new DateTimeZone('UTC');
-		$start->setTimezone($utc);
-
-		$end = new DateTime('@' . absint($endTime));
-		$end->setTimezone($utc);
-
-		$this->output .= "BEGIN:VEVENT\r\n" .
+		         $cancelled = false) {
+			$this->output .= "BEGIN:VEVENT\r\n" .
 onlinesched_ical_line('DTSTAMP', gmdate(ONLINESCHED_ICAL_DATE_FORMAT), false) .
-onlinesched_ical_line('DTSTART', $start->format(ONLINESCHED_ICAL_DATE_FORMAT), false) .
-onlinesched_ical_line('DTEND', $end->format(ONLINESCHED_ICAL_DATE_FORMAT), false) .
+onlinesched_ical_line('DTSTART', onlinesched_ical_utc_date($startTime), false) .
+onlinesched_ical_line('DTEND', onlinesched_ical_utc_date($endTime), false) .
 onlinesched_ical_line('SUMMARY', $title) .
 onlinesched_ical_line('DESCRIPTION', $desc) .
 onlinesched_ical_line('LOCATION', $location) .

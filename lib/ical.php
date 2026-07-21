@@ -52,12 +52,40 @@ function onlinesched_ical_sanitize_raw_value($value)
 
 function onlinesched_ical_timezone_id()
 {
-    $timezone = get_option('timezone_string');
+    $timezone = function_exists('wp_timezone_string')
+        ? wp_timezone_string()
+        : get_option('timezone_string');
     if (!is_string($timezone) || '' === trim($timezone)) {
         $timezone = 'UTC';
     }
 
     return apply_filters('os_ical_timezone', $timezone);
+}
+
+/**
+ * Convert a legacy wall-clock timestamp to an iCalendar UTC date.
+ *
+ * @param int $timestamp Event timestamp stored by OnlineSched.
+ * @return string UTC date in iCalendar format.
+ */
+function onlinesched_ical_utc_date($timestamp)
+{
+    $timestamp = absint($timestamp);
+    $timezone = new DateTimeZone(onlinesched_ical_timezone_id());
+    $wall_time = gmdate('Y-m-d H:i:s', $timestamp);
+    $date = DateTimeImmutable::createFromFormat(
+        '!Y-m-d H:i:s',
+        $wall_time,
+        $timezone
+    );
+
+    if (!$date) {
+        return gmdate(ONLINESCHED_ICAL_DATE_FORMAT, $timestamp);
+    }
+
+    return $date
+        ->setTimezone(new DateTimeZone('UTC'))
+        ->format(ONLINESCHED_ICAL_DATE_FORMAT);
 }
 
 function onlinesched_ical_calendar_name()
