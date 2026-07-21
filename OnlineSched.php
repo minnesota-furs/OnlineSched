@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: OnlineSched
-Plugin URI: https://github.com/onlinesched/OnlineSched
+Plugin URI: https://github.com/minnesota-furs/OnlineSched
 Description: A flexible event scheduling plugin for conventions and organizations.
 Version: 1.3.1
 Requires at least: 6.4
