@@ -15,6 +15,10 @@ function os_event_csv_export_handler()
 
 function os_event_csv_uploader_page()
 {
+	if (!current_user_can('manage_os_room')) {
+		wp_die(esc_html__('You do not have permission to import event schedules.', 'onlinesched'));
+	}
+
     remove_filter('parse_query', 'OnlineSched_posts_filter');
     
     // Process form actions before rendering page HTML
@@ -154,344 +158,43 @@ function delete_unused_tax($taxonomy, $name)
 
 function handle_os_event_csv_upload($file)
 {
-	$start_time = microtime(true);
-	$imported_count = 0;
-	$result_message = '';
-
-	// prevent writing to innodb until it needs to
-	global $wpdb;
-	$wpdb->query('START TRANSACTION');
-
-	set_time_limit(1200); // 10 minutes
-	ini_set('memory_limit', '6096M');
-
-    // handle the stop button as ignore like a 8 year old just continue to work
-	ignore_user_abort(true);
-	set_time_limit(0);
-
-	//$pauser = new YoastPauser();
-	//$pauser->pause();
-
-	$onlinesched_year = get_option('onlinesched_year');
-
-	if (($handle = fopen($file['tmp_name'], 'r')) !== FALSE) {
-		wp_defer_term_counting(true);
-
-		$room_cache = online_sched_grab_all_tags('os_room');
-		$panelist_cache = online_sched_grab_all_tags('os_panelist', 'name');
-		// Normalize panelist_cache keys for case/whitespace
-		$normalized_panelist_cache = array();
-		foreach ($panelist_cache as $name => $data) {
-			$normalized_panelist_cache[strtolower(trim($name))] = $data;
-		}
-		$tag_cache = online_sched_grab_all_tags('os_tag');
-
-		// disable sitemaps
-		add_filter('wp_sitemaps_enabled', '__return_false');
-
-		// disable some yoast stuff
-		add_filter('wpseo_enable_metabox_insights', '__return_false');
-		add_filter('wpseo_use_page_analysis', '__return_false');
-		add_filter('wpseo_should_index_link', '__return_false');
-
-		// remove action since we are handling the upload
-		remove_action('save_post', 'OnlineSched_add_timeslot_fields', 10);
-
-		$headers = fgetcsv($handle, 4000, ',');
-
-		$required_headers = array('ID', 'Name', 'Date', 'Time', 'Description', 'Room_Type', 'Speakers', 'Length', 'Tags');
-
-		// lower case both
-		$headers = array_map('strtolower', array_change_key_case($headers, CASE_LOWER));
-		$required_headers = array_map('strtolower', array_change_key_case($required_headers, CASE_LOWER));
-
-		if (array_slice($headers, 0, count($required_headers)) !== $required_headers) {
-			$wpdb->query('COMMIT;');
-			return '<div class="upload-error"><p>CSV file format is incorrect. Expected headers: ID, Name, Date, Time, Description, Room_Type, Speakers, Length, Tags).</p></div>';
-		}
-
-		$unscheduled_term = term_exists('Unscheduled', 'os_day');
-		if (!$unscheduled_term) {
-			$unscheduled_term = wp_insert_term('Unscheduled', 'os_day', array('description' => '0'));
-		}
-		$day_tag_cache = online_sched_grab_all_tags('os_day');
-
-		// Disable W3 Total Cache before starting the import
-		if (function_exists('w3tc_flush_all')) {
-			// Disable page caching
-			define('DONOTCACHEPAGE', true);
-			// Disable database caching
-			//  define('DONOTCACHEDB', true);
-			// Disable object caching
-			//  define('DONOTCACHEOBJECT', true);
-			// Disable minify caching
-			define('DONOTMINIFY', true);
-		}
-
-		$row = 1;
-		while (($data = fgetcsv($handle, 4000, ',')) !== FALSE) {
-			$row++;
-			$input_line = $row + 1; // Account for header line and 0-based index
-            if (count($data) < count($required_headers)) {
-                echo "<div class='upload-error'><p>Row $row (input line $input_line) has a mismatched number of fields.</p></div>";
-                continue;
-            }
-
-			$external_event_id = schedule_convert_to_utf8_and_santize($data[0]);
-			$name = schedule_convert_to_utf8_and_santize($data[1]);
-			$date = schedule_convert_to_utf8_and_santize($data[2]);
-			$time = schedule_convert_to_utf8_and_santize($data[3]);
-			$description = schedule_convert_to_utf8_and_kses($data[4]);
-			$room_type = schedule_convert_to_utf8_and_santize($data[5]);
-			$speakers = schedule_convert_to_utf8_and_santize($data[6]);
-			$length = schedule_convert_to_utf8_and_santize($data[7]);
-			$tags = schedule_convert_to_utf8_and_santize($data[8]);
-
-			if (empty($name)) {
-				$name = trim(wp_kses_post($data[1])); // reduce it a bit just in case
-			}
-
-			if (empty($name)) {
-				echo "<div class='upload-error'><p>Row $row (input line $input_line) has no name In String In case of filter {$data[1]}, ID {$external_event_id}, description: {$description}.</p></div>";
-				continue;
-			}
-
-
-			if (empty($date) || empty($time)) {
-				$day_of_week = 'Unscheduled';
-				$formatted_date = '0';
-				$hour = 0;
-				$minutes = 0;
-				$mysql_time = 0;
-			} else {
-				$full_date = onlinesched_parse_local_datetime($date, $time);
-
-				if (!$full_date) {
-					echo "<div class='upload-error'><p>Row $row (input line $input_line) has an invalid date or time. Expected Y-m-d or n/j/Y with a 12-hour or 24-hour time. {$date} {$time}</p></div>";
-					continue;
-				}
-
-				$day_of_week = $full_date->format('l');
-				$formatted_date = $full_date->format('n/j/Y');
-				$hour = $full_date->format('H');
-				$minutes = $full_date->format('i');
-				$mysql_time = $full_date->getTimestamp();
-			}
-
-			// Check for existing event
-			$event_id = get_post_id_by_event_id($external_event_id);
-
-
-			$post_data = array(
-				'post_title' => $name,
-				'post_content' => $description,
-				'post_status' => 'publish',
-				'post_type' => 'os_event',
-				'meta_input' => array(
-					'onlinesched_time_hr' => $hour,
-					'onlinesched_time_min' => $minutes,
-					'onlinesched_year' => $onlinesched_year,
-					'onlinesched_sorttime' => intval($mysql_time),
-					'onlinesched_timelen' => $length,
-					'onlinesched_external_event_id' => $external_event_id,
-				)
-			);
-
-			if ($event_id) {
-				$post_data['ID'] = $event_id;
-			}
-
-			$room_type_id = null;
-			if (!empty($room_type)) {
-				$room_type_slug = online_create_custom_slug($room_type);
-				if (empty($room_cache[$room_type_slug]['term_id'])) {
-					$room_type_term = wp_insert_term($room_type, 'os_room', array('slug' => $room_type_slug));
-
-					if (is_wp_error($room_type_term)) {
-						if ($room_type_term->get_error_code() === 'term_exists') {
-							$room_term_id = $room_type_term->get_error_data('term_exists');
-							$room_cache[$room_type_slug] = array('term_id' => $room_term_id);
-						} else {
-							$result_message .= "<div class=\"upload-error\"><p>couldn't create a room error {$room_type}: " . $room_type_term->get_error_message() . "</p></div>";
-						}
-					} else {
-						$room_cache[$room_type_slug] = array('term_id' => $room_type_term['term_id']);
-					}
-				}
-				if (!empty($room_cache[$room_type_slug]['term_id'])) {
-					$room_type_id = array($room_cache[$room_type_slug]['term_id']);
-				}
-			}
-
-			$post_data['tax_input']['os_room'] = $room_type_id;
-
-			// Handle os_day taxonomy
-			$day_term_id = null;
-			$day_of_week_slug = strtolower($day_of_week);
-
-			if (!empty($day_tag_cache[$day_of_week_slug])) {
-				if ($day_tag_cache[$day_of_week_slug]['description'] === $formatted_date) {
-					$day_term_id = $day_tag_cache[$day_of_week_slug]['term_id'];
-				} else {
-					$date = DateTime::createFromFormat('n/j/Y', trim($day_tag_cache[$day_of_week_slug]['description']));
-					$year = $date ? $date->format('Y') : 'old';
-					$new_name = $day_tag_cache[$day_of_week_slug]['name'] . '-' . $year;
-					$new_slug = strtolower(sanitize_title($new_name));
-					wp_update_term($day_tag_cache[$day_of_week_slug]['term_id'], 'os_day', array(
-						'name' => $new_name,
-						'slug' => $new_slug
-					));
-
-					$day_tag_cache[$new_slug] = $day_tag_cache[$day_of_week_slug];
-					$day_tag_cache[$new_slug]['name'] = $new_name;
-					unset($day_tag_cache[$day_of_week_slug]);
-				}
-			}
-
-			if (!$day_term_id) {
-				$day_term = wp_insert_term($day_of_week, 'os_day', array(
-					'description' => $formatted_date,
-					'slug' => $day_of_week_slug,
-				));
-				if (is_wp_error($day_term)) {
-					if ($day_term->get_error_code() === 'term_exists') {
-						$day_term_id = $day_term->get_error_data('term_exists');
-						wp_update_term($day_term_id, 'os_day', array(
-							'description' => $formatted_date,
-						));
-					} else {
-						$result_message .= "<div class=\"upload-error\"><p>error creating day type $day_of_week: " . $day_term->get_error_message() . "</p></div>";
-						$wpdb->query('COMMIT;');
-						return $result_message;
-					}
-				} else {
-					$day_term_id = $day_term['term_id'];
-				}
-				$day_tag_cache[$day_of_week_slug]['term_id'] = $day_term_id;
-				$day_tag_cache[$day_of_week_slug]['slug'] = $day_of_week_slug;
-				$day_tag_cache[$day_of_week_slug]['name'] = $day_of_week;
-				$day_tag_cache[$day_of_week_slug]['description'] = $formatted_date;
-			}
-
-			$post_data['tax_input']['os_day'] = array($day_term_id);
-
-			// Handle speakers taxonomy
-			$speakers_IDs = array();
-			$speakers_list = array_map('trim', explode(',', $speakers));
-			foreach ($speakers_list as $speaker) {
-				if (!empty($speaker)) {
-					$normalized_speaker = strtolower(trim($speaker));
-					if (empty($normalized_panelist_cache[$normalized_speaker])) {
-						$panelist_term = wp_insert_term($speaker, 'os_panelist');
-						if (is_wp_error($panelist_term)) {
-							if ($panelist_term->get_error_code() === 'term_exists') {
-								$p_id = $panelist_term->get_error_data('term_exists');
-								$normalized_panelist_cache[$normalized_speaker] = array(
-									'term_id' => $p_id,
-									'name' => $speaker,
-									'slug' => $speaker,
-								);
-							} else {
-								$result_message .= "<div class=\"upload-error\"><p>error on panelist Speaker $speaker - " . $panelist_term->get_error_message() . "</p></div>";
-							}
-						} else {
-							$normalized_panelist_cache[$normalized_speaker] = array(
-								'term_id' => $panelist_term['term_id'],
-								'name' => $speaker,
-								'slug' => $speaker,
-							);
-						}
-					}
-					if (!empty($normalized_panelist_cache[$normalized_speaker]['term_id'])) {
-						$speakers_IDs[] = $normalized_panelist_cache[$normalized_speaker]['term_id'];
-					}
-				}
-			}
-			$post_data['tax_input']['os_panelist'] = $speakers_IDs;
-
-			// Handle tags taxonomy
-			$tags_terms = array();
-			$tags_list = explode(',', $tags);
-			foreach ($tags_list as $tag) {
-				$tag = trim($tag);
-				if (!empty($tag)) {
-					$tag = ucwords($tag);
-					$tag_slug = online_create_custom_slug($tag);
-
-					if (empty($tag_cache[$tag_slug])) {
-						$tags_term = wp_insert_term($tag, 'os_tag', array('slug' => $tag_slug));
-
-						if (is_wp_error($tags_term)) {
-							if ($tags_term->get_error_code() === 'term_exists') {
-								$t_id = $tags_term->get_error_data('term_exists');
-								$tag_cache[$tag_slug] = array(
-									'term_id' => $t_id,
-									'slug' => $tag_slug,
-									'name' => $tag,
-								);
-							} else {
-								$result_message .= "<div class=\"upload-error\"><p>error creating term $tag and $tag_slug: " . $tags_term->get_error_message() . "</p></div>";
-							}
-						} else {
-							$tag_cache[$tag_slug] = array(
-								'term_id' => $tags_term['term_id'],
-								'slug' => $tag_slug,
-								'name' => $tag,
-							);
-						}
-					}
-
-					if (!empty($tag_cache[$tag_slug]['term_id'])) {
-						$tags_terms[] = (int)$tag_cache[$tag_slug]['term_id'];
-					}
-				}
-			}
-
-			$post_data['tax_input']['os_tag'] = $tags_terms;
-			// wp_set_post_terms($event_id, $tags_terms, 'os_tag');
-
-
-			// write out room woot!
-			$post_id = wp_insert_post($post_data);
-            if (is_wp_error($post_id) || $post_id == 0) {
-                if (!empty($post_id)) {
-                    $error_message = $post_id->get_error_message();
-                } else {
-                    $error_message = "no error message provided";
-                }
-                $result_message .= "<div class=\"upload-error\"><p>fatal error creating event in row {$row} (input line $input_line) - {$error_message}</p></div>";
-            } else {
-                $imported_count++;
-            }
-
-
-			// Keep the legacy row workaround and skip direct sorttime writes here.
-//            update_post_meta($event_id, 'onlinesched_sorttime', $mysql_time);
-
-		}
-		fclose($handle);
-
-
-		$end_time = microtime(true);
-		$execution_time = $end_time - $start_time;
-
-		$result_message .= '<div class="schedule-updated"><p><strong>Success:</strong> CSV file processed successfully. Imported/Updated <strong>' . $imported_count . '</strong> events in ' . intval($execution_time) . ' seconds.</p></div>';
-	} else {
-		$result_message .= '<div class="upload-error"><p>Failed to open the uploaded CSV file.</p></div>';
+	if (!is_array($file) || empty($file['tmp_name'])) {
+		return '<div class="upload-error"><p>No uploaded CSV file was provided.</p></div>';
 	}
 
-
-	$wpdb->query('COMMIT;');
-	// Re-enable post revisions
-
-	wp_defer_term_counting(false);
-
-	// $pauser->resume();
-	if (function_exists('w3tc_flush_all')) {
-		w3tc_flush_all();
+	$result = onlinesched_import_csv(
+		(string) $file['tmp_name'],
+		array('year' => get_option('onlinesched_year'))
+	);
+	$html = '';
+	foreach ($result['errors'] as $error) {
+		$context = '';
+		if (!empty($error['line'])) {
+			$context .= 'Line ' . (int) $error['line'];
+		}
+		if ($error['external_id'] !== '') {
+			$context .= ($context === '' ? '' : ', ') . 'event ' . esc_html($error['external_id']);
+		}
+		if ($context !== '') {
+			$context .= ': ';
+		}
+		$html .= '<div class="upload-error"><p>' . $context . esc_html($error['message']) . '</p></div>';
 	}
 
-    return $result_message;
+	$processed = (int) $result['inserted'] + (int) $result['updated'];
+	if ($processed > 0 || empty($result['errors'])) {
+		$html .= sprintf(
+			'<div class="schedule-updated"><p><strong>Success:</strong> CSV processed for %s. Inserted <strong>%d</strong>, updated <strong>%d</strong>, skipped <strong>%d</strong>, and failed <strong>%d</strong> events in %d seconds.</p></div>',
+			esc_html($result['year']),
+			(int) $result['inserted'],
+			(int) $result['updated'],
+			(int) $result['skipped'],
+			(int) $result['failed'],
+			(int) $result['duration_seconds']
+		);
+	}
+
+	return $html;
 }
 
 function export_os_event_csv()
@@ -622,57 +325,6 @@ function generate_unique_event_id()
 
 	return $unique_id;
 }
-
-// Fast way to get event id
-function get_post_id_by_event_id($external_event_id)
-{
-	if (empty($external_event_id)) {
-		return false;
-	}
-
-	$args = array(
-		'post_type' => 'os_event',
-		'meta_query' => array(
-			array(
-				'key' => 'onlinesched_external_event_id',
-				'value' => $external_event_id,
-				'compare' => '='
-			)
-		),
-		'posts_per_page' => 1, // We only need one post since onlinesched_external_event_id should be unique
-		'fields' => 'ids' // Only retrieve the post ID
-	);
-
-	$matching_posts = get_posts($args);
-
-	if (!empty($matching_posts)) {
-		return $matching_posts[0]; // Return the post ID of the matching post
-	} else {
-		return false; // Return false if no post is found
-	}
-}
-
-function online_sched_grab_all_tags($tax, $by = 'slug')
-{
-	$tags_by_array = array();
-	$tags = get_terms([
-		'taxonomy' => $tax,
-		'hide_empty' => false,
-	]);
-
-	foreach ($tags as $tag) {
-		$build_array = array(
-			'name' => $tag->name,
-			'term_id' => $tag->term_id,
-			'description' => $tag->description,
-			'slug' => $tag->slug,
-		);
-		$tags_by_array[$build_array[$by]] = $build_array;
-	}
-
-	return $tags_by_array;
-}
-
 
 function schedule_convert_to_utf8_and_kses($input) {
 	return wp_kses_post(schedule_convert_to_utf8($input));

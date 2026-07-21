@@ -58,3 +58,37 @@ npx playwright test --project=vanilla-wp
 Test data is seeded via WP-CLI. 
 *   FM environment: `npm run test:seed` (calls `tests/fixtures/seed-test-events.sh`).
 *   Vanilla environment: `tests/docker-vanilla/seed-vanilla.sh`.
+
+## WP-CLI Import and Year Deletion
+
+The CLI integration harness is destructive only inside the disposable Vanilla
+stack. It verifies the exact site URL and container name before running.
+
+```bash
+cd tests/docker-vanilla
+docker-compose up -d
+./seed-vanilla.sh
+cd ../..
+npm run test:cli
+```
+
+Run only the standalone deterministic fixture checks with:
+
+```bash
+npm run test:fixture
+```
+
+Generate a disposable 150-event CSV for an arbitrary convention start date:
+
+```bash
+php tests/fixtures/generate-furry-test-data.php \
+  --start-date=2027-06-30 \
+  --days=4 \
+  --output=tests/fixtures/generated/furry_test_data.csv
+```
+
+The generator defaults to 150 events, external IDs beginning at 4000, three
+consecutive days, and deterministic seed `20270630`. `--start-date` is always
+required. Optional `--count`, `--start-id`, `--days`, and `--seed` arguments
+support other disposable schedules without changing the nine-column CSV
+format. Generated CSV files stay ignored under `tests/fixtures/generated/`.
