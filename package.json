@@ -1,18 +1,18 @@
 {
   "name": "onlinesched",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "A flexible event scheduling plugin for WordPress",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/onlinesched/OnlineSched.git"
+    "url": "git+https://github.com/minnesota-furs/OnlineSched.git"
   },
   "author": "BL, BM, AL & Contributors",
   "license": "GPL-2.0-or-later",
   "bugs": {
-    "url": "https://github.com/onlinesched/OnlineSched/issues"
+    "url": "https://github.com/minnesota-furs/OnlineSched/issues"
   },
-  "homepage": "https://github.com/onlinesched/OnlineSched#readme",
+  "homepage": "https://github.com/minnesota-furs/OnlineSched#readme",
   "devDependencies": {
     "@babel/core": "^7.23.3",
     "@babel/preset-env": "^7.23.3",

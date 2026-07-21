@@ -3,6 +3,25 @@
 OnlineSched is a WordPress event scheduling plugin built by convention people for everyone.
 Keep the code boring where it should be boring, and keep the test data a little furry.
 
+## The Pack Welcomes You
+
+We would genuinely love your fixes, improvements, and new features. People are awesome,
+good code is awesome, and this project is better every time someone shares something back.
+If you found a bug, cleaned up something rough, or built a feature you think others could
+use, please open a pull request. We want to see it.
+
+We don't care whether your contribution comes from hands or paws — as long as it's good,
+you're welcome in the pack.
+
+A little honesty so nobody's feelings get hurt: OnlineSched is run by a small crew of
+volunteers, and our main focus is our own convention's site. That means we can't merge
+everything, and sometimes we'll pass on a change or ask for edits — not because your work
+isn't good, but because we have to keep the project maintainable for the way we use it.
+Please don't take a "no thanks" or a "not right now" personally. We appreciate every
+contribution, even the ones we don't end up merging, and we'll always try to explain our
+reasoning. Fork it, build on it, make it yours — that's exactly the kind of thing we hoped
+would happen when we shared this.
+
 ## Local Development
 
 Use the project Docker environment for PHP, Composer, and npm work:

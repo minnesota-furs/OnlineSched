@@ -14,7 +14,7 @@ Both supported me during the years this tool was being built, and both helped ke
 You can install this plugin either by downloading a pre-built release or by building it from source.
 
 ### Option 1: Download from GitHub Releases (Recommended)
-1. Go to the [Releases](https://github.com/onlinesched/OnlineSched/releases) page on GitHub.
+1. Go to the [Releases](https://github.com/minnesota-furs/OnlineSched/releases) page on GitHub.
 2. Download the `OnlineSched-x.x.x.zip` file from the latest release.
 3. In your WordPress admin dashboard, go to **Plugins > Add New Plugin > Upload Plugin**.
 4. Choose the downloaded zip file and click **Install Now**.
@@ -25,7 +25,7 @@ If you are developing the plugin or want to build it yourself:
 
 1. Clone the repository into your WordPress `wp-content/plugins` directory:
    ```bash
-   git clone https://github.com/onlinesched/OnlineSched.git
+   git clone https://github.com/minnesota-furs/OnlineSched.git
    cd OnlineSched
    ```
 2. Install PHP dependencies via Composer:
