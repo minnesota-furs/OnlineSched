@@ -60,10 +60,11 @@ function onlinesched_rest_event_search( $request ) {
 			$event_id = get_the_ID();
 
 			// Simple list for the picker
+			$sort_time = (int) get_post_meta($event_id, 'onlinesched_sorttime', true);
 			$results[] = array(
 				'id'    => $event_id,
 				'title' => get_the_title(),
-				'date'  => get_post_meta( $event_id, 'onlinesched_sorttime', true ) ? date( 'D m/d', get_post_meta( $event_id, 'onlinesched_sorttime', true ) ) : '',
+				'date'  => $sort_time ? wp_date('D m/d', $sort_time) : '',
 			);
 		}
 		wp_reset_postdata();

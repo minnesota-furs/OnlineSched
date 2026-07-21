@@ -119,7 +119,6 @@ $content = onlinesched_ical_html_to_text($_post->post_content);
 $iCal->add(onlinesched_ical_uid($id),
 	   $startTime,
 	   $endTime,
-	   //	   date("m/d/Y H:i", $endTime),
 		   $rooms,
 	       html_entity_decode($_post->post_title),
 		   $content,

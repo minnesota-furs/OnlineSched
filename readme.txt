@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 1.3.1
+Stable tag: 2.0.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,7 +94,15 @@ ICS feeds use UTC event timestamps, CRLF line endings, folded content lines, MET
 
 Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a matching path in your theme under an onlinesched/ folder. For example, to override the tab bar, create: your-theme/onlinesched/partials/schedule-tabs.php. The full list of overridable partials is in the README on GitHub.
 
+== Acknowledgements ==
+
+OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
+
 == Changelog ==
+
+= 2.0.0 =
+
+Stores event times as true Unix timestamps, renders them in the WordPress site timezone, and emits standards-compliant UTC calendar feeds.
 
 = 1.3.1 =
 

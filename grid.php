@@ -67,7 +67,7 @@ while ( $loop->have_posts() ) : $loop->the_post();
 
 	// Only show events who have a valid UNIX Timestamp.  Otherwise, they are unscheduled.
 	if ($sorttime > 0) { 
-		$newdayofweek = date('l', $sorttime);
+		$newdayofweek = wp_date('l', $sorttime);
 		if ($dayofweek != $newdayofweek) {
 			$dayofweek = $newdayofweek;
 			$hour = "none";
@@ -75,7 +75,7 @@ while ( $loop->have_posts() ) : $loop->the_post();
 			echo '<div class="os_dow">Events & Panels: ' . esc_html($dayofweek)  . '</div>';
 		}
 
-		$newhour = date('h:i A', $sorttime);
+		$newhour = wp_date('h:i A', $sorttime);
 		if ($hour != $newhour) {
 			$hour = $newhour;
 			echo '<div class="os_time">'. esc_html($hour) . '</div>';

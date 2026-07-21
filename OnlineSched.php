@@ -3,7 +3,7 @@
 Plugin Name: OnlineSched
 Plugin URI: https://github.com/minnesota-furs/OnlineSched
 Description: A flexible event scheduling plugin for conventions and organizations.
-Version: 1.3.1
+Version: 2.0.0
 Requires at least: 6.4
 Requires PHP: 8.2
 License: GPL-2.0-or-later
@@ -39,6 +39,7 @@ if (!defined('ONLINESCHED_PLUGIN_URL')) {
 }
 
 include_once("lib/config.php");
+require_once('lib/datetime.php');
 include_once("lib/theme.php");
 include_once("lib/help.php");
 require_once("OnlineSchedImportExporter.php");
@@ -122,11 +123,11 @@ function custom_edit_day_type($term_id, $taxonomy)
 		foreach ($posts as $post) {
 			$os_event_id = $post->ID;
 			$meta = get_post_meta($os_event_id);
-			$convert = $type->description . " " .
-				$meta['onlinesched_time_hr'][0] .
-				":" .
-				$meta['onlinesched_time_min'][0];
-			$sorttime = strtotime($convert);
+			$date_time = onlinesched_parse_local_datetime(
+				$type->description,
+				$meta['onlinesched_time_hr'][0] . ':' . $meta['onlinesched_time_min'][0]
+			);
+			$sorttime = $date_time ? $date_time->getTimestamp() : 0;
 
 
 			update_post_meta($os_event_id, 'onlinesched_sorttime', $sorttime);
@@ -329,12 +330,10 @@ function OnlineSched_columns_content($column, $post_ID)
 		echo esc_html(get_post_meta($post_ID, 'onlinesched_timelen', true));
 	} else if ($column == 'xdate') {
 		$sorttime = get_post_meta($post_ID, 'onlinesched_sorttime', true);
-		if ($sorttime == -99) {
-			echo "Unknown(1)";
-		} else if ($sorttime == 0) {
+		if ($sorttime <= 0) {
 			echo "Unknown";
 		} else {
-			echo esc_html(date('D m/d/Y h:iA', $sorttime));
+			echo esc_html(wp_date('D m/d/Y h:iA', $sorttime));
 		}
 	}
 }
@@ -630,16 +629,17 @@ function OnlineSched_add_timeslot_fields($os_event_id, $os_event)
 		OnlineSched_update_post_meta($os_event_id, 'os_event_timelen', 'onlinesched_timelen');
 		update_post_meta($os_event_id, 'onlinesched_year', get_option('onlinesched_year'));
 
-		$sorttime = -99;
+		$sorttime = 0;
         $posted_day = isset($_POST['os_day']) ? sanitize_text_field(wp_unslash($_POST['os_day'])) : '';
         $posted_hour = isset($_POST['os_event_time_hr']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_hr'])) : '';
         $posted_min = isset($_POST['os_event_time_min']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_min'])) : '';
 		$types = get_terms('os_day', array('search' => $posted_day));
 		if (count($types) == 1) {
-			$sorttime = strtotime($types[0]->description . " " .
-				$posted_hour .
-				":" .
-				$posted_min);
+			$date_time = onlinesched_parse_local_datetime(
+				$types[0]->description,
+				$posted_hour . ':' . $posted_min
+			);
+			$sorttime = $date_time ? $date_time->getTimestamp() : 0;
 		}
 		update_post_meta($os_event_id, 'onlinesched_sorttime', $sorttime);
 
