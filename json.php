@@ -155,8 +155,7 @@ if (isset($_REQUEST['limit']) && !is_array($_REQUEST['limit'])) {
 
 $loop = new WP_Query($args);
 $posts_arr = empty($loop->posts) ? array() : $loop->posts;
-$now = new DateTime('@' . current_time('timestamp', true));
-$now->setTimeZone(new DateTimeZone('UTC'));
+$now = time();
 $json_out = array();
 
 foreach ($posts_arr as $item) {
@@ -181,10 +180,7 @@ foreach ($posts_arr as $item) {
 	$duration = (is_numeric($duration) && intval($duration) >= 0) ? intval($duration) : 0;
 	$end_time = $start_time + ($duration * 60);
 
-	$end_datetime = new DateTime('@' . $end_time);
-	$end_datetime->setTimeZone(new DateTimeZone('UTC'));
-
-	if ($limit > 0 && $end_datetime < $now) {
+	if ($limit > 0 && $end_time < $now) {
 		continue;
 	}
 	$limit--;

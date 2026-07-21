@@ -41,6 +41,10 @@ until wp_run core is-installed 2>/dev/null; do
 done
 echo "✓ WordPress installed."
 
+# The plugin is bind-mounted from the host. Ensure Apache can traverse the
+# Composer dependency tree even when the host checkout uses restrictive modes.
+docker exec onlinesched-vanilla-wp chmod -R a+rX /var/www/html/wp-content/plugins/OnlineSched/vendor
+
 echo "Wiping database..."
 docker exec onlinesched-vanilla-db mysql -u wordpress -pwordpress -e "DROP DATABASE IF EXISTS wordpress; CREATE DATABASE wordpress;"
 

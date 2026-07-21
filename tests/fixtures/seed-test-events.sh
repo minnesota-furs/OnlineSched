@@ -135,7 +135,7 @@ create_event() {
   local SORTTIME="$2"
   local DURATION="$3"
   local ROOM="$4"
-  local TAG="$5"
+  local TAGS="$5" # Can be comma-separated
   local PANELIST="$6" # Can be comma-separated
   local CONTENT="$7"
 
@@ -153,8 +153,14 @@ create_event() {
   wp_run term create os_room "$ROOM" --porcelain 2>/dev/null || true
   wp_run post term set $POST_ID os_room "$ROOM"
 
-  wp_run term create os_tag "$TAG" --porcelain 2>/dev/null || true
-  wp_run post term set $POST_ID os_tag "$TAG"
+  IFS=',' read -ra TAG_NAMES <<< "$TAGS"
+  CLEAN_TAGS=()
+  for TAG in "${TAG_NAMES[@]}"; do
+    TRIMMED_TAG=$(echo "$TAG" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    wp_run term create os_tag "$TRIMMED_TAG" --porcelain 2>/dev/null || true
+    CLEAN_TAGS+=("$TRIMMED_TAG")
+  done
+  wp_run post term set $POST_ID os_tag "${CLEAN_TAGS[@]}"
 
   if [ -n "$PANELIST" ]; then
     # Split by comma and trim
@@ -175,7 +181,7 @@ echo "Seeding 12 test events for $YEAR..."
 
 # Friday
 create_event "Opening Howl Ceremony" \
-  $((NEXT_FRIDAY + 36000)) 60 "Mainstage" "Essential" "Kurst Hyperyote" \
+  $((NEXT_FRIDAY + 36000)) 60 "Mainstage" "Essential, Special Event" "Kurst Hyperyote" \
   "Kick off the convention with a massive group howl! All species welcome to the stage."
 
 create_event "Fursuit Parade Staging" \
@@ -234,4 +240,3 @@ assign_badge_type "sensory" "Sensory"
 assign_badge_type "vip" "VIP"
 
 echo "Done. 12 test events created for $YEAR."
-

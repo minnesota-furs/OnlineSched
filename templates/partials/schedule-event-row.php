@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 
 $row_style = $row_highlight_color ? ' style="background-color: ' . esc_attr($row_highlight_color) . ';"' : '';
 do_action('os_before_schedule_item', get_the_ID());
-echo '<div id="onlineevt-' . get_the_ID() . '" class="os-row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-os-event-id="' . esc_attr(get_the_ID()) . '" data-end-time="' . $sortEndTimeGMT . '"' . $addScheduleRoomData . $addScheduleTagsData . $row_style . '>';
+echo '<div id="onlineevt-' . get_the_ID() . '" class="os-row schedule-item' . $addVIPClass . $addGOHClass . $addSpecialGuestClass . $addCanceledClass . $addScheduleRoom . $addScheduleTags . '" data-os-event-id="' . esc_attr(get_the_ID()) . '" data-end-time="' . $sortEndTime . '"' . $addScheduleRoomData . $addScheduleTagsData . $row_style . '>';
 
 $hiddenLg = $liveStreaming ? ' os-hide-desktop' : '';
 $titleLg = $liveStreaming ? ' os-col-lg-7' : '';
@@ -55,7 +55,7 @@ echo '<dd class="schedule-room' . $filterLinkClass . '">' . $rooms . '</dd>';
 echo '</dl>';
 echo '<dl class="os-col-md-2 os-col-sm-3 schedule-meta-time' . $hideTime . '">';
 echo '<dt><i class="far fa-clock" aria-hidden="true"></i></dt>';
-echo '<dd class="schedule-time"><span class="os-sr-only">' . date('g:i A', $sorttime) . '</span>' . esc_html($hourduration) . '</dd>';
+echo '<dd class="schedule-time"><span class="os-sr-only">' . wp_date('g:i A', $sorttime) . '</span>' . esc_html($hourduration) . '</dd>';
 echo '</dl>';
 echo '<dl class="os-col-md-2 os-col-sm-3 os-hide-mobile' . $hiddenLg . '">';
 if ($tags != 'None') {

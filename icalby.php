@@ -144,11 +144,7 @@ if (isset($_REQUEST['limit']) && !is_array($_REQUEST['limit'])) {
 $loop = new WP_Query($args);
 $postsArr = empty($loop->posts) ? array() : $loop->posts;
 
-$dnt = new DateTime();
-$dnt->setTimestamp(current_time('timestamp', true));
-$dnt->setTimeZone(wp_timezone());
-$dnt->setTimeZone(new DateTimeZone('UTC'));
-#$dnt->add(new DateInterval('P10D'));
+$now = time();
 
 $iCal = new iCalGen();
 foreach ($postsArr as $item) {
@@ -177,9 +173,7 @@ foreach ($postsArr as $item) {
 	$endTime = $startTime + ($duration * 60);
 
 	## If the limiting, skip any events clearly in the past
-	$det = new DateTime('@'.$endTime);
-	$det->setTimeZone(new DateTimeZone('UTC'));
-	if ($limit > 0 && $det < $dnt) {
+	if ($limit > 0 && $endTime < $now) {
 		continue;
 	}
 	$limit--;

@@ -63,20 +63,23 @@ test.describe('07 — Hash Routing', () => {
   });
 
   test('combined filters (#tag=...&room=...) filters correctly', async ({ page }) => {
-    // Get a valid tag and room from the first item
+    // Get a room from an item that also carries the tag under test. A room
+    // from an unrelated first item can produce an impossible combination.
     await page.goto('/schedule/');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
     await page.selectOption(S.selectDays, 'all');
     await page.waitForTimeout(300);
 
-    const firstItem = page.locator(S.scheduleItem).first();
-    const roomSlug = await firstItem.evaluate((el) => {
+    const tagSlug = 'essential';
+    const matchingItem = page.locator(`${S.scheduleItem}[data-schedule-tag-${tagSlug}]`).first();
+    if (await matchingItem.count() === 0) test.skip(true, 'No Essential seed event found');
+
+    const roomSlug = await matchingItem.evaluate((el) => {
       const attr = Array.from(el.attributes).find(a => a.name.startsWith('data-schedule-room-'));
       return attr ? attr.value : null;
     });
-    const tagSlug = 'essential'; // Standard safe tag
 
-    if (!roomSlug) test.skip(true, 'No room slug found on first item');
+    if (!roomSlug) test.skip(true, 'No room slug found on Essential seed event');
 
     // Navigate to combined hash
     await page.goto(`/schedule/#tag=${tagSlug}&room=${roomSlug}`);

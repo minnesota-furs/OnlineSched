@@ -40,7 +40,6 @@ function onlinesched_render_schedule($args = array()) {
         }
 
         $badge_type_meta_cache = array();
-        $gmt_offset = floatval(get_option('gmt_offset'));
         $onlinesched_year = get_option('onlinesched_year');
 
         $essentials_tab_name = get_option('onlinesched_essentials_tab_name', 'Essentials');
@@ -205,7 +204,7 @@ function onlinesched_render_schedule($args = array()) {
 
                     if (!$loop->have_posts()){
                         ?>
-                        <div class="schedule-day" data-schedule-num-day="<?php echo time(); ?>" data-schedule-day="<?php echo date('l, F j', time()); ?>">
+                        <div class="schedule-day" data-schedule-num-day="<?php echo time(); ?>" data-schedule-day="<?php echo esc_attr(wp_date('l, F j')); ?>">
                             <h2>No date in past or future</h2>
                             <div class="schedule-hour">
                                 <h3>Out of time</h3>
@@ -311,7 +310,7 @@ function onlinesched_render_schedule($args = array()) {
                         $duration = intval(get_post_meta(get_the_ID(), 'onlinesched_timelen', true));
                         $sorttime = intval($sorttime);
                         $sortEndtime = $sorttime + ($duration * 60);
-                        $sortEndTimeGMT = $sortEndtime - (60 * 60 * $gmt_offset);
+                        $sortEndTime = $sortEndtime;
 
                         $minutes = $duration % 60;
                         $hours = ($duration - $minutes) / 60;
@@ -326,12 +325,12 @@ function onlinesched_render_schedule($args = array()) {
                         }
 
                         if ($sorttime > 0) {
-                            $newdayofweek = date('l, F j', $sorttime);
+                            $newdayofweek = wp_date('l, F j', $sorttime);
                             if ($dayofweek != $newdayofweek) {
                                 if ($dayofweek != "none" && $dayofweek != "") {
                                     echo "</div></div>";
                                 }
-                                $newTimestamp = strtotime(date("Y-m-d 00:00:00", $sorttime));
+                                $newTimestamp = onlinesched_local_day_start($sorttime);
                                 $dayofweek = $newdayofweek;
                                 $hour = "none";
                                 echo '<div class="schedule-day" data-schedule-num-day="' . $newTimestamp . '" data-schedule-day="' . $dayofweek . '"><h2>' . $dayofweek . onlinesched_get_flare_html() . '</h2>';
@@ -343,7 +342,7 @@ function onlinesched_render_schedule($args = array()) {
                             }
                         }
 
-                        $newhour = ($sorttime == 0) ? "Unscheduled" : date('g:i A', $sorttime);
+                        $newhour = ($sorttime == 0) ? "Unscheduled" : wp_date('g:i A', $sorttime);
                         if ($hour != $newhour) {
                             if ($hour != 'none') {
                                 echo "</div>";
@@ -360,7 +359,7 @@ function onlinesched_render_schedule($args = array()) {
                             'addSpecialGuestClass', 'addVIPClass', 'badge_types_colors', 'badge_types_display',
                             'badge_types_fg_colors', 'badge_types_icons', 'badge_types_present', 'canonical_badges',
                             'eventCancelled', 'filterLINKS', 'hideTime', 'hourduration', 'liveStreaming',
-                            'panelists', 'roomClassMarker', 'rooms', 'row_highlight_color', 'sortEndTimeGMT',
+                            'panelists', 'roomClassMarker', 'rooms', 'row_highlight_color', 'sortEndTime',
                             'sorttime', 'tags', 'theming'
                         ));
                     endwhile;

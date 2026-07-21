@@ -55,8 +55,8 @@ class OnlineSchedEventViewModel {
 		$this->data['duration'] = ! empty( $duration ) ? (int) $duration : 0;
 		$this->data['end_ts']   = $this->data['start_ts'] + ( $this->data['duration'] * 60 );
 
-		$this->data['formatted_date'] = $this->data['start_ts'] ? date_i18n( 'l, F j, Y', $this->data['start_ts'] ) : '';
-		$this->data['formatted_time'] = $this->data['start_ts'] ? date_i18n( 'g:i A', $this->data['start_ts'] ) : '';
+		$this->data['formatted_date'] = $this->data['start_ts'] ? wp_date( 'l, F j, Y', $this->data['start_ts'] ) : '';
+		$this->data['formatted_time'] = $this->data['start_ts'] ? wp_date( 'g:i A', $this->data['start_ts'] ) : '';
 		$this->data['hour_duration']  = $this->calculate_duration( $this->data['start_ts'], $this->data['end_ts'] );
 
 		// Get schedule page URL for filtering
@@ -131,7 +131,7 @@ class OnlineSchedEventViewModel {
 		if ( ! $start || ! $end ) {
 			return '';
 		}
-		return date( 'g:i A', $start ) . ' - ' . date( 'g:i A', $end );
+		return wp_date( 'g:i A', $start ) . ' - ' . wp_date( 'g:i A', $end );
 	}
 
 	/**

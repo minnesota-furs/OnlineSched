@@ -264,31 +264,10 @@ function handle_os_event_csv_upload($file)
 				$minutes = 0;
 				$mysql_time = 0;
 			} else {
-				// Check if the time string includes seconds
-				if (strpos($time, ':') === false || substr_count($time, ':') == 1) {
-					// Time does not include seconds, append ':00'
-					$time = "{$time}:00";
-				}
-
-				$full_date = DateTime::createFromFormat('Y-m-d H:i:s', "{$date} {$time}");
+				$full_date = onlinesched_parse_local_datetime($date, $time);
 
 				if (!$full_date) {
-					// Try without leading zeros for day and month
-					$full_date = DateTime::createFromFormat('Y-n-j H:i:s', "{$date} {$time}");
-				}
-
-				if (!$full_date) {
-					// Try without leading zeros for day and month
-					$full_date = DateTime::createFromFormat('n/j/Y H:i:s', "{$date} {$time}");
-					if (!empty($full_date)) {
-						if (intval($full_date->format('Y')) < 1000) {
-							$full_date = DateTime::createFromFormat('n/j/y H:i:s', "{$date} {$time}");
-						}
-					}
-				}
-
-				if (!$full_date) {
-					echo "<div class='upload-error'><p>Row $row (input line $input_line) has an invalid DateTime format. Expected format: Y-m-d H:i:s or n/j/Y H:i:s. {$date} {$time}</p></div>";
+					echo "<div class='upload-error'><p>Row $row (input line $input_line) has an invalid date or time. Expected Y-m-d or n/j/Y with a 12-hour or 24-hour time. {$date} {$time}</p></div>";
 					continue;
 				}
 
@@ -522,7 +501,7 @@ function export_os_event_csv()
 	remove_filter('parse_query', 'OnlineSched_posts_filter');
 
 
-	$filename = 'os_event_export_' . date('Ymd') . '.csv';
+	$filename = 'os_event_export_' . wp_date('Ymd') . '.csv';
 
 	header('Content-Type: text/csv');
 	header('Content-Disposition: attachment;filename=' . $filename);
@@ -556,9 +535,9 @@ function export_os_event_csv()
 		$sorttime = get_post_meta($post_id, 'onlinesched_sorttime', true);
 		// Convert timestamp to Excel-compatible format
 		if ($sorttime) {
-			// use default system timezone stuff
-			$date = date('Y-m-d', $sorttime);
-			$time = date('H:i', $sorttime);
+			// Export the event's local wall time in the configured site timezone.
+			$date = wp_date('Y-m-d', $sorttime);
+			$time = wp_date('H:i', $sorttime);
 		} else {
 			$date = '';
 			$time = '';
