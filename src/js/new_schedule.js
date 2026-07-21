@@ -372,11 +372,19 @@ export function new_schedule() {
         });
 
         const descriptionEl = $('#modal-schedule-description');
+        const hr = descriptionEl?.parentElement?.querySelector('hr');
+        const cleanDescription = (description || '').replace(/&(nbsp|#160);/g, ' ').trim();
+
         if (descriptionEl) {
-            showElement(descriptionEl);
-            descriptionEl.innerHTML = description;
-            const hr = descriptionEl.parentElement?.querySelector('hr');
-            if (hr) showElement(hr);
+            if (cleanDescription.length > 0) {
+                descriptionEl.innerHTML = description;
+                showElement(descriptionEl);
+                if (hr) showElement(hr);
+            } else {
+                descriptionEl.innerHTML = '';
+                hideElement(descriptionEl);
+                if (hr) hideElement(hr);
+            }
         }
 
         modal_popup_fill('#modal-schedule-date', date);

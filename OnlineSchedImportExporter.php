@@ -16,6 +16,27 @@ function os_event_csv_export_handler()
 function os_event_csv_uploader_page()
 {
     remove_filter('parse_query', 'OnlineSched_posts_filter');
+    
+    // Process form actions before rendering page HTML
+    $messages = [];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_FILES['os_event_csv']) && !empty($_FILES['os_event_csv']['name'])) {
+            check_admin_referer('onlinesched_csv_upload');
+            $messages[] = handle_os_event_csv_upload($_FILES['os_event_csv']);
+        }
+        if (isset($_POST['delete_all_os_event_posts'])) {
+            check_admin_referer('onlinesched_csv_delete_posts');
+            $messages[] = delete_all_os_event_posts();
+        }
+        if (isset($_POST['delete_unused_panelists'])) {
+            check_admin_referer('onlinesched_csv_delete_panelists');
+            $messages[] = delete_unused_tax('os_panelist', 'Panelists');
+        }
+        if (isset($_POST['delete_unused_days'])) {
+            check_admin_referer('onlinesched_csv_delete_days');
+            $messages[] = delete_unused_tax('os_day', "Days");
+        }
+    }
     ?>
     <style>
     /* Style for upload-error to match WordPress admin error notice */
@@ -50,6 +71,7 @@ function os_event_csv_uploader_page()
     }
     </style>
     <div class="wrap">
+        <?php foreach ($messages as $msg) { echo $msg; } ?>
         <h2>Upload Event Schedule CSV</h2>
         <form method="post" enctype="multipart/form-data">
             <?php wp_nonce_field('onlinesched_csv_upload'); ?>
@@ -89,28 +111,6 @@ function os_event_csv_uploader_page()
         </form>
     </div>
 	<?php
-	if (isset($_FILES['os_event_csv'])) {
-        check_admin_referer('onlinesched_csv_upload');
-
-		handle_os_event_csv_upload($_FILES['os_event_csv']);
-
-	}
-
-
-	if (isset($_POST['delete_all_os_event_posts'])) {
-        check_admin_referer('onlinesched_csv_delete_posts');
-		delete_all_os_event_posts();
-	}
-
-	if (isset($_POST['delete_unused_panelists'])) {
-        check_admin_referer('onlinesched_csv_delete_panelists');
-		delete_unused_tax('os_panelist', 'Panalists');
-	}
-
-	if (isset($_POST['delete_unused_days'])) {
-        check_admin_referer('onlinesched_csv_delete_days');
-		delete_unused_tax('os_day', "Days");
-	}
 }
 
 function delete_all_os_event_posts()
@@ -121,12 +121,13 @@ function delete_all_os_event_posts()
 		'post_status' => 'any'
 	);
 	$events = get_posts($args);
+	$count = count($events);
 
 	foreach ($events as $event) {
 		wp_delete_post($event->ID, true);
 	}
 
-	echo '<div class="schedule-updated"><p>All Event Schedule posts have been deleted.</p></div>';
+	return '<div class="schedule-updated"><p>All <strong>' . $count . '</strong> Event Schedule posts have been deleted.</p></div>';
 }
 
 function delete_unused_tax($taxonomy, $name)
@@ -136,21 +137,26 @@ function delete_unused_tax($taxonomy, $name)
 		'hide_empty' => false,
 	));
 
-	foreach ($terms as $term) {
-		$term_count = $term->count;
-		if ($term_count == 0) {
-			wp_delete_term($term->term_id, $taxonomy);
+	$count = 0;
+	if (!is_wp_error($terms)) {
+		foreach ($terms as $term) {
+			$term_count = $term->count;
+			if ($term_count == 0) {
+				wp_delete_term($term->term_id, $taxonomy);
+				$count++;
+			}
 		}
 	}
 
-	echo "<div class=\"schedule-updated\"><p>All unused {$name} have been deleted.</p></div>";
+	return "<div class=\"schedule-updated\"><p>All <strong>{$count}</strong> unused {$name} have been deleted.</p></div>";
 }
 
 
 function handle_os_event_csv_upload($file)
 {
-
 	$start_time = microtime(true);
+	$imported_count = 0;
+	$result_message = '';
 
 	// prevent writing to innodb until it needs to
 	global $wpdb;
@@ -200,8 +206,8 @@ function handle_os_event_csv_upload($file)
 		$required_headers = array_map('strtolower', array_change_key_case($required_headers, CASE_LOWER));
 
 		if (array_slice($headers, 0, count($required_headers)) !== $required_headers) {
-			echo '<div class="upload-error"><p>CSV file format is incorrect. Expected headers: ID, Name, Date, Time, Description, Room_Type, Speakers, Length, Tags).</p></div>';
-			return;
+			$wpdb->query('COMMIT;');
+			return '<div class="upload-error"><p>CSV file format is incorrect. Expected headers: ID, Name, Date, Time, Description, Room_Type, Speakers, Length, Tags).</p></div>';
 		}
 
 		$unscheduled_term = term_exists('Unscheduled', 'os_day');
@@ -323,33 +329,25 @@ function handle_os_event_csv_upload($file)
 					$room_type_term = wp_insert_term($room_type, 'os_room', array('slug' => $room_type_slug));
 
 					if (is_wp_error($room_type_term)) {
-						echo "<div class=\"upload-error\"><p>couldn't create a room fatal error {$room_type}</p></div>";
-						return;
+						if ($room_type_term->get_error_code() === 'term_exists') {
+							$room_term_id = $room_type_term->get_error_data('term_exists');
+							$room_cache[$room_type_slug] = array('term_id' => $room_term_id);
+						} else {
+							$result_message .= "<div class=\"upload-error\"><p>couldn't create a room error {$room_type}: " . $room_type_term->get_error_message() . "</p></div>";
+						}
+					} else {
+						$room_cache[$room_type_slug] = array('term_id' => $room_type_term['term_id']);
 					}
-
-					$room_cache[$room_type_slug] = array(
-						'term_id' => $room_type_term['term_id']
-
-					);
-
 				}
-				$room_type_id = array($room_cache[$room_type_slug]['term_id']);
+				if (!empty($room_cache[$room_type_slug]['term_id'])) {
+					$room_type_id = array($room_cache[$room_type_slug]['term_id']);
+				}
 			}
 
-			// Handle room_type taxonomy
-//             $room_type_term = term_exists($room_type, 'os_room');
-			//          if (!$room_type_term) {
-			// print "Creating room";
-			//            $room_type_term = wp_insert_term($room_type, 'os_room');
-			//       }
-
-			// Ok if this person has the privlidges should be able to do
-			// wp_set_post_terms($event_id, $room_type, 'os_room');
 			$post_data['tax_input']['os_room'] = $room_type_id;
 
 			// Handle os_day taxonomy
 			$day_term_id = null;
-
 			$day_of_week_slug = strtolower($day_of_week);
 
 			if (!empty($day_tag_cache[$day_of_week_slug])) {
@@ -357,7 +355,7 @@ function handle_os_event_csv_upload($file)
 					$day_term_id = $day_tag_cache[$day_of_week_slug]['term_id'];
 				} else {
 					$date = DateTime::createFromFormat('n/j/Y', trim($day_tag_cache[$day_of_week_slug]['description']));
-					$year = $date->format('Y');
+					$year = $date ? $date->format('Y') : 'old';
 					$new_name = $day_tag_cache[$day_of_week_slug]['name'] . '-' . $year;
 					$new_slug = strtolower(sanitize_title($new_name));
 					wp_update_term($day_tag_cache[$day_of_week_slug]['term_id'], 'os_day', array(
@@ -365,12 +363,11 @@ function handle_os_event_csv_upload($file)
 						'slug' => $new_slug
 					));
 
-					// update ecache since that would take time otherwise
 					$day_tag_cache[$new_slug] = $day_tag_cache[$day_of_week_slug];
 					$day_tag_cache[$new_slug]['name'] = $new_name;
+					unset($day_tag_cache[$day_of_week_slug]);
 				}
 			}
-
 
 			if (!$day_term_id) {
 				$day_term = wp_insert_term($day_of_week, 'os_day', array(
@@ -378,62 +375,26 @@ function handle_os_event_csv_upload($file)
 					'slug' => $day_of_week_slug,
 				));
 				if (is_wp_error($day_term)) {
-					echo "<div class=\"upload-error\"><p>fatal error creating day type $day_of_week slug $day_of_week_slug</p></div>";
-					return;
+					if ($day_term->get_error_code() === 'term_exists') {
+						$day_term_id = $day_term->get_error_data('term_exists');
+						wp_update_term($day_term_id, 'os_day', array(
+							'description' => $formatted_date,
+						));
+					} else {
+						$result_message .= "<div class=\"upload-error\"><p>error creating day type $day_of_week: " . $day_term->get_error_message() . "</p></div>";
+						$wpdb->query('COMMIT;');
+						return $result_message;
+					}
+				} else {
+					$day_term_id = $day_term['term_id'];
 				}
-				$day_tag_cache[$day_of_week_slug]['term_id'] = $day_term['term_id'];
-				$day_tag_cache[$day_of_week_slug]['slug'] = $day_of_week;
+				$day_tag_cache[$day_of_week_slug]['term_id'] = $day_term_id;
+				$day_tag_cache[$day_of_week_slug]['slug'] = $day_of_week_slug;
 				$day_tag_cache[$day_of_week_slug]['name'] = $day_of_week;
 				$day_tag_cache[$day_of_week_slug]['description'] = $formatted_date;
-				$day_term_id = $day_term['term_id'];
-
 			}
 
 			$post_data['tax_input']['os_day'] = array($day_term_id);
-
-			/*
-			$day_terms = get_terms(array(
-				'taxonomy' => 'os_day',
-				'name' => $day_of_week,
-				'hide_empty' => false,
-			));
-			$day_term_id = null;
-			foreach ($day_terms as $term) {
-				print "I am comparing $formatted_date ".date("Y-m-d h:i:sa")."<br />";
-				if ($term->description === $formatted_date) {
-					$day_term_id = $term->term_id;
-					break;
-				} else {
-					$date = DateTime::createFromFormat('n/j/Y', $term->description);
-					$year = $date->format('Y');
-					$new_name = $term->name . '-' . $year;
-					$new_slug = sanitize_title($new_name);
-					wp_update_term($term->term_id, $term->taxonomy, array(
-						'name' => $new_name,
-						'slug' => $new_slug
-					));
-				}
-
-			}
-
-			if (!$day_term_id) {
-				$day_term = wp_insert_term($day_of_week, 'os_day', array(
-					'description' => $formatted_date,
-				));
-				if (!is_wp_error($day_term)) {
-					$day_term_id = $day_term['term_id'];
-				}
-			}
-
-			if ($day_term_id) {
-				$post_data['tax_input']['os_day']  = array($day_term_id);
-				// wp_set_post_terms($event_id, array($day_term_id), 'os_day');
-			} else {
-				$post_data['tax_input']['os_day']  = array($unscheduled_term['term_id']);
-				// wp_set_post_terms($event_id, array($unscheduled_term['term_id']), 'os_day');
-			}
-			*/
-
 
 			// Handle speakers taxonomy
 			$speakers_IDs = array();
@@ -444,22 +405,30 @@ function handle_os_event_csv_upload($file)
 					if (empty($normalized_panelist_cache[$normalized_speaker])) {
 						$panelist_term = wp_insert_term($speaker, 'os_panelist');
 						if (is_wp_error($panelist_term)) {
-                            echo "<div class=\"upload-error\"><p>fatal error on panelist update boom! Speaker $speaker - " . $panelist_term->get_error_message() . "</p></div>";
-							return;
+							if ($panelist_term->get_error_code() === 'term_exists') {
+								$p_id = $panelist_term->get_error_data('term_exists');
+								$normalized_panelist_cache[$normalized_speaker] = array(
+									'term_id' => $p_id,
+									'name' => $speaker,
+									'slug' => $speaker,
+								);
+							} else {
+								$result_message .= "<div class=\"upload-error\"><p>error on panelist Speaker $speaker - " . $panelist_term->get_error_message() . "</p></div>";
+							}
+						} else {
+							$normalized_panelist_cache[$normalized_speaker] = array(
+								'term_id' => $panelist_term['term_id'],
+								'name' => $speaker,
+								'slug' => $speaker,
+							);
 						}
-						$normalized_panelist_cache[$normalized_speaker] = array(
-							'term_id' => $panelist_term['term_id'],
-							'name' => $speaker,
-							'slug' => $speaker,
-						);
 					}
-					$speakers_IDs[] = $normalized_panelist_cache[$normalized_speaker]['term_id'];
+					if (!empty($normalized_panelist_cache[$normalized_speaker]['term_id'])) {
+						$speakers_IDs[] = $normalized_panelist_cache[$normalized_speaker]['term_id'];
+					}
 				}
-
 			}
 			$post_data['tax_input']['os_panelist'] = $speakers_IDs;
-			// wp_set_post_terms($event_id, $speakers_IDs, 'os_panelist');
-
 
 			// Handle tags taxonomy
 			$tags_terms = array();
@@ -471,21 +440,31 @@ function handle_os_event_csv_upload($file)
 					$tag_slug = online_create_custom_slug($tag);
 
 					if (empty($tag_cache[$tag_slug])) {
-						$tags_term = wp_insert_term($tag, 'os_tag',
-							array('slug' => $tag_slug));
+						$tags_term = wp_insert_term($tag, 'os_tag', array('slug' => $tag_slug));
 
 						if (is_wp_error($tags_term)) {
-							echo "<div class=\"upload-error\"><p>fatal error creating term $tag and $tag_slug</p></div>";
-							wp_die();
+							if ($tags_term->get_error_code() === 'term_exists') {
+								$t_id = $tags_term->get_error_data('term_exists');
+								$tag_cache[$tag_slug] = array(
+									'term_id' => $t_id,
+									'slug' => $tag_slug,
+									'name' => $tag,
+								);
+							} else {
+								$result_message .= "<div class=\"upload-error\"><p>error creating term $tag and $tag_slug: " . $tags_term->get_error_message() . "</p></div>";
+							}
+						} else {
+							$tag_cache[$tag_slug] = array(
+								'term_id' => $tags_term['term_id'],
+								'slug' => $tag_slug,
+								'name' => $tag,
+							);
 						}
-						$tag_cache[$tag_slug] = array(
-							'term_id' => $tags_term['term_id'],
-							'slug' => $tag_slug,
-							'name' => $tag,
-						);
 					}
 
-					$tags_terms[] = (int)$tag_cache[$tag_slug]['term_id'];
+					if (!empty($tag_cache[$tag_slug]['term_id'])) {
+						$tags_terms[] = (int)$tag_cache[$tag_slug]['term_id'];
+					}
 				}
 			}
 
@@ -501,7 +480,9 @@ function handle_os_event_csv_upload($file)
                 } else {
                     $error_message = "no error message provided";
                 }
-                echo "<div class=\"upload-error\"><p>fatal error creating event in row {$row} (input line $input_line) - {$error_message}</p></div>";
+                $result_message .= "<div class=\"upload-error\"><p>fatal error creating event in row {$row} (input line $input_line) - {$error_message}</p></div>";
+            } else {
+                $imported_count++;
             }
 
 
@@ -515,9 +496,9 @@ function handle_os_event_csv_upload($file)
 		$end_time = microtime(true);
 		$execution_time = $end_time - $start_time;
 
-		echo '<div class="schedule-updated"><p>CSV file processed successfully taking ' . intval($execution_time) . ' seconds.</p></div>';
+		$result_message .= '<div class="schedule-updated"><p><strong>Success:</strong> CSV file processed successfully. Imported/Updated <strong>' . $imported_count . '</strong> events in ' . intval($execution_time) . ' seconds.</p></div>';
 	} else {
-		echo '<div class="upload-error"><p>Failed to open the uploaded CSV file.</p></div>';
+		$result_message .= '<div class="upload-error"><p>Failed to open the uploaded CSV file.</p></div>';
 	}
 
 
@@ -531,7 +512,7 @@ function handle_os_event_csv_upload($file)
 		w3tc_flush_all();
 	}
 
-
+    return $result_message;
 }
 
 function export_os_event_csv()

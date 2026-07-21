@@ -3,7 +3,7 @@
 Plugin Name: OnlineSched
 Plugin URI: https://github.com/onlinesched/OnlineSched
 Description: A flexible event scheduling plugin for conventions and organizations.
-Version: 1.3.0
+Version: 1.3.1
 Requires at least: 6.4
 Requires PHP: 8.2
 License: GPL-2.0-or-later
@@ -62,6 +62,7 @@ require_once('OnlineSchedSocialLogin.php');
 add_action('init', 'OnlineSched_init');
 add_action('admin_init', 'onlinesched_ensure_roles', 5);
 add_action('admin_init', 'OnlineSched_admin_init');
+add_action('admin_init', 'os_event_csv_export_handler');
 add_action('save_post', 'OnlineSched_add_timeslot_fields', 10, 2);
 add_action('manage_os_event_posts_custom_column', 'OnlineSched_columns_content', 10, 2);
 add_action('admin_head', 'OnlineSched_add_help_page');
