@@ -24,6 +24,9 @@ const excludedSourceFiles = new Set([
 
 const requiredRuntimeFiles = [
     'OnlineSched.php',
+    'lib/csv-import.php',
+    'lib/schedule-maintenance.php',
+    'includes/wp-cli.php',
     'vendor/autoload.php',
     'build/bundle.js',
     'build/main.css',

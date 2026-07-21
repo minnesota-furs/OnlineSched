@@ -53,6 +53,34 @@ docker exec fm-php bash -c "source /usr/local/nvm/nvm.sh && cd /var/www/html/wp-
 docker exec fm-php bash -c "source /usr/local/nvm/nvm.sh && cd /var/www/html/wp-content/plugins/OnlineSched && npm run build"
 ```
 
+## WP-CLI Schedule Maintenance
+
+OnlineSched can import the same nine-column CSV used by the WordPress admin uploader from WP-CLI. The CSV columns and their existing meaning do not change:
+
+```text
+ID,Name,Date,Time,Description,Room_Type,Speakers,Length,Tags
+```
+
+Import a file using the active schedule year, or target a specific year without changing the active `onlinesched_year` option:
+
+```bash
+wp onlinesched import /absolute/path/events.csv
+wp onlinesched import /absolute/path/events.csv --year=2026
+wp onlinesched import /absolute/path/events.csv --year=2026 --dry-run
+```
+
+`--dry-run` validates the complete file and reports planned inserts, updates, and errors without writing posts, terms, metadata, options, or caches. Re-importing an existing CSV updates matching events in place by the combination of schedule year and CSV `ID`; it does not delete events that are absent from the file.
+
+For disposable test resets or deliberate schedule removal, permanently delete only one explicitly named year:
+
+```bash
+wp onlinesched delete-year 2026 --dry-run
+wp onlinesched delete-year 2026
+wp onlinesched delete-year 2026 --yes
+```
+
+The delete command shows the selected count and requires confirmation unless `--yes` is supplied. It removes only `os_event` posts whose `onlinesched_year` exactly matches the provided value. It does not change the active schedule year and does not delete rooms, speakers, tags, or day terms.
+
 ## Embedding the Schedule (Shortcode)
 
 You can easily embed the schedule on any post or page using the shortcode:
@@ -95,7 +123,7 @@ HTML. In practice, the symptoms are:
 If a host page genuinely needs two schedule views (for example, a "today" filter and an
 "all week" filter side by side), use a single shortcode and a tag/room/`tabs`
 attribute, or split the views across two separate pages and link between them. Multi-
-instance shortcode rendering is not on the 1.0 roadmap; it would require namespacing
+instance shortcode rendering is not currently planned; it would require namespacing
 every emitted ID and rewriting the JS to scope its DOM queries within a parent
 container.
 
@@ -150,17 +178,6 @@ Apple Calendar, and Android calendar apps. Calendar metadata includes the config
 calendar name and the site's WordPress timezone. Event UIDs are generated as globally
 scoped values using the site host.
 
-## Favorites and Privacy
-
-Visitors can star events without logging in. Those logged-out favorites are stored only
-in that visitor's browser as local schedule state, are not private account data, and are
-not synced to the server. They can be changed by anyone using the same browser profile.
-
-If Social Login is configured and the visitor logs in, OnlineSched ties synced favorites
-to the active OAuth session and merges the browser-local favorites into that server-side
-favorite list. Logging out ends the synced session; the local browser favorites feature
-continues to work without requiring login.
-
 ### JSON Feed
 
 OnlineSched includes a small public JSON feed for signs, lobby screens, static pages,
@@ -191,8 +208,7 @@ Each item contains:
 * `startTime` - the event start time in the site's WordPress timezone.
 * `description` - the event description with normal post HTML sanitized.
 
-Room and tag values are WordPress term slugs, not display names. For example, a room
-named `Main Stage` may have the slug `main-stage`.
+Room and tag values are WordPress term slugs, not display names (see [Finding Slugs](#finding-slugs) below).
 
 #### JSON Groups
 
@@ -262,6 +278,17 @@ Calendar clients control how often they refresh subscriptions. Apple, Google, Ou
 and other clients may cache feeds for hours or longer. The schedule page is always the
 most current source when last-minute changes matter.
 
+## Favorites and Privacy
+
+Visitors can star events without logging in. Those logged-out favorites are stored only
+in that visitor's browser as local schedule state, are not private account data, and are
+not synced to the server. They can be changed by anyone using the same browser profile.
+
+If Social Login is configured and the visitor logs in, OnlineSched ties synced favorites
+to the active OAuth session and merges the browser-local favorites into that server-side
+favorite list. Logging out ends the synced session; the local browser favorites feature
+continues to work without requiring login.
+
 ## First-Time Setup
 
 After activating the plugin, complete these steps before your schedule will appear:
@@ -282,11 +309,11 @@ That's it. Add events under **Event Scheduling → Events**, assign them rooms, 
 
 Go to **Event Scheduling → Event Settings → Colors**. Every color the plugin uses is configurable there — no CSS required. Changes take effect immediately across the schedule, badges, tabs, and modals.
 
-### Icons & Attribution
+### Icon Credits
 
-The schedule uses [Font Awesome Free](https://fontawesome.com/) for most UI elements. Custom icons (like the Coyote in the Floof Den demo) may be sourced from external libraries.
+Most UI icons come from [Font Awesome Free](https://fontawesome.com/) (covered under [Icons (Font Awesome)](#icons-font-awesome) below). A few custom icons come from elsewhere:
 
-*   **Coyote Icon:** Sourced from [SVGRepo](https://www.svgrepo.com/svg/97569/coyote) (CC0 License).
+*   **Coyote Icon** (Floof Den demo): [SVGRepo](https://www.svgrepo.com/svg/97569/coyote), CC0 License.
 
 ### Fonts
 
@@ -430,112 +457,112 @@ add_action( 'os_before_schedule', function () {
 
 ## Tested Against
 
-*   **WordPress:** 6.4, 6.5, 6.6, 6.7
-*   **PHP:** 8.2, 8.3
-*   **Themes:** Furry Migration (Classic), Twenty Twenty-Four, Twenty Twenty-Five (Block)
+* **WordPress:** 6.4 through 6.8
+* **PHP:** 8.2, 8.3
+* **Themes:** Furry Migration (Classic), Twenty Twenty-Four, Twenty Twenty-Five (Block)
 
-========================================================================
-HOW TO RUN THE AUTOMATED TESTS
-========================================================================
+---
 
-OnlineSched uses a Playwright end-to-end test suite that verifies the plugin
-works correctly across different browsers and screen sizes. The suite runs
-against two environments: the reference **Furry Migration Docker** stack and
-a standalone **Vanilla WordPress** stack.
+## Running the Tests
 
-------------------------------------------------------------------------
-ENVIRONMENT 1: Furry Migration (Local Docker)
-------------------------------------------------------------------------
+If you're just using OnlineSched, you can skip this section — it's for contributors who want to run the automated tests before sending a change.
 
-> **Note:** This environment is used for reference development. It requires
-> the full Furry Migration Docker stack.
+The plugin ships with two kinds of tests:
 
-1. Ensure the Docker stack is running from the project root.
-2. Navigate to `public_html/wp-content/plugins/OnlineSched`.
-3. Run `npm run test:setup` (first time only) to install browsers and seed data.
-4. Run `npm test` to execute the full suite.
+* A **Playwright** browser suite that drives the real schedule across multiple browsers and screen sizes.
+* A set of **PHP command-line tests** that cover the WP-CLI import/delete commands and the fixture generator.
 
-------------------------------------------------------------------------
-ENVIRONMENT 2: Vanilla WordPress (Standalone)
-------------------------------------------------------------------------
+The browser suite can run against either of two environments. If you only set up one, make it the Vanilla stack.
 
-> **Note:** This environment ensures the plugin works without theme dependencies.
+### Vanilla WordPress (recommended)
 
-1. Navigate to `tests/docker-vanilla`.
-2. Run `docker-compose up -d`.
-3. Run `./seed-vanilla.sh` to install WordPress and seed data.
-4. Navigate back to the plugin root and run:
-   `npx playwright test --project=vanilla-wp`
+A throwaway WordPress site with no theme customizations — this proves the plugin works anywhere, not just on Furry Migration's setup.
 
-------------------------------------------------------------------------
-WHAT ALL THE TEST FILES CHECK
-------------------------------------------------------------------------
+1. `cd tests/docker-vanilla`
+2. `docker compose up -d`
+3. `./seed-vanilla.sh` — installs WordPress and seeds sample events.
+4. Back in the plugin root: `npx playwright test --project=vanilla-wp`
 
-01 - Page loads       Does the schedule page even open without errors?
-02 - Tabs             Do the Programming / Essentials / Hours tabs work?
-03 - Filters          Does EVERY filter work?
-                        - Text search box
-                        - Day dropdown (All Days / Now and Future / Friday etc)
-                        - Tag dropdown (Fursuiting, Art, etc)
-                        - Room dropdown (Mainstage, Panel Room A, etc)
-                        - Reset button (disabled when nothing active)
-                        - Two filters active at once (combo test)
-                        - Cancelled event shows badge, no calendar buttons
-04 - Favorites        Can you star an event? Does it save when you
-                      reload the page?
-05 - Modals           Do the popup windows open, show the right info
-                      (title, date, time, room, description, panelist),
-                      and close properly?
-06 - Calendar         Do the "Add to Calendar" buttons have correct
-                      links (including the event ID in the URL)? Does
-                      the copy-to-clipboard animation work? Does
-                      reduced-motion accessibility skip animations?
-07 - Hash routing     Does /schedule/#hour or /schedule/#evt=123 work?
-08 - Kiosk mode       Does the kiosk TV page at /kiosk-schedule/ work
-                      at 1080p on Edge? Are favorites and calendar
-                      buttons correctly hidden? Do search, filters,
-                      tabs, and modals still work?
-09 - Responsive       Does the page look right on a phone? A tablet?
-                      A big ultra-wide tablet? Does it scroll properly?
-10 - No jQuery        (Skipped for now -- runs after the big refactor
-                      to make sure old code is fully removed)
+### Furry Migration (local Docker)
 
-------------------------------------------------------------------------
-WHAT BROWSERS AND SCREEN SIZES ARE TESTED
-------------------------------------------------------------------------
+The reference development stack. Use this if you're already running the full Furry Migration Docker environment.
 
-  Browser        Screen Size         What it simulates
-  -------------- ------------------- ---------------------------
-  Chrome         1280 x 800          Normal laptop/desktop
-  Chrome         375 x 812           iPhone
-  Chrome         412 x 915           Android phone
-  Chrome         768 x 1024          iPad / tablet (portrait)
-  Chrome         1366 x 1024         Big tablet / iPad landscape
-  Edge           1920 x 1080         Kiosk TV display (1080p)
-  Firefox        1280 x 800          Firefox on desktop
-  Safari         1280 x 800          Safari on desktop (WebKit)
+1. Start the Docker stack from the project root.
+2. `cd public_html/wp-content/plugins/OnlineSched`
+3. `npm run test:setup` — first time only; installs browsers and seeds data.
+4. `npm test` — runs the full suite.
 
-This covers almost every browser engine that exists:
-  - Chrome/Edge = Chromium engine (also covers Brave, Vivaldi, Opera)
-  - Firefox = Gecko engine (also covers Waterfox, Pale Moon, etc.)
-  - Safari = WebKit engine (also covers Orion, GNOME Web, etc.)
+### What the browser tests cover
 
-------------------------------------------------------------------------
-QUICK REFERENCE (copy-paste cheat sheet)
-------------------------------------------------------------------------
+Each spec is written to answer one plain-language question:
 
-First time setup:
-    cd public_html/wp-content/plugins/OnlineSched
-    npm install
-    npm run test:setup
+| Spec | What it checks |
+|---|---|
+| 01 · Page loads | Does the schedule page open without errors? |
+| 02 · Tabs | Do the Programming / Essentials / Hours tabs switch correctly? |
+| 03 · Filters | Do search, the day/tag/room dropdowns, the reset button, two-filter combos, and cancelled-event handling all work? |
+| 04 · Favorites | Can you star an event, and does it survive a page reload? |
+| 05 · Modals | Do event popups open with the right title, date, time, room, description, and panelists — and close cleanly? |
+| 06 · Calendar | Do the "Add to Calendar" links carry the correct event ID? Does copy-to-clipboard animate, and does reduced-motion skip it? |
+| 07 · Hash routing | Do deep links like `/schedule/#hour` and `/schedule/#evt=123` resolve? |
+| 08 · Kiosk mode | Does the kiosk TV page work at 1080p on Edge, with favorites/calendar hidden but search, filters, tabs, and modals still working? |
+| 09 · Responsive | Does the layout hold up on phone, tablet, and ultra-wide screens, and scroll properly? |
+| 10 · No jQuery / Bootstrap | Confirms the old jQuery/Bootstrap code is fully gone (runs post-refactor). |
+| 11 · Badges | Do VIP / Guest of Honor / cancelled badges render correctly? |
+| 12 · Shortcode | Does `[onlinesched_schedule]` render on a normal page? |
+| 13 · Hours block | Does the Hours tab/block display correctly? |
+| 14 · Standalone | Does the plugin work with no host-theme dependencies? |
+| 15 · Solo event block | Does the single-event block render on its own? |
+| 16 · Gaming demo | Does the gaming-room group/filter demo behave? |
 
-Run all tests:
-    npm test
+### Browsers and screen sizes
 
-Refresh expired test data:
-    npm run test:seed
+The suite runs across every major browser engine, so a pass covers the browsers built on them too:
 
-See test report:
-    npx playwright show-report tests/playwright-report
+| Project | Browser | Viewport | Simulates |
+|---|---|---|---|
+| `desktop` | Chromium | 1280 × 800 | Laptop / desktop |
+| `mobile-iphone` | Chromium | 375 × 812 | iPhone |
+| `mobile-android` | Chromium | 412 × 915 | Android phone |
+| `tablet` | Chromium | 768 × 1024 | iPad / tablet (portrait) |
+| `tablet-landscape` | Chromium | 1366 × 1024 | Large tablet (landscape) |
+| `kiosk` | Edge | 1920 × 1080 | Kiosk TV display (1080p) |
+| `firefox` | Firefox | 1280 × 800 | Gecko engine |
+| `webkit` | Safari | 1280 × 800 | WebKit engine |
 
-------------------------------------------------------------------------
+Chromium also covers Brave, Vivaldi, and Opera; Gecko covers Waterfox and Pale Moon; WebKit covers Orion and GNOME Web.
+
+### CLI and fixture tests
+
+These run in PHP and don't need a browser:
+
+```bash
+# Generate a deterministic 150-event test CSV and verify it
+npm run test:fixture
+
+# Exercise the WP-CLI import and delete-year commands
+# (runs only against the disposable Vanilla stack)
+npm run test:cli
+```
+
+### Quick reference
+
+```bash
+# First-time setup
+cd public_html/wp-content/plugins/OnlineSched
+npm install
+npm run test:setup
+
+# Run the full browser suite
+npm test
+
+# Refresh expired seed data
+npm run test:seed
+
+# CLI + fixture checks
+npm run test:cli
+npm run test:fixture
+
+# Open the last HTML report
+npx playwright show-report tests/playwright-report
+```

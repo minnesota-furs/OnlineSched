@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0
+
+- Added `wp onlinesched import` for importing the existing OnlineSched CSV format from WP-CLI, including read-only dry runs and year-scoped update-in-place behavior.
+- Added `wp onlinesched delete-year` for confirmed, permanent deletion of events from one exact schedule year without deleting taxonomy terms or changing the active year option.
+- Added a deterministic PHP fixture generator for disposable 150-event import and re-import testing.
+
 ## 1.3.1
 
 - Wired up the CSV Export button, which was previously defined but never hooked to `admin_init`.
