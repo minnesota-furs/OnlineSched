@@ -204,3 +204,10 @@ function onlinesched_ical_send_headers($filename)
     header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 }
+
+function onlinesched_ical_send_unpublished_schedule($filename)
+{
+    onlinesched_ical_send_headers($filename);
+    header('X-Robots-Tag: noindex, nofollow');
+    echo onlinesched_ical_empty_calendar();
+}

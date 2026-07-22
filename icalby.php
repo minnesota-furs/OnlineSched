@@ -2,6 +2,13 @@
 require_once('../../../wp-load.php');
 
 require_once('lib/ical.php');
+
+if (!onlinesched_calendar_subscriptions_enabled()) {
+	$filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
+	onlinesched_ical_send_unpublished_schedule($filename_prefix . '-all.ics');
+	exit;
+}
+
 /**
  * Full Content Template
  *

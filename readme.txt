@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 2.1.0
+Stable tag: 2.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -90,6 +90,18 @@ Calendar clients may cache feeds, so the website schedule is always the most cur
 
 ICS feeds use UTC event timestamps, CRLF line endings, folded content lines, METHOD:PUBLISH, and text/calendar response headers for compatibility with Google Calendar/Gmail, Outlook, Microsoft 365, Apple Calendar, and Android calendar apps. Calendar metadata includes the configured calendar name and the site's WordPress timezone.
 
+= Can I pause schedule subscriptions while preparing a new schedule year? =
+
+Yes. Go to Event Scheduling > Event Settings > Schedule Calendar Subscriptions and clear Publish full-schedule calendar subscriptions.
+
+Disabling schedule subscriptions empties full and filtered schedule feeds. It does not disable individual event calendar actions.
+
+While publishing is disabled, full and filtered schedule feeds return a valid empty calendar and the full-schedule subscription buttons are hidden. Existing subscribers stay connected and receive the schedule again from the same URL after publishing is re-enabled.
+
+Individual event calendar actions remain available because those events are already visible on the schedule page. The public schedule, individual event feeds, and JSON feed are unchanged. The setting is enabled by default on upgrade.
+
+Calendar applications control their own refresh timing, so a paused or resumed subscription may take time to update.
+
 = Can I override the schedule templates? =
 
 Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a matching path in your theme under an onlinesched/ folder. For example, to override the tab bar, create: your-theme/onlinesched/partials/schedule-tabs.php. The full list of overridable partials is in the README on GitHub.
@@ -99,6 +111,10 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 2.2.0 =
+
+Adds an administrator setting for pausing full and filtered schedule subscriptions with a valid empty calendar while keeping individual event calendar actions available.
 
 = 2.1.0 =
 

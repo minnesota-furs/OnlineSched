@@ -5,6 +5,9 @@ add_shortcode('ical_schedule_cheat_display', function() {
     // Enqueue the stylesheet only when shortcode is used
 	wp_enqueue_style( 'online-schedule-css', plugin_dir_url(__DIR__)."build/main.css", array(),   filemtime(plugin_dir_path(__DIR__)."build/main.css"));
 
+	if (!onlinesched_calendar_subscriptions_enabled()) {
+		return '<div class="ical-cheat-sheet"><h2>Calendar Feed Reference</h2><p><strong>Full-schedule calendar subscriptions are currently disabled.</strong></p><p>Full and filtered schedule feeds return an empty calendar. Individual event calendar links remain available for events shown on the public schedule.</p></div>';
+	}
 
     // Get plugin root URL (not includes/)
     $plugin_root_url = plugin_dir_url(__DIR__);

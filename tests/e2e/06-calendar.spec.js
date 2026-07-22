@@ -3,6 +3,12 @@ const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
 const PHP_ERROR_PATTERN = /(?:PHP\s+(?:Deprecated|Fatal error|Notice|Parse error|Warning)|Deprecated:|Fatal error:|Notice:|Parse error:|Warning:)/i;
+const SUBSCRIPTIONS_DISABLED_PARAM = 'onlinesched_test_calendar_subscriptions=disabled';
+
+function withSubscriptionsDisabled(path) {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}${SUBSCRIPTIONS_DISABLED_PARAM}`;
+}
 
 async function installClipboardShim(page) {
   await page.evaluate(() => {
@@ -26,20 +32,55 @@ async function expectIcsResponse(response, options = {}) {
   expect(response.headers()['content-type']).toContain('text/calendar');
 
   const body = await response.text();
-  expect(body).toContain('BEGIN:VCALENDAR');
-  expect(body).toContain('END:VCALENDAR');
-  expect(body).toContain('SUMMARY:');
-  expect(body).toContain('DESCRIPTION:');
+  expect(body.match(/^BEGIN:VCALENDAR\r?$/gm) || []).toHaveLength(1);
+  expect(body.match(/^END:VCALENDAR\r?$/gm) || []).toHaveLength(1);
   expect(body).not.toMatch(PHP_ERROR_PATTERN);
 
-  const events = body.match(/^BEGIN:VEVENT$/gm) || [];
+  const events = body.match(/^BEGIN:VEVENT\r?$/gm) || [];
   if (exactEvents !== null) {
     expect(events).toHaveLength(exactEvents);
   } else {
     expect(events.length).toBeGreaterThanOrEqual(minEvents);
   }
 
+  if (events.length > 0) {
+    expect(body).toContain('SUMMARY:');
+    expect(body).toContain('DESCRIPTION:');
+  }
+
   return body;
+}
+
+async function expectDisabledAggregateResponse(response, forbiddenValues = []) {
+  expect(response.status()).toBe(200);
+  expect(response.headers()['cache-control']).toContain('no-store');
+  expect(response.headers()['x-robots-tag']).toContain('noindex');
+  expect(response.headers()['content-disposition']).toMatch(/\.ics/i);
+
+  const body = await expectIcsResponse(response, { exactEvents: 0 });
+  expect(body).not.toContain('UID:');
+  expect(body).not.toContain('DTSTART');
+  expect(body).not.toContain('DTEND');
+
+  for (const value of forbiddenValues.filter(Boolean)) {
+    expect(body).not.toContain(String(value));
+  }
+
+  return body;
+}
+
+function getIcsUids(body) {
+  return (body.match(/^UID:.+\r?$/gm) || []).sort();
+}
+
+function getIcsEventSignatures(body) {
+  const unfolded = body.replace(/\r?\n[ \t]/g, '');
+  return (unfolded.match(/BEGIN:VEVENT\r?\n[\s\S]*?\r?\nEND:VEVENT/g) || [])
+    .map((event) => event
+      .split(/\r?\n/)
+      .filter((line) => !line.startsWith('DTSTAMP:'))
+      .join('\n'))
+    .sort();
 }
 
 test.describe('06 — Calendar', () => {
@@ -197,6 +238,154 @@ test.describe('06 — Calendar', () => {
       const response = await page.request.get('/wp-content/plugins/OnlineSched/icalby.php?room=all&tag=all&textlen=0');
 
       await expectIcsResponse(response, { minEvents: 2 });
+    });
+  });
+
+  test.describe('Schedule subscription publishing', () => {
+    test.beforeEach(async ({}, testInfo) => {
+      test.skip(testInfo.project.name !== 'vanilla-wp', 'Request-scoped publication tests run on the disposable Vanilla site');
+    });
+
+    test('enabled, disabled, and re-enabled aggregate feeds preserve event identity and content', async ({ page }) => {
+      const path = '/wp-content/plugins/OnlineSched/icalby.php?room=all&tag=all&textlen=0';
+      const firstBody = await expectIcsResponse(await page.request.get(path), { minEvents: 2 });
+      await expectDisabledAggregateResponse(await page.request.get(withSubscriptionsDisabled(path)));
+      const secondBody = await expectIcsResponse(await page.request.get(path), { minEvents: 2 });
+      const firstUids = getIcsUids(firstBody);
+
+      expect(firstUids.length).toBeGreaterThanOrEqual(2);
+      expect(getIcsUids(secondBody)).toEqual(firstUids);
+      expect(getIcsEventSignatures(secondBody)).toEqual(getIcsEventSignatures(firstBody));
+    });
+
+    test('disabled aggregate endpoint exits before an os_event WP_Query', async ({ page }) => {
+      const response = await page.request.get(
+        withSubscriptionsDisabled('/wp-content/plugins/OnlineSched/icalby.php?room=all&tag=all&textlen=0') +
+        '&onlinesched_test_calendar_query_guard=armed'
+      );
+
+      expect(response.headers()['x-onlinesched-test-query-guard']).toBe('armed');
+      await expectDisabledAggregateResponse(response);
+    });
+
+    test('disabled full, filtered, and compatibility feeds are valid empty calendars', async ({ page }) => {
+      const firstItem = page.locator(S.scheduleItem).first();
+      const knownTitle = (await firstItem.locator(S.scheduleTitle).textContent())?.trim();
+      const knownPostId = (await firstItem.getAttribute('id'))?.replace('onlineevt-', '');
+      const room = await page.locator(`${S.selectRooms} option:not([value="all"])`).first().getAttribute('value');
+      const tag = await page.locator(`${S.selectTags} option:not([value="all"])`).first().getAttribute('value');
+
+      expect(knownTitle).toBeTruthy();
+      expect(knownPostId).toMatch(/^\d+$/);
+      expect(room).toBeTruthy();
+      expect(tag).toBeTruthy();
+
+      const paths = [
+        '/wp-content/plugins/OnlineSched/icalby.php?room=all&tag=all&textlen=0',
+        `/wp-content/plugins/OnlineSched/icalby.php?room=${encodeURIComponent(room)}&tag=${encodeURIComponent(tag)}&limit=1&textlen=20`,
+        `/wp-content/plugins/OnlineSched/icalbyroom.php?room=${encodeURIComponent(room)}`,
+      ];
+
+      for (const path of paths) {
+        const response = await page.request.get(withSubscriptionsDisabled(path));
+        await expectDisabledAggregateResponse(response, [knownTitle, knownPostId]);
+      }
+    });
+
+    test('disabled subscriptions hide only aggregate controls', async ({ page }) => {
+      await page.goto(withSubscriptionsDisabled('/schedule/'));
+      await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+      await page.selectOption(S.selectDays, 'all');
+
+      await expect(page.getByText('Schedule calendar subscriptions are not available yet.', { exact: true })).toBeVisible();
+      await expect(page.locator(`${S.addToCalendarSection} button`)).toHaveCount(0);
+
+      await page.locator(S.infoModalBtn).click();
+      await expect(page.locator(S.infoModal)).toBeVisible();
+      await expect(page.locator(S.infoModal)).toContainText('Full-schedule subscriptions are paused for now');
+      await expect(page.locator(S.infoModal)).toContainText('you can still add any visible individual event');
+      await page.locator(S.infoModalClose).click();
+
+      const event = page.locator(S.scheduleItem).filter({ has: page.locator(S.scheduleIcalLink) }).first();
+      await expect(event).toBeVisible();
+      await expect(event.locator(S.scheduleIcalLink)).toBeVisible();
+      await expect(event.locator(S.scheduleGoogleLink)).toBeVisible();
+      await expect(event.locator(S.clipboard)).toBeVisible();
+      await expect(event.locator(S.favoriteBtn)).toBeVisible();
+
+      const eventTitle = (await event.locator(S.scheduleTitle).textContent())?.trim();
+      const postId = (await event.getAttribute('id'))?.replace('onlineevt-', '');
+      const icalHref = await event.locator(S.scheduleIcalLink).getAttribute('href');
+      const googleHref = await event.locator(S.scheduleGoogleLink).getAttribute('href');
+
+      expect(eventTitle).toBeTruthy();
+      expect(postId).toMatch(/^\d+$/);
+      expect(icalHref).toContain(`ical.php?cal-id=${postId}`);
+      expect(googleHref).toContain('calendar.google.com');
+      expect(decodeURIComponent(googleHref)).toContain(`ical.php?cal-id=${postId}`);
+
+      const singleEventResponse = await page.request.get(
+        withSubscriptionsDisabled(`/wp-content/plugins/OnlineSched/ical.php?cal-id=${postId}`)
+      );
+      const singleEventBody = await expectIcsResponse(singleEventResponse, { exactEvents: 1 });
+      expect(singleEventBody).toContain(`SUMMARY:${eventTitle}`);
+
+      await event.locator(S.scheduleTitle).click();
+      await expect(page.locator(S.scheduleModal)).toBeVisible();
+      await expect(page.locator(S.modalIcal)).toBeVisible();
+      await expect(page.locator(S.modalGoogle)).toBeVisible();
+      expect(await page.locator(S.modalIcal).getAttribute('href')).toContain(`ical.php?cal-id=${postId}`);
+      expect(await page.locator(S.modalGoogle).getAttribute('href')).toContain('calendar.google.com');
+    });
+
+    test('disabled subscriptions retain the Android one-time Google event action', async ({ page }) => {
+      await page.addInitScript(() => {
+        Object.defineProperty(Navigator.prototype, 'userAgent', {
+          configurable: true,
+          get: () => 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36',
+        });
+      });
+      await page.goto(withSubscriptionsDisabled('/schedule/'));
+      await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+      await page.selectOption(S.selectDays, 'all');
+
+      const event = page.locator(S.scheduleItem).filter({ has: page.locator(S.scheduleGoogleLink) }).first();
+      await event.locator(S.scheduleTitle).click();
+      await expect(page.locator(S.scheduleModal)).toBeVisible();
+      await page.locator(S.modalGoogle).click();
+
+      await expect(page.locator(S.androidModal)).toBeVisible();
+      const oneTimeButton = page.locator(`${S.androidModal} .android-gcal-onetime-btn`);
+      await expect(oneTimeButton).toBeVisible();
+      await expect(oneTimeButton).toHaveAttribute('data-gcal-url', /calendar\.google\.com\/calendar\/render\?action=TEMPLATE/);
+    });
+
+    test('disabled subscriptions retain Solo Event calendar actions', async ({ page }) => {
+      await page.goto(withSubscriptionsDisabled('/solo-event-demo/'), { waitUntil: 'domcontentloaded' });
+
+      const cards = page.locator('.os-solo-event-card');
+      await expect(cards).toHaveCount(2);
+      await expect(cards.locator(S.scheduleIcalLink)).toHaveCount(2);
+      await expect(cards.locator(S.scheduleGoogleLink)).toHaveCount(2);
+
+      const icalHref = await cards.first().locator(S.scheduleIcalLink).getAttribute('href');
+      const googleHref = await cards.first().locator(S.scheduleGoogleLink).getAttribute('href');
+      expect(icalHref).toContain('ical.php?cal-id=');
+      expect(googleHref).toContain('calendar.google.com');
+      expect(decodeURIComponent(googleHref)).toContain('ical.php?cal-id=');
+    });
+
+    test('disabled feed reference removes aggregate examples but keeps the individual-event rule', async ({ page }) => {
+      await page.goto(withSubscriptionsDisabled('/calendar-feed-reference/'), { waitUntil: 'domcontentloaded' });
+
+      const reference = page.locator('.ical-cheat-sheet');
+      await expect(reference).toBeVisible();
+      await expect(reference).toContainText('Full-schedule calendar subscriptions are currently disabled.');
+      await expect(reference).toContainText('Full and filtered schedule feeds return an empty calendar.');
+      await expect(reference).toContainText('Individual event calendar links remain available');
+      await expect(reference).not.toContainText('icalby.php');
+      await expect(reference).not.toContainText('icalbyroom.php');
+      await expect(reference).not.toContainText('Example URLs');
     });
   });
 });

@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) {
                                             var scheduleMasterTags = <?php echo json_encode(decode_array_keys($masterTags));?>;
                                         </script>
                                         <div id="schedule-add-to-calendar">
+                                            <?php if (onlinesched_calendar_subscriptions_enabled()) : ?>
                                             <div class="os-row" id="schedule-add-to-calendar-div">
                                                 <div class="os-col-xs-12 os-col-md-7 schedule-add-to-calendar-blurb d-flex align-items-center">
                                                     Do you like what you see?<br/><span
@@ -31,6 +32,13 @@ if (!defined('ABSPATH')) {
                                                     </button>
                                                 </div>
                                             </div>
+                                            <?php else : ?>
+                                            <div class="os-row" id="schedule-add-to-calendar-div">
+                                                <div class="os-col-xs-12 schedule-add-to-calendar-blurb">
+                                                    Schedule calendar subscriptions are not available yet.
+                                                </div>
+                                            </div>
+                                            <?php endif; ?>
                                         </div>
                                         <div id="schedule-key">
 

@@ -55,6 +55,9 @@ wp_run core install --url="$SITE_URL" --title="OnlineSched Vanilla" --admin_user
 echo "Activating OnlineSched plugin..."
 wp_run plugin activate OnlineSched
 
+echo "Installing request-scoped calendar subscription test override..."
+wp_run eval '$source = "/var/www/html/wp-content/plugins/OnlineSched/tests/mu-plugins/onlinesched-calendar-subscription-test-override.php"; $target = WPMU_PLUGIN_DIR . "/onlinesched-calendar-subscription-test-override.php"; if ( ! wp_mkdir_p( WPMU_PLUGIN_DIR ) || ! copy( $source, $target ) ) { throw new RuntimeException( "Could not install calendar subscription test override." ); }'
+
 echo "Configuring pretty permalinks..."
 wp_run rewrite structure '/%postname%/' --hard
 wp_run rewrite flush --hard
@@ -132,6 +135,14 @@ MAP_CONTENT='Furry Migration takes place mainly on two floors. Registration is l
 
 MAP_PAGE_ID=$(wp_run post create --post_type=page --post_title="Maps" --post_content="$MAP_CONTENT" --post_status=publish --porcelain)
 wp_run option update onlinesched_map_page_id $MAP_PAGE_ID
+
+# Keep the feed-reference fixture deterministic if this section is rerun without a database wipe.
+CHEAT_PAGE_ID=$(wp_run post list --post_type=page --name="calendar-feed-reference" --post_status=any --field=ID --format=ids | awk '{ print $1 }')
+if [ -n "$CHEAT_PAGE_ID" ]; then
+  wp_run post update "$CHEAT_PAGE_ID" --post_title="Calendar Feed Reference" --post_content='[ical_schedule_cheat_display]' --post_status=publish >/dev/null
+else
+  wp_run post create --post_type=page --post_title="Calendar Feed Reference" --post_name="calendar-feed-reference" --post_content='[ical_schedule_cheat_display]' --post_status=publish >/dev/null
+fi
 
 echo "✓ Pages created and options set."
 
