@@ -1,6 +1,6 @@
 {
   "name": "onlinesched",
-  "version": "2.1.0",
+  "version": "2.2.1",
   "description": "A flexible event scheduling plugin for WordPress",
   "main": "index.js",
   "repository": {
@@ -45,6 +45,7 @@
     "test:seed": "bash tests/fixtures/seed-test-events.sh",
     "test:fixture": "php tests/fixtures/test-generate-furry-test-data.php",
     "test:cli": "ONLINESCHED_CLI_TEST_ALLOW_DESTRUCTIVE=1 bash tests/cli/test-import-and-delete-year.sh",
+    "test:calendar-settings": "bash tests/cli/test-calendar-subscriptions.sh",
     "test:setup": "npm run test:seed && npx playwright install chromium msedge firefox webkit"
   },
   "engines": {

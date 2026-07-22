@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.1
+
+- Added the opt-in `cancelled_title_prefix` parameter to full and filtered schedule ICS feeds. When set to `1`, `true`, `yes`, or `on`, cancelled event summaries are prefixed with `Cancelled - ` for display systems that ignore `STATUS:CANCELLED`.
+- Kept standards-compliant cancellation status, UIDs, timestamps, stored event titles, individual event feeds, JSON, CSV, and the public schedule unchanged.
+
+## 2.2.0
+
+- Added **Publish full-schedule calendar subscriptions** under **Event Scheduling > Event Settings > Schedule Calendar Subscriptions**.
+- When publishing is disabled, full and filtered schedule feeds return a valid empty calendar while existing subscribers remain connected to the same URL.
+- Kept individual event calendar actions available for events already visible on the schedule page; the public schedule, individual event feeds, and JSON feed are unchanged.
+- Kept schedule subscription publishing enabled by default for existing installations. Calendar applications may take time to reflect a pause or resume because they control their own refresh timing.
+
 ## 2.1.0
 
 - Added `wp onlinesched import` for importing the existing OnlineSched CSV format from WP-CLI, including read-only dry runs and year-scoped update-in-place behavior.

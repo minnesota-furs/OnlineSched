@@ -2,6 +2,13 @@
 require_once('../../../wp-load.php');
 
 require_once('lib/ical.php');
+
+if (!onlinesched_calendar_subscriptions_enabled()) {
+	$filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
+	onlinesched_ical_send_unpublished_schedule($filename_prefix . '-all.ics');
+	exit;
+}
+
 /**
  * Full Content Template
  *
@@ -25,6 +32,7 @@ tag=<tags> by tag, can be comma separated
 tag=all all tags
 limit = 2 limits to the newest 2.
 textlen = <number> limits description length (default 250). If textlen is 0 or negative, shows full description.
+cancelled_title_prefix = <boolean> prefixes cancelled event titles for clients that ignore STATUS:CANCELLED.
 */
 
 define('EOL', "\r\n");
@@ -50,6 +58,20 @@ function onlinesched_get_request_slugs(array $keys) {
 	}
 
 	return array_values(array_filter(array_map('sanitize_title', explode(',', $value))));
+}
+
+function onlinesched_icalby_request_flag_enabled($key) {
+	$value = strtolower(onlinesched_get_request_value(array($key)));
+
+	return in_array($value, array('1', 'true', 'yes', 'on'), true);
+}
+
+function onlinesched_icalby_event_title($title, $cancelled, $prefix_cancelled_title) {
+	if (!$cancelled || !$prefix_cancelled_title || preg_match('/^\s*cancell?ed\s*-\s*/i', $title)) {
+		return $title;
+	}
+
+	return 'Cancelled - ' . $title;
 }
 
 class iCalGen {
@@ -145,6 +167,7 @@ $loop = new WP_Query($args);
 $postsArr = empty($loop->posts) ? array() : $loop->posts;
 
 $now = time();
+$prefix_cancelled_titles = onlinesched_icalby_request_flag_enabled('cancelled_title_prefix');
 
 $iCal = new iCalGen();
 foreach ($postsArr as $item) {
@@ -194,6 +217,8 @@ foreach ($postsArr as $item) {
 	}
 
 	$addAdultTag = in_array( "restricted", array_map( 'strtolower', $tagsArray ) ) ? " [Adult]" : "";
+	$eventTitle = html_entity_decode($item->post_title . $addAdultTag);
+	$eventTitle = onlinesched_icalby_event_title($eventTitle, $eventCancelled, $prefix_cancelled_titles);
 
 	$textlen = 250;
 	if (isset($_REQUEST['textlen'])) {
@@ -213,7 +238,7 @@ foreach ($postsArr as $item) {
 		   $startTime,
 		   $endTime,
 		   $rooms,
-		   html_entity_decode($item->post_title . $addAdultTag),
+		   $eventTitle,
 		   $content,
 		   onlinesched_ical_categories($postId, 'os_tag'),
 		$eventCancelled

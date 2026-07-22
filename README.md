@@ -7,7 +7,27 @@ This project is dedicated in memory of Cyn and Snap.
 
 Both supported me during the years this tool was being built, and both helped keep me moving when the work was heavier than it looked. They are part of why this project made it across the line.
 
-**Note to the Public:** We built OnlineSched primarily for our own use at Furry Migration, but we want the world to have it as a gift! The developers of this project are open to fully supporting and helping people, with the goal of enabling other groups to have this tool. We hope everyone—both for-profit and non-profit organizations—can use this as a free solution. We are a non-profit organization and do this with volunteers. If your organization needs dedicated support above and beyond what we can provide for free, and you are not a 501(c)(3) non-profit, please reach out to discuss options.
+## Community and Support
+
+We built OnlineSched for Furry Migration, but we are sharing it because we want other conventions and community organizations to have a capable scheduling tool without starting from scratch. It is our gift to the wider community, and both nonprofit and for-profit organizations are welcome to use it.
+
+Furry Migration is a nonprofit organization, and this project is maintained by volunteers. We are happy to help when we can. If a for-profit organization needs dedicated support beyond what our volunteers can provide, please reach out so we can talk about options.
+
+## Acknowledgements
+
+OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was later expanded, updated, and cleaned up for this open-source release. The project reflects the work of everyone who contributed along the way.
+
+## Contents
+
+* [Installation](#installation)
+* [First-Time Setup](#first-time-setup)
+* [Embedding the Schedule](#embedding-the-schedule-shortcode)
+* [Calendar Feeds and External Endpoints](#calendar-feeds-and-external-endpoints)
+* [Favorites and Privacy](#favorites-and-privacy)
+* [Customizing the Look](#customizing-the-look)
+* [For Theme Developers](#for-theme-developers)
+* [WP-CLI Schedule Maintenance](#wp-cli-schedule-maintenance)
+* [Development and Testing](#development-and-testing)
 
 ## Installation
 
@@ -39,47 +59,20 @@ If you are developing the plugin or want to build it yourself:
    ```
 4. Activate the plugin in your WordPress admin dashboard.
 
-If you want to package a release zip locally, run `npm run release`. This will generate a clean installation zip in the `dist/` directory.
+If you want to package a release zip locally, run `npm run release`. This generates a clean installation zip in the `dist/` directory.
 
-### Development Notes
+## First-Time Setup
 
-Release zips include compiled assets and Composer dependencies so normal WordPress users can install them directly. Source checkouts are for development and need Composer plus npm before they are usable.
+After activating the plugin, complete these steps before your schedule will appear:
 
-In the Furry Migration Docker environment, run PHP, Composer, and npm from inside `fm-php`:
+1. **Create your schedule page.** Add a new Page in WordPress, give it a title such as "Schedule," set its template to **Online Schedule**, and publish it.
+2. **Connect the page to OnlineSched.** Go to **Event Scheduling > Event Settings** and select the page you just created as the Schedule page. If you also use Kiosk, Live, Hours, or Map pages, assign those here too.
+3. **Set the active year.** Enter the current convention or schedule year on the same settings screen.
+4. **Add events.** Go to **Event Scheduling > Events** and assign each event its room, day, tags, and panelists.
+5. **Optional: customize the display.** Use the Colors and Header Flare settings to match your organization's visual identity.
+6. **Optional: configure social login.** Go to **Event Scheduling > Social Login** to add credentials for the providers you want to use. No login providers appear until credentials are configured.
 
-```bash
-docker exec fm-php bash -c "cd /var/www/html/wp-content/plugins/OnlineSched && composer install --no-dev"
-docker exec fm-php bash -c "source /usr/local/nvm/nvm.sh && cd /var/www/html/wp-content/plugins/OnlineSched && npm install"
-docker exec fm-php bash -c "source /usr/local/nvm/nvm.sh && cd /var/www/html/wp-content/plugins/OnlineSched && npm run build"
-```
-
-## WP-CLI Schedule Maintenance
-
-OnlineSched can import the same nine-column CSV used by the WordPress admin uploader from WP-CLI. The CSV columns and their existing meaning do not change:
-
-```text
-ID,Name,Date,Time,Description,Room_Type,Speakers,Length,Tags
-```
-
-Import a file using the active schedule year, or target a specific year without changing the active `onlinesched_year` option:
-
-```bash
-wp onlinesched import /absolute/path/events.csv
-wp onlinesched import /absolute/path/events.csv --year=2026
-wp onlinesched import /absolute/path/events.csv --year=2026 --dry-run
-```
-
-`--dry-run` validates the complete file and reports planned inserts, updates, and errors without writing posts, terms, metadata, options, or caches. Re-importing an existing CSV updates matching events in place by the combination of schedule year and CSV `ID`; it does not delete events that are absent from the file.
-
-For disposable test resets or deliberate schedule removal, permanently delete only one explicitly named year:
-
-```bash
-wp onlinesched delete-year 2026 --dry-run
-wp onlinesched delete-year 2026
-wp onlinesched delete-year 2026 --yes
-```
-
-The delete command shows the selected count and requires confirmation unless `--yes` is supplied. It removes only `os_event` posts whose `onlinesched_year` exactly matches the provided value. It does not change the active schedule year and does not delete rooms, speakers, tags, or day terms.
+Once those pieces are in place, the schedule is ready to publish.
 
 ## Embedding the Schedule (Shortcode)
 
@@ -97,39 +90,11 @@ You can easily embed the schedule on any post or page using the shortcode:
 
 ### Limitations
 
-**Only one `[onlinesched_schedule]` per page.**
+**Use only one `[onlinesched_schedule]` shortcode per page.**
 
-The schedule renders with a fixed set of element IDs that the JavaScript, the URL hash
-router, and the modal layer all depend on:
+Each schedule uses a fixed set of element IDs for tabs, event links, and modals. Adding a second schedule creates duplicate IDs, so its tabs and event links may control the first schedule instead.
 
-* `#schedule` — the main wrapper.
-* `#programming`, `#essentials`, `#hours`, `#map` — tab panes.
-* `#evt={post_id}` - one per event row, used by deep links such as `/schedule/#evt=123`.
-* `#modal-schedule`, `#login-modal`, `#info-modal`, `#android-google-calendar-modal` —
-  appended to the page once per render.
-
-Embedding the shortcode twice on the same page produces duplicate IDs, which is invalid
-HTML. In practice, the symptoms are:
-
-* Clicking an event in the second schedule opens the event modal pointing at the first
-  schedule.
-* Tab clicks in the second schedule scroll the first schedule.
-* `/your-page/#evt=123` always resolves to the first schedule, regardless of which
-  schedule contains the event.
-* Deep links to `#hours`, `#tag=tag-slug`, or combined filters such as
-  `#tag=tag-slug&room=room-slug` activate the tab/filter state in the first schedule
-  only.
-
-If a host page genuinely needs two schedule views (for example, a "today" filter and an
-"all week" filter side by side), use a single shortcode and a tag/room/`tabs`
-attribute, or split the views across two separate pages and link between them. Multi-
-instance shortcode rendering is not currently planned; it would require namespacing
-every emitted ID and rewriting the JS to scope its DOM queries within a parent
-container.
-
-The dedicated page-template path (assigning the "Online Schedule" template to a Page)
-has the same constraint for the same reason — only one schedule lives in the DOM at a
-time.
+If you need two schedule views, use one shortcode with the `tabs`, `tag`, or `room` attribute, or place the views on separate pages and link between them. The dedicated **Online Schedule** page template has the same one-schedule-per-page limitation.
 
 ## Calendar Feeds and External Endpoints
 
@@ -160,6 +125,7 @@ Use this for full-schedule or filtered calendar subscriptions:
 /wp-content/plugins/OnlineSched/icalby.php?room=main-stage,panel-room-a&tag=essentials&limit=10&textlen=300
 /wp-content/plugins/OnlineSched/icalby.php?room=all
 /wp-content/plugins/OnlineSched/icalby.php?tag=all&textlen=0
+/wp-content/plugins/OnlineSched/icalby.php?room=all&cancelled_title_prefix=true
 ```
 
 Parameters:
@@ -168,8 +134,11 @@ Parameters:
 * `tag` or `tags` - one or more `os_tag` slugs, comma separated. Use `all` for all tags.
 * `limit` - maximum number of upcoming events to include.
 * `textlen` - maximum description length. Default is `250`; use `0` or a negative value for full descriptions.
+* `cancelled_title_prefix` - set to `1`, `true`, `yes`, or `on` to prefix cancelled event summaries with `Cancelled - `. This opt-in compatibility aid is limited to full and filtered schedule ICS feeds.
 
-Cancelled events are included with `STATUS:CANCELLED`.
+Cancelled events are included with `STATUS:CANCELLED`. The optional title prefix supplements
+that standards-compliant status for display systems that do not show cancellation state; it
+does not change stored event titles, individual event feeds, or any other output.
 
 ICS output uses UTC `DTSTART`/`DTEND` values with trailing `Z`, CRLF line endings,
 folded content lines, `METHOD:PUBLISH`, and `text/calendar; method=PUBLISH` response
@@ -177,6 +146,31 @@ headers for broad compatibility with Google Calendar/Gmail, Outlook, Microsoft 3
 Apple Calendar, and Android calendar apps. Calendar metadata includes the configured
 calendar name and the site's WordPress timezone. Event UIDs are generated as globally
 scoped values using the site host.
+
+### Schedule Subscription Publishing
+
+**Disabling schedule subscriptions empties full and filtered schedule feeds. It does
+not disable individual event calendar actions.**
+
+When you are preparing a new schedule year, you can pause full-schedule calendar
+subscriptions without taking away the calendar buttons on events that are already
+visible. Go to **Event Scheduling > Event Settings > Schedule Calendar Subscriptions**
+and clear **Publish full-schedule calendar subscriptions**.
+
+While publishing is disabled:
+
+* Full and filtered schedule feeds return a valid empty calendar, including feeds
+  filtered by room or tag.
+* Full-schedule subscription buttons are hidden.
+* Existing subscribers stay connected and receive the schedule again after publishing
+  is re-enabled at the same feed URL.
+* Individual event calendar actions remain available because those events are already
+  visible on the schedule page.
+* The public schedule, individual event feeds, and JSON feed are unchanged.
+
+The setting is enabled by default on upgrade. Calendar applications decide when to
+refresh subscriptions, so changes may not appear immediately after you pause or resume
+publishing.
 
 ### JSON Feed
 
@@ -289,31 +283,11 @@ to the active OAuth session and merges the browser-local favorites into that ser
 favorite list. Logging out ends the synced session; the local browser favorites feature
 continues to work without requiring login.
 
-## First-Time Setup
-
-After activating the plugin, complete these steps before your schedule will appear:
-
-1. **Create your schedule page.** Add a new Page in WordPress, give it a title like "Schedule", and set its template to **Online Schedule** (in the Page Attributes box on the right). Publish it.
-2. **Tell the plugin where your pages are.** Go to **Event Scheduling → Event Settings** in the WordPress admin. Under the Pages section, select the page you just created as the Schedule page. If you also have Kiosk, Live, Hours, and Map pages, assign those too.
-3. **Set the year.** On the same settings screen, enter the active convention year.
-4. **Optional: customize colors.** The Colors section lets you change the primary green, secondary blue, accent orange, gold, and danger red to match your organization's branding. The defaults match Furry Migration's palette.
-5. **Optional: configure social login.** Go to **Event Scheduling → Social Login** to enter your Google, Discord, Telegram, or Facebook OAuth credentials. Social login is completely disabled until you add credentials — no providers show up in the login modal on a fresh install.
-
-That's it. Add events under **Event Scheduling → Events**, assign them rooms, days, tags, and panelists, and they will appear in the schedule automatically.
-
----
-
 ## Customizing the Look
 
 ### Colors
 
 Go to **Event Scheduling → Event Settings → Colors**. Every color the plugin uses is configurable there — no CSS required. Changes take effect immediately across the schedule, badges, tabs, and modals.
-
-### Icon Credits
-
-Most UI icons come from [Font Awesome Free](https://fontawesome.com/) (covered under [Icons (Font Awesome)](#icons-font-awesome) below). A few custom icons come from elsewhere:
-
-*   **Coyote Icon** (Floof Den demo): [SVGRepo](https://www.svgrepo.com/svg/97569/coyote), CC0 License.
 
 ### Fonts
 
@@ -340,6 +314,8 @@ The `--os-font-family` variable controls the day-header and hour-header typeface
 ### Icons (Font Awesome)
 
 The schedule uses [Font Awesome Free](https://fontawesome.com/) for icons like the calendar, star, copy, and clock symbols. The plugin loads its own copy so it works even if your theme doesn't include Font Awesome.
+
+The Coyote icon used in the Floof Den demo comes from [SVGRepo](https://www.svgrepo.com/svg/97569/coyote) and is available under the CC0 license.
 
 **If your theme already loads Font Awesome**, add this to your `functions.php` to prevent loading it twice:
 
@@ -384,10 +360,10 @@ Colors have their own admin UI, but you can also override them with CSS variable
 
 ### Header Flare (the paw print in day headers)
 
-Go to **Event Scheduling -> Event Settings -> Header Flare**. You can:
+Go to **Event Scheduling > Event Settings > Header Flare**. You can:
 - Turn it off completely with the checkbox.
 - Choose a built-in icon from the select menu: paw, dog, cat, crow, horse, dragon, otter, hippo, frog, or fish.
-- Use anything you want — your org's logo, an SVG, an ice cream cone, literally anything — by pasting an image URL into the Image field. When an image URL is set it takes over from the icon select entirely.
+- Use your organization's logo, an SVG, an ice cream cone, or anything else that fits by pasting an image URL into the Image field. When an image URL is set, it takes over from the icon selection.
 - Leave the icon field blank to hide the icon while keeping the flare enabled (useful if you only want a custom image or specific CSS effects).
 
 ---
@@ -455,114 +431,52 @@ add_action( 'os_before_schedule', function () {
 
 ---
 
+## WP-CLI Schedule Maintenance
+
+OnlineSched can import the same nine-column CSV used by the WordPress admin uploader. The format and meaning of its columns do not change:
+
+```text
+ID,Name,Date,Time,Description,Room_Type,Speakers,Length,Tags
+```
+
+Import a file into the active schedule year, or select a year without changing the active `onlinesched_year` option:
+
+```bash
+wp onlinesched import /absolute/path/events.csv
+wp onlinesched import /absolute/path/events.csv --year=2026
+wp onlinesched import /absolute/path/events.csv --year=2026 --dry-run
+```
+
+`--dry-run` validates the complete file and reports planned inserts, updates, and errors without writing anything. Re-importing a CSV updates matching events in place using the schedule year and CSV `ID`; events absent from the file are left alone.
+
+You can also permanently delete every OnlineSched event assigned to one explicitly named year:
+
+```bash
+wp onlinesched delete-year 2026 --dry-run
+wp onlinesched delete-year 2026
+wp onlinesched delete-year 2026 --yes
+```
+
+Run the dry-run first so you can review the exact count. The delete command requires confirmation unless `--yes` is supplied. It does not change the active schedule year or delete rooms, speakers, tags, or day terms.
+
+---
+
 ## Tested Against
 
 * **WordPress:** 6.4 through 6.8
 * **PHP:** 8.2, 8.3
 * **Themes:** Furry Migration (Classic), Twenty Twenty-Four, Twenty Twenty-Five (Block)
 
----
+## Development and Testing
 
-## Running the Tests
+Release zips include compiled assets and Composer dependencies, so normal WordPress users can install them directly. Source checkouts need Composer and npm before they are ready to use.
 
-If you're just using OnlineSched, you can skip this section — it's for contributors who want to run the automated tests before sending a change.
-
-The plugin ships with two kinds of tests:
-
-* A **Playwright** browser suite that drives the real schedule across multiple browsers and screen sizes.
-* A set of **PHP command-line tests** that cover the WP-CLI import/delete commands and the fixture generator.
-
-The browser suite can run against either of two environments. If you only set up one, make it the Vanilla stack.
-
-### Vanilla WordPress (recommended)
-
-A throwaway WordPress site with no theme customizations — this proves the plugin works anywhere, not just on Furry Migration's setup.
-
-1. `cd tests/docker-vanilla`
-2. `docker compose up -d`
-3. `./seed-vanilla.sh` — installs WordPress and seeds sample events.
-4. Back in the plugin root: `npx playwright test --project=vanilla-wp`
-
-### Furry Migration (local Docker)
-
-The reference development stack. Use this if you're already running the full Furry Migration Docker environment.
-
-1. Start the Docker stack from the project root.
-2. `cd public_html/wp-content/plugins/OnlineSched`
-3. `npm run test:setup` — first time only; installs browsers and seeds data.
-4. `npm test` — runs the full suite.
-
-### What the browser tests cover
-
-Each spec is written to answer one plain-language question:
-
-| Spec | What it checks |
-|---|---|
-| 01 · Page loads | Does the schedule page open without errors? |
-| 02 · Tabs | Do the Programming / Essentials / Hours tabs switch correctly? |
-| 03 · Filters | Do search, the day/tag/room dropdowns, the reset button, two-filter combos, and cancelled-event handling all work? |
-| 04 · Favorites | Can you star an event, and does it survive a page reload? |
-| 05 · Modals | Do event popups open with the right title, date, time, room, description, and panelists — and close cleanly? |
-| 06 · Calendar | Do the "Add to Calendar" links carry the correct event ID? Does copy-to-clipboard animate, and does reduced-motion skip it? |
-| 07 · Hash routing | Do deep links like `/schedule/#hour` and `/schedule/#evt=123` resolve? |
-| 08 · Kiosk mode | Does the kiosk TV page work at 1080p on Edge, with favorites/calendar hidden but search, filters, tabs, and modals still working? |
-| 09 · Responsive | Does the layout hold up on phone, tablet, and ultra-wide screens, and scroll properly? |
-| 10 · No jQuery / Bootstrap | Confirms the old jQuery/Bootstrap code is fully gone (runs post-refactor). |
-| 11 · Badges | Do VIP / Guest of Honor / cancelled badges render correctly? |
-| 12 · Shortcode | Does `[onlinesched_schedule]` render on a normal page? |
-| 13 · Hours block | Does the Hours tab/block display correctly? |
-| 14 · Standalone | Does the plugin work with no host-theme dependencies? |
-| 15 · Solo event block | Does the single-event block render on its own? |
-| 16 · Gaming demo | Does the gaming-room group/filter demo behave? |
-
-### Browsers and screen sizes
-
-The suite runs across every major browser engine, so a pass covers the browsers built on them too:
-
-| Project | Browser | Viewport | Simulates |
-|---|---|---|---|
-| `desktop` | Chromium | 1280 × 800 | Laptop / desktop |
-| `mobile-iphone` | Chromium | 375 × 812 | iPhone |
-| `mobile-android` | Chromium | 412 × 915 | Android phone |
-| `tablet` | Chromium | 768 × 1024 | iPad / tablet (portrait) |
-| `tablet-landscape` | Chromium | 1366 × 1024 | Large tablet (landscape) |
-| `kiosk` | Edge | 1920 × 1080 | Kiosk TV display (1080p) |
-| `firefox` | Firefox | 1280 × 800 | Gecko engine |
-| `webkit` | Safari | 1280 × 800 | WebKit engine |
-
-Chromium also covers Brave, Vivaldi, and Opera; Gecko covers Waterfox and Pale Moon; WebKit covers Orion and GNOME Web.
-
-### CLI and fixture tests
-
-These run in PHP and don't need a browser:
+In the Furry Migration Docker environment, run PHP, Composer, and npm inside `fm-php`:
 
 ```bash
-# Generate a deterministic 150-event test CSV and verify it
-npm run test:fixture
-
-# Exercise the WP-CLI import and delete-year commands
-# (runs only against the disposable Vanilla stack)
-npm run test:cli
+docker exec fm-php bash -c "cd /var/www/html/wp-content/plugins/OnlineSched && composer install --no-dev"
+docker exec fm-php bash -c "source /usr/local/nvm/nvm.sh && cd /var/www/html/wp-content/plugins/OnlineSched && npm install"
+docker exec fm-php bash -c "source /usr/local/nvm/nvm.sh && cd /var/www/html/wp-content/plugins/OnlineSched && npm run build"
 ```
 
-### Quick reference
-
-```bash
-# First-time setup
-cd public_html/wp-content/plugins/OnlineSched
-npm install
-npm run test:setup
-
-# Run the full browser suite
-npm test
-
-# Refresh expired seed data
-npm run test:seed
-
-# CLI + fixture checks
-npm run test:cli
-npm run test:fixture
-
-# Open the last HTML report
-npx playwright show-report tests/playwright-report
-```
+Contributors can find the complete browser, WP-CLI, fixture, environment, and quick-reference instructions in the [OnlineSched test guide](tests/README.md).

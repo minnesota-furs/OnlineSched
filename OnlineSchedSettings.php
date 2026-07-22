@@ -114,6 +114,7 @@ function OnlineSched_admin_init()
     onlinesched_register_main_setting('onlinesched_sticky_offset_mobile', 'absint');
     onlinesched_register_main_setting('onlinesched_calendar_name', 'sanitize_text_field');
     onlinesched_register_main_setting('onlinesched_ical_filename_prefix', 'sanitize_title');
+    onlinesched_register_main_setting('onlinesched_calendar_subscriptions_enabled', 'onlinesched_sanitize_checkbox');
     onlinesched_register_main_setting('onlinesched_room_sort_priority', 'sanitize_text_field');
     foreach (onlinesched_get_color_defaults() as $key => $unused) {
         onlinesched_register_main_setting(onlinesched_get_option_name($key), 'onlinesched_sanitize_color_option');
@@ -141,6 +142,55 @@ function onlinesched_sanitize_checkbox($value)
 {
     return ($value == '1' ? '1' : '0');
 }
+
+function onlinesched_calendar_subscriptions_setting_row()
+{
+    $option_name = 'onlinesched_calendar_subscriptions_enabled';
+    $constant_name = 'ONLINESCHED_CALENDAR_SUBSCRIPTIONS_ENABLED';
+    $filter_name = 'os_config_calendar_subscriptions_enabled';
+    $managed_by_constant = defined($constant_name);
+    $managed_by_filter = false !== has_filter($filter_name);
+    $managed_in_code = $managed_by_constant || $managed_by_filter;
+    $saved_value = get_option($option_name, '1');
+    $checked_value = $managed_in_code
+        ? onlinesched_calendar_subscriptions_enabled()
+        : '1' === (string) $saved_value;
+    ?>
+    <tr>
+        <th scope="row">Schedule Calendar Subscriptions</th>
+        <td>
+            <input type="hidden" name="<?php echo esc_attr($option_name); ?>" value="<?php echo esc_attr($managed_in_code ? onlinesched_sanitize_checkbox($saved_value) : '0'); ?>" />
+            <label for="<?php echo esc_attr($option_name); ?>">
+                <input type="checkbox" id="<?php echo esc_attr($option_name); ?>" name="<?php echo esc_attr($option_name); ?>" value="1"
+                    <?php checked($checked_value); ?> <?php disabled($managed_in_code); ?> />
+                Publish full-schedule calendar subscriptions
+            </label>
+            <?php if ($managed_by_constant) : ?>
+                <p class="description">Managed in code by <code><?php echo esc_html($constant_name); ?></code>.</p>
+            <?php elseif ($managed_by_filter) : ?>
+                <p class="description">Managed in code by <code><?php echo esc_html($filter_name); ?></code>.</p>
+            <?php endif; ?>
+            <p class="description">When disabled, full and filtered schedule subscriptions return an empty calendar and the full-schedule subscription buttons are hidden. Individual event calendar buttons remain available because those events are already visible on the schedule page. Existing subscribers stay connected and will receive events again when this setting is enabled.</p>
+            <p class="description"><strong>This setting does not hide the public schedule, individual events, or the JSON feed.</strong></p>
+        </td>
+    </tr>
+    <?php
+}
+
+function onlinesched_flush_calendar_subscription_caches()
+{
+    $schedule_page_id = onlinesched_get_page_id('schedule', 'schedule');
+    if ($schedule_page_id) {
+        clean_post_cache($schedule_page_id);
+    }
+
+    if (function_exists('w3tc_flush_all')) {
+        w3tc_flush_all();
+    }
+}
+
+add_action('add_option_onlinesched_calendar_subscriptions_enabled', 'onlinesched_flush_calendar_subscription_caches');
+add_action('update_option_onlinesched_calendar_subscriptions_enabled', 'onlinesched_flush_calendar_subscription_caches');
 
 function OnlineSched_register_options_page()
 {
@@ -298,6 +348,11 @@ function OnlineSched_options_page()
                 onlinesched_page_dropdown_row('onlinesched_hours_page_id', 'Hours Tab Content Page', 'Page content rendered inside the Hours tab.');
                 onlinesched_page_dropdown_row('onlinesched_map_page_id', 'Map Tab Content Page', 'Page content rendered inside the kiosk Map tab.');
                 ?>
+            </table>
+
+            <h2>Schedule Calendar Subscriptions</h2>
+            <table class="form-table" role="presentation">
+                <?php onlinesched_calendar_subscriptions_setting_row(); ?>
             </table>
 
             <h2>Advanced Display</h2>
@@ -590,6 +645,7 @@ function OnlineSched_config_status_page()
         'tab_map_label' => 'Map Tab Label',
         'sticky_offset_desktop' => 'Desktop Sticky Offset',
         'sticky_offset_mobile' => 'Mobile Sticky Offset',
+        'calendar_subscriptions_enabled' => 'Schedule Calendar Subscriptions',
         'color_primary' => 'Primary Color',
         'color_secondary' => 'Secondary Color',
         'color_accent' => 'Accent Color',
@@ -616,7 +672,10 @@ function OnlineSched_config_status_page()
             </thead>
             <tbody>
                 <?php foreach ($rows as $key => $label) : ?>
-                    <?php onlinesched_config_status_row($label, onlinesched_get_config_status($key, '')); ?>
+                    <?php
+                    $default = 'calendar_subscriptions_enabled' === $key ? '1' : '';
+                    onlinesched_config_status_row($label, onlinesched_get_config_status($key, $default));
+                    ?>
                 <?php endforeach; ?>
             </tbody>
         </table>

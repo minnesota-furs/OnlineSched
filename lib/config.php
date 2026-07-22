@@ -62,6 +62,21 @@ function onlinesched_get_config_status($key, $default = null)
     );
 }
 
+/**
+ * Whether full and filtered schedule subscriptions are published.
+ *
+ * Individual event calendar actions are intentionally outside this setting.
+ */
+function onlinesched_calendar_subscriptions_enabled(): bool
+{
+    $value = onlinesched_get_config('calendar_subscriptions_enabled', '1');
+    if (is_string($value)) {
+        $value = strtolower(trim($value));
+    }
+
+    return in_array($value, array(true, 1, '1', 'true', 'yes', 'on'), true);
+}
+
 function onlinesched_get_page_id_by_slug($slug)
 {
     if (!$slug) {

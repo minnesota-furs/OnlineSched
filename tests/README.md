@@ -1,84 +1,158 @@
 # OnlineSched Test Suite
 
-This directory contains the automated Playwright test suite for the OnlineSched plugin.
+This directory contains the browser, WP-CLI, and fixture tests used to verify OnlineSched.
+If you are setting up the suite for the first time, start with the disposable Vanilla
+WordPress environment.
 
 ## Test Environments
 
-The suite is designed to run against two different environments:
+### Vanilla WordPress (recommended)
 
-1.  **Furry Migration Docker** (Reference)
-    *   **URL:** `https://furrymigration.local`
-    *   **Port:** 443 (HTTPS) / 80 (HTTP)
-    *   **Theme:** Furry Migration (Custom)
-    *   **Status:** Development Baseline
+The Vanilla environment is a throwaway WordPress site with no Furry Migration theme
+customizations. It proves the plugin can stand on its own and is also the only environment
+allowed to run the destructive WP-CLI integration harness.
 
-2.  **Vanilla WordPress** (Standalone)
-    *   **URL:** `http://localhost:8081`
-    *   **Port:** 8081
-    *   **Theme:** Twenty Twenty-Five (Default)
-    *   **Status:** Verification environment for theme-independence.
+From the OnlineSched plugin directory:
 
-## Running Tests
-
-### 1. Furry Migration Environment
-
-Ensure the main Docker stack is running from the project root:
 ```bash
-docker-compose up -d
+cd tests/docker-vanilla
+docker compose up -d
+./seed-vanilla.sh
+cd ../..
+npm test -- --project=vanilla-wp
 ```
 
-Run tests from the `public_html/wp-content/plugins/OnlineSched` directory:
+The site runs at `http://localhost:8081` with Twenty Twenty-Five as its baseline theme.
+
+### Furry Migration (local Docker)
+
+The Furry Migration environment is the reference development stack at
+`https://furrymigration.local`.
+
+1. Start the Docker stack from the Furry Migration project root.
+2. Change to `public_html/wp-content/plugins/OnlineSched`.
+3. Run `npm run test:setup` the first time to install browsers and seed data.
+4. Run a focused Furry Migration project while developing, for example:
+
+   ```bash
+   npm test -- --project=desktop
+   ```
+
+### Full configured browser suite
+
+`npm test` runs every configured project. In addition to Furry Migration, it expects the
+Vanilla, furry-demo, and gaming-demo WordPress environments to be running and seeded on ports
+8081, 8082, and 8083:
+
 ```bash
+cd tests/docker-vanilla
+docker compose up -d
+./seed-vanilla.sh
+
+cd ../docker-furry
+docker compose up -d
+./seed-furry.sh
+
+cd ../docker-gaming
+docker compose up -d
+./seed-gaming.sh
+
+cd ../..
 npm test
 ```
 
-### 2. Vanilla WordPress Environment
+The full suite also requires the Chromium, Edge, Firefox, and WebKit runtimes installed by
+`npm run test:setup`. It can take more than an hour on slower machines, so focused projects
+are the friendlier choice while you are actively developing.
 
-Spin up the vanilla stack:
-```bash
-cd tests/docker-vanilla
-docker-compose up -d
-./seed-vanilla.sh
-```
+## Browser Test Coverage
 
-Run tests against the vanilla project:
-```bash
-npx playwright test --project=vanilla-wp
-```
+Each browser spec answers a plain-language question:
 
-## Adding Tests
+| Spec | What it checks |
+|---|---|
+| 01 - Page loads | Does the schedule page open without errors? |
+| 02 - Tabs | Do the Programming, Essentials, and Hours tabs switch correctly? |
+| 03 - Filters | Do search, day/tag/room filters, reset, combined filters, and cancelled-event handling work? |
+| 04 - Favorites | Can a visitor star an event, and does it survive a page reload? |
+| 05 - Modals | Do event popups show the correct details and close cleanly? |
+| 06 - Calendar | Do event actions, full-schedule subscriptions, disabled-feed behavior, clipboard, and reduced-motion behavior work? |
+| 07 - Hash routing | Do deep links such as `/schedule/#hour` and `/schedule/#evt=123` resolve? |
+| 08 - Kiosk mode | Does the kiosk view work at 1080p with the appropriate controls hidden? |
+| 09 - Responsive | Does the layout hold up across phone, tablet, and wide displays? |
+| 10 - No jQuery / Bootstrap | Confirms the old jQuery and Bootstrap behavior is gone after the refactor. |
+| 11 - Badges | Do VIP, Guest of Honor, and cancelled badges render correctly? |
+| 12 - Shortcode | Does `[onlinesched_schedule]` render on a normal page? |
+| 13 - Hours block | Does the Hours tab and block display correctly? |
+| 14 - Standalone | Does the plugin work without host-theme dependencies? |
+| 15 - Solo event block | Does the single-event block render on its own? |
+| 16 - Gaming demo | Does the gaming room group and filter demo behave correctly? |
 
-*   New tests should be added to `tests/e2e/`.
-*   Use central selectors from `tests/helpers/selectors.js`.
-*   Ensure tests pass in both environments.
-*   Standalone-specific assertions should be added to `tests/e2e/14-standalone.spec.js`.
+New browser tests belong in `tests/e2e/`. Use the central selectors in
+`tests/helpers/selectors.js`, and keep assertions valid across the applicable environments
+whenever possible. Standalone-specific assertions belong in
+`tests/e2e/14-standalone.spec.js`.
 
-## Seed Data
+## Browsers and Screen Sizes
 
-Test data is seeded via WP-CLI. 
-*   FM environment: `npm run test:seed` (calls `tests/fixtures/seed-test-events.sh`).
-*   Vanilla environment: `tests/docker-vanilla/seed-vanilla.sh`.
+| Project | Browser | Viewport | Simulates |
+|---|---|---|---|
+| `desktop` | Chromium | 1280 x 800 | Laptop or desktop |
+| `mobile-iphone` | Chromium | 375 x 812 | iPhone |
+| `mobile-android` | Chromium | 412 x 915 | Android phone |
+| `tablet` | Chromium | 768 x 1024 | Tablet portrait |
+| `tablet-landscape` | Chromium | 1366 x 1024 | Large tablet landscape |
+| `kiosk` | Edge | 1920 x 1080 | Kiosk television |
+| `firefox` | Firefox | 1280 x 800 | Gecko engine |
+| `webkit` | WebKit | 1280 x 800 | Safari-compatible engine |
+| `vanilla-wp` | Chromium | 1280 x 800 | Standalone WordPress at port 8081 |
+| `furry-wp` | Chromium | 1280 x 800 | Furry demo build at port 8082 |
+| `gaming-wp` | Chromium | 1280 x 800 | Gaming demo build at port 8083 |
+
+Chromium coverage also represents browsers such as Brave, Vivaldi, and Opera. Firefox covers
+the Gecko engine, while WebKit covers Safari-compatible behavior.
 
 ## WP-CLI Import and Year Deletion
 
-The CLI integration harness is destructive only inside the disposable Vanilla
-stack. It verifies the exact site URL and container name before running.
+The CLI integration harness is destructive only inside the disposable Vanilla stack. It
+verifies the exact site URL and container name before it runs and refuses the main Furry
+Migration environment.
 
 ```bash
 cd tests/docker-vanilla
-docker-compose up -d
+docker compose up -d
 ./seed-vanilla.sh
 cd ../..
 npm run test:cli
 ```
 
-Run only the standalone deterministic fixture checks with:
+The harness covers initial import, repeat import, updates, restoration, dry-run behavior,
+cross-year IDs, non-published statuses, invalid input, cleanup after failure, exact-year
+deletion, and preservation of every other year.
+
+## Calendar Subscription Setting
+
+The calendar setting harness exercises the real WordPress option on the disposable Vanilla
+site. It checks the enabled-by-default upgrade state, saved `0` and `1` values, the checkbox
+sanitizer, editable and code-managed admin states, constant and filter overrides, saved-value
+preservation, and schedule-page cache cleaning.
+
+```bash
+npm run test:calendar-settings
+```
+
+The wrapper refuses any container other than `onlinesched-vanilla-cli` and any site URL other
+than `http://localhost:8081`. The original option is restored even if an assertion fails.
+
+## Deterministic Fixture Tests
+
+Run the standalone fixture checks without starting a browser:
 
 ```bash
 npm run test:fixture
 ```
 
-Generate a disposable 150-event CSV for an arbitrary convention start date:
+Generate a disposable 150-event CSV for any convention start date:
 
 ```bash
 php tests/fixtures/generate-furry-test-data.php \
@@ -87,8 +161,55 @@ php tests/fixtures/generate-furry-test-data.php \
   --output=tests/fixtures/generated/furry_test_data.csv
 ```
 
-The generator defaults to 150 events, external IDs beginning at 4000, three
-consecutive days, and deterministic seed `20270630`. `--start-date` is always
-required. Optional `--count`, `--start-id`, `--days`, and `--seed` arguments
-support other disposable schedules without changing the nine-column CSV
-format. Generated CSV files stay ignored under `tests/fixtures/generated/`.
+The generator defaults to 150 events, external IDs beginning at 4000, three consecutive
+days, and deterministic seed `20270630`. `--start-date` is always required. The optional
+`--count`, `--start-id`, `--days`, and `--seed` arguments support other disposable schedules
+without changing the nine-column CSV format.
+
+Generated CSV files stay ignored under `tests/fixtures/generated/`. The fixture test verifies
+byte-for-byte repeatability, the committed golden SHA-256, date-boundary behavior, expected
+anchor rows, and invalid-argument handling.
+
+## Seed Data
+
+Each browser environment has its own seed path:
+
+- Furry Migration: `npm run test:seed`, which calls `tests/fixtures/seed-test-events.sh`.
+- Vanilla WordPress: `tests/docker-vanilla/seed-vanilla.sh`.
+- Furry demo: `tests/docker-furry/seed-furry.sh`.
+- Gaming demo: `tests/docker-gaming/seed-gaming.sh`.
+
+The deterministic 150-event fixture is separate from the smaller browser seeds. It exists
+for importer and maintenance-command coverage, not as a replacement for the focused UI data.
+
+## Quick Reference
+
+```bash
+# First-time browser setup for the Furry Migration environment
+npm install
+npm run test:setup
+
+# Run one Furry Migration project
+npm test -- --project=desktop
+
+# Run the standalone Vanilla project
+npm test -- --project=vanilla-wp
+
+# Run every project after all four environments are ready
+npm test
+
+# Refresh Furry Migration browser seed data
+npm run test:seed
+
+# Run the destructive Vanilla-only WP-CLI integration harness
+npm run test:cli
+
+# Check the calendar subscription setting on the disposable Vanilla site
+npm run test:calendar-settings
+
+# Run the fast, container-free fixture check
+npm run test:fixture
+
+# Open the latest Playwright HTML report
+npx playwright show-report tests/playwright-report
+```
