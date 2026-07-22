@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.1
+
+- Added the opt-in `cancelled_title_prefix` parameter to full and filtered schedule ICS feeds. When set to `1`, `true`, `yes`, or `on`, cancelled event summaries are prefixed with `Cancelled - ` for display systems that ignore `STATUS:CANCELLED`.
+- Kept standards-compliant cancellation status, UIDs, timestamps, stored event titles, individual event feeds, JSON, CSV, and the public schedule unchanged.
+
 ## 2.2.0
 
 - Added **Publish full-schedule calendar subscriptions** under **Event Scheduling > Event Settings > Schedule Calendar Subscriptions**.

@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 2.2.0
+Stable tag: 2.2.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -73,6 +73,9 @@ Filtered schedule ICS:
     /wp-content/plugins/OnlineSched/icalby.php?room=main-stage
     /wp-content/plugins/OnlineSched/icalby.php?tag=essentials
     /wp-content/plugins/OnlineSched/icalby.php?room=main-stage,panel-room-a&tag=essentials&limit=10&textlen=300
+    /wp-content/plugins/OnlineSched/icalby.php?room=all&cancelled_title_prefix=true
+
+Cancelled schedule events use the standards-compliant STATUS:CANCELLED property. For display systems that ignore that status, add cancelled_title_prefix=true to a full or filtered schedule ICS URL to prefix cancelled summaries with "Cancelled - ". The parameter is opt-in and does not change stored event titles, individual event feeds, JSON, CSV, or the public schedule.
 
 JSON room feed:
 
@@ -111,6 +114,10 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 2.2.1 =
+
+Adds an opt-in cancelled_title_prefix parameter for full and filtered schedule ICS feeds used by display systems that do not show STATUS:CANCELLED.
 
 = 2.2.0 =
 

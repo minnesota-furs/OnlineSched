@@ -125,6 +125,7 @@ Use this for full-schedule or filtered calendar subscriptions:
 /wp-content/plugins/OnlineSched/icalby.php?room=main-stage,panel-room-a&tag=essentials&limit=10&textlen=300
 /wp-content/plugins/OnlineSched/icalby.php?room=all
 /wp-content/plugins/OnlineSched/icalby.php?tag=all&textlen=0
+/wp-content/plugins/OnlineSched/icalby.php?room=all&cancelled_title_prefix=true
 ```
 
 Parameters:
@@ -133,8 +134,11 @@ Parameters:
 * `tag` or `tags` - one or more `os_tag` slugs, comma separated. Use `all` for all tags.
 * `limit` - maximum number of upcoming events to include.
 * `textlen` - maximum description length. Default is `250`; use `0` or a negative value for full descriptions.
+* `cancelled_title_prefix` - set to `1`, `true`, `yes`, or `on` to prefix cancelled event summaries with `Cancelled - `. This opt-in compatibility aid is limited to full and filtered schedule ICS feeds.
 
-Cancelled events are included with `STATUS:CANCELLED`.
+Cancelled events are included with `STATUS:CANCELLED`. The optional title prefix supplements
+that standards-compliant status for display systems that do not show cancellation state; it
+does not change stored event titles, individual event feeds, or any other output.
 
 ICS output uses UTC `DTSTART`/`DTEND` values with trailing `Z`, CRLF line endings,
 folded content lines, `METHOD:PUBLISH`, and `text/calendar; method=PUBLISH` response

@@ -83,6 +83,15 @@ function getIcsEventSignatures(body) {
     .sort();
 }
 
+function getIcsEventBlocks(body) {
+  const unfolded = body.replace(/\r?\n[ \t]/g, '');
+  return unfolded.match(/BEGIN:VEVENT\r?\n[\s\S]*?\r?\nEND:VEVENT/g) || [];
+}
+
+function getIcsLine(event, name) {
+  return event.match(new RegExp(`^${name}:(.*)$`, 'm'))?.[1]?.trim() || '';
+}
+
 test.describe('06 — Calendar', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/schedule/');
@@ -256,6 +265,68 @@ test.describe('06 — Calendar', () => {
       expect(firstUids.length).toBeGreaterThanOrEqual(2);
       expect(getIcsUids(secondBody)).toEqual(firstUids);
       expect(getIcsEventSignatures(secondBody)).toEqual(getIcsEventSignatures(firstBody));
+    });
+
+    test('cancelled title prefix is opt-in and aggregate-feed only', async ({ page }) => {
+      const path = '/wp-content/plugins/OnlineSched/icalby.php?tag=cancelled&textlen=0';
+      const baselineBody = await expectIcsResponse(await page.request.get(path), { minEvents: 1 });
+      const prefixedBody = await expectIcsResponse(
+        await page.request.get(`${path}&cancelled_title_prefix=true`),
+        { minEvents: 1 }
+      );
+      const baselineEvents = getIcsEventBlocks(baselineBody);
+      const prefixedEvents = getIcsEventBlocks(prefixedBody);
+
+      expect(prefixedEvents).toHaveLength(baselineEvents.length);
+
+      for (let index = 0; index < baselineEvents.length; index += 1) {
+        const baselineEvent = baselineEvents[index];
+        const prefixedEvent = prefixedEvents[index];
+        const baselineSummary = getIcsLine(baselineEvent, 'SUMMARY');
+
+        expect(getIcsLine(baselineEvent, 'STATUS')).toBe('CANCELLED');
+        expect(baselineSummary).not.toMatch(/^Cancelled - /i);
+        expect(getIcsLine(prefixedEvent, 'SUMMARY')).toBe(`Cancelled - ${baselineSummary}`);
+        expect(getIcsLine(prefixedEvent, 'STATUS')).toBe('CANCELLED');
+        expect(getIcsLine(prefixedEvent, 'UID')).toBe(getIcsLine(baselineEvent, 'UID'));
+        expect(getIcsLine(prefixedEvent, 'DTSTART')).toBe(getIcsLine(baselineEvent, 'DTSTART'));
+        expect(getIcsLine(prefixedEvent, 'DTEND')).toBe(getIcsLine(baselineEvent, 'DTEND'));
+      }
+
+      const cancelledItem = page.locator(`${S.scheduleItem}.canceled`).first();
+      const cancelledPostId = (await cancelledItem.getAttribute('id'))?.replace('onlineevt-', '');
+
+      expect(cancelledPostId).toMatch(/^\d+$/);
+
+      const singleBody = await expectIcsResponse(
+        await page.request.get(
+          `/wp-content/plugins/OnlineSched/ical.php?cal-id=${cancelledPostId}&cancelled_title_prefix=true`
+        ),
+        { exactEvents: 1 }
+      );
+      const singleSummary = getIcsLine(getIcsEventBlocks(singleBody)[0], 'SUMMARY');
+
+      expect(singleSummary).not.toMatch(/^Cancelled - /i);
+    });
+
+    test('cancelled title prefix accepts only documented truthy values', async ({ page }) => {
+      const path = '/wp-content/plugins/OnlineSched/icalby.php?tag=cancelled&limit=1';
+
+      for (const value of ['1', 'true', 'yes', 'on']) {
+        const body = await expectIcsResponse(
+          await page.request.get(`${path}&cancelled_title_prefix=${value}`),
+          { exactEvents: 1 }
+        );
+        expect(getIcsLine(getIcsEventBlocks(body)[0], 'SUMMARY')).toMatch(/^Cancelled - /);
+      }
+
+      for (const value of ['0', 'false', 'off', 'xibo']) {
+        const body = await expectIcsResponse(
+          await page.request.get(`${path}&cancelled_title_prefix=${value}`),
+          { exactEvents: 1 }
+        );
+        expect(getIcsLine(getIcsEventBlocks(body)[0], 'SUMMARY')).not.toMatch(/^Cancelled - /);
+      }
     });
 
     test('disabled aggregate endpoint exits before an os_event WP_Query', async ({ page }) => {
