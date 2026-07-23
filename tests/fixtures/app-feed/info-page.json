@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-23T12:00:00Z",
+  "page": {
+    "slug": "parking",
+    "title": "Parking",
+    "updated": "2026-07-20T15:04:00Z",
+    "content_html": "<h2>Ramps</h2><p>The closest ramp is attached to the hotel. Overflow parking is two blocks north.</p><figure><img src=\"https://www.furrymigration.org/wp-content/uploads/2026/07/parking-map.png\" alt=\"Parking map\"></figure>",
+    "images": [
+      "https://www.furrymigration.org/wp-content/uploads/2026/07/parking-map.png"
+    ]
+  }
+}

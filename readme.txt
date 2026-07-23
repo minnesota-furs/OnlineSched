@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 2.2.1
+Stable tag: 3.0.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -77,17 +77,16 @@ Filtered schedule ICS:
 
 Cancelled schedule events use the standards-compliant STATUS:CANCELLED property. For display systems that ignore that status, add cancelled_title_prefix=true to a full or filtered schedule ICS URL to prefix cancelled summaries with "Cancelled - ". The parameter is opt-in and does not change stored event titles, individual event feeds, JSON, CSV, or the public schedule.
 
-JSON room feed:
+JSON app feed:
 
-    /wp-content/plugins/OnlineSched/json.php?room=main-stage
-    /wp-content/plugins/OnlineSched/json.php?rooms=main-stage,panel-room-a
-    /wp-content/plugins/OnlineSched/json.php?tag=essential
-    /wp-content/plugins/OnlineSched/json.php?room=all
-    /wp-content/plugins/OnlineSched/json.php?group=programming
+    /wp-content/plugins/OnlineSched/json.php?section=meta
+    /wp-content/plugins/OnlineSched/json.php (schedule; supports room/rooms/tag/tags/group filters)
+    /wp-content/plugins/OnlineSched/json.php?section=hours
+    /wp-content/plugins/OnlineSched/json.php?section=info&page=parking
 
-The JSON feed is meant for signs, lobby screens, static pages, and other lightweight displays. Use room and tag slugs, not display names. A positive limit value returns up to that many upcoming events.
+The JSON feed is a sectioned, schema-versioned app feed for mobile companion apps and other structured clients: meta (handshake with revisions, change stamp, convention window, publication state), schedule (default; durable event UIDs, ISO 8601 times, cancelled/adult flags), hours (free-form hours text as authored), and info (admin-curated pages). All responses send ETag/Last-Modified and honor If-None-Match with 304. Use room and tag slugs, not display names.
 
-Omit the room parameter, or use room=all, to include every room. Sites can define named JSON groups with the onlinesched_json_room_groups option or the os_json_room_groups filter. If a requested group is not configured, OnlineSched returns an empty JSON array instead of guessing. Older programming=1 and gaming=1 display URLs are treated as deprecated group aliases; new integrations should use group=programming or group=gaming.
+Sites can define named groups with the onlinesched_json_room_groups option or the os_json_room_groups filter; an unconfigured group returns an empty schedule instead of guessing. The pre-3.0.0 signage output and the programming=1/gaming=1 aliases were removed in 3.0.0 (see the changelog).
 
 Calendar clients may cache feeds, so the website schedule is always the most current source for last-minute changes.
 
@@ -114,6 +113,10 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 3.0.0 =
+
+Breaking change: json.php is now a sectioned, schema-versioned app feed (meta, schedule, hours, info) with durable event UIDs, a central per-section revision/invalidation service, dedicated app schedule publication and convention date settings, and ETag/304 conditional requests. The previous signage-oriented JSON output and the programming=1/gaming=1 aliases are removed. See CHANGELOG.md for details.
 
 = 2.2.1 =
 

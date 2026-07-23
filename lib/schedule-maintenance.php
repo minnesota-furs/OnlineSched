@@ -143,6 +143,9 @@ function onlinesched_delete_schedule_year(string $year, array $options = array()
 	}
 
 	$failed_ids = array();
+	onlinesched_feed_touch_suspend();
+	try {
+	try {
 	while (true) {
 		$ids = onlinesched_query_schedule_year_ids($validated_year, $batch_size, 1, $failed_ids);
 		if (is_wp_error($ids)) {
@@ -167,13 +170,24 @@ function onlinesched_delete_schedule_year(string $year, array $options = array()
 		}
 	}
 
+	} finally {
+		onlinesched_feed_touch_resume();
+	}
+	} catch (\Throwable $delete_exception) {
+		// Deletions before the failure still changed feed output.
+		if (!empty($result['deleted_ids'])) {
+			onlinesched_touch_feed('schedule', 'delete-year-partial');
+		}
+		throw $delete_exception;
+	}
 	$result['selected'] = count(array_unique(array_merge($result['selected_ids'], $result['failed_ids'])));
 	$result['deleted'] = count($result['deleted_ids']);
 	$result['failed'] = max((int) $result['failed'], count($result['failed_ids']));
 	$result['duration_seconds'] = microtime(true) - $started;
 
-	if ($result['deleted'] > 0 && function_exists('w3tc_flush_all')) {
-		w3tc_flush_all();
+	if ($result['deleted'] > 0) {
+		// onlinesched_touch_feed() owns the W3TC flush — exactly once.
+		onlinesched_touch_feed('schedule', 'delete-year');
 	}
 
 	return $result;

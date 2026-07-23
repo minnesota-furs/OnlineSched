@@ -107,7 +107,9 @@ function onlinesched_import_csv(string $file_path, array $options = array()): ar
 	);
 
 	try {
+	try {
 		wp_defer_term_counting(true);
+		onlinesched_feed_touch_suspend();
 		if ($save_post_state !== null) {
 			remove_action('save_post', 'OnlineSched_add_timeslot_fields', $save_post_state['priority']);
 		}
@@ -179,10 +181,20 @@ function onlinesched_import_csv(string $file_path, array $options = array()): ar
 			);
 		}
 		wp_defer_term_counting($prior_defer);
+		onlinesched_feed_touch_resume();
+	}
+	} catch (\Throwable $import_exception) {
+		// Partial writes before the failure still changed feed output; a
+		// revision that fails to move would leave clients stale forever.
+		if (($result['inserted'] + $result['updated']) > 0) {
+			onlinesched_touch_feed('schedule', 'csv-import-partial');
+		}
+		throw $import_exception;
 	}
 
-	if (($result['inserted'] + $result['updated']) > 0 && function_exists('w3tc_flush_all')) {
-		w3tc_flush_all();
+	if (($result['inserted'] + $result['updated']) > 0) {
+		// onlinesched_touch_feed() owns the W3TC flush — exactly once.
+		onlinesched_touch_feed('schedule', 'csv-import');
 	}
 
 	return onlinesched_import_finish_result($result, $started);

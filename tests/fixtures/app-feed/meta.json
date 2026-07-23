@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "con_name": "Furry Migration",
+  "year": "2026",
+  "timezone": "America/Chicago",
+  "revisions": {
+    "schedule": 41,
+    "hours": 7,
+    "info": 12
+  },
+  "change_stamp": "41.7.12",
+  "con_start": "2026-09-09",
+  "con_end": "2026-09-14",
+  "public_dates": {
+    "start": "2026-09-11",
+    "end": "2026-09-13"
+  },
+  "schedule_published": true,
+  "sections": [
+    "schedule",
+    "hours",
+    "info"
+  ],
+  "info_pages": [
+    {
+      "slug": "parking",
+      "title": "Parking",
+      "updated": "2026-07-20T15:04:00Z"
+    },
+    {
+      "slug": "hotel",
+      "title": "Hotel & Venue",
+      "updated": "2026-07-18T10:30:00Z"
+    }
+  ]
+}

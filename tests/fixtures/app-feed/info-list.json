@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "generated": "2026-07-23T12:00:00Z",
+  "pages": [
+    { "slug": "parking", "title": "Parking", "updated": "2026-07-20T15:04:00Z" },
+    { "slug": "hotel", "title": "Hotel & Venue", "updated": "2026-07-18T10:30:00Z" }
+  ]
+}
