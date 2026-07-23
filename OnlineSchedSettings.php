@@ -59,6 +59,36 @@ function onlinesched_settings_admin_styles()
             min-width: 25em;
             max-width: 100%;
         }
+        .onlinesched-tab-panel {
+            margin-top: 1em;
+        }
+        .onlinesched-app-info-page-list {
+            margin: 0.5em 0;
+            max-width: 40em;
+        }
+        .onlinesched-app-info-page-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            padding: 4px 8px;
+            border: 1px solid #ccd0d4;
+            border-bottom: none;
+            background: #fff;
+        }
+        .onlinesched-app-info-page-list li:last-child {
+            border-bottom: 1px solid #ccd0d4;
+        }
+        .onlinesched-app-info-page-list .onlinesched-app-info-page-title {
+            flex: 1 1 auto;
+        }
+        .onlinesched-app-info-page-list button.button-link {
+            padding: 0 4px;
+            text-decoration: none;
+        }
+        .onlinesched-app-info-page-list button.button-link:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
     </style>
     <?php
 }
@@ -115,6 +145,12 @@ function OnlineSched_admin_init()
     onlinesched_register_main_setting('onlinesched_calendar_name', 'sanitize_text_field');
     onlinesched_register_main_setting('onlinesched_ical_filename_prefix', 'sanitize_title');
     onlinesched_register_main_setting('onlinesched_calendar_subscriptions_enabled', 'onlinesched_sanitize_checkbox');
+    onlinesched_register_main_setting('onlinesched_app_schedule_published', 'onlinesched_sanitize_checkbox');
+    onlinesched_register_main_setting('onlinesched_con_start', 'onlinesched_sanitize_con_start');
+    onlinesched_register_main_setting('onlinesched_con_end', 'onlinesched_sanitize_con_end');
+    onlinesched_register_main_setting('onlinesched_public_date_start', 'onlinesched_sanitize_public_date_start');
+    onlinesched_register_main_setting('onlinesched_public_date_end', 'onlinesched_sanitize_public_date_end');
+    onlinesched_register_main_setting('onlinesched_app_info_page_ids', 'onlinesched_sanitize_page_id_csv');
     onlinesched_register_main_setting('onlinesched_room_sort_priority', 'sanitize_text_field');
     foreach (onlinesched_get_color_defaults() as $key => $unused) {
         onlinesched_register_main_setting(onlinesched_get_option_name($key), 'onlinesched_sanitize_color_option');
@@ -141,6 +177,354 @@ function onlinesched_sanitize_icon_classes($value)
 function onlinesched_sanitize_checkbox($value)
 {
     return ($value == '1' ? '1' : '0');
+}
+
+/**
+ * Sanitizer for an ordered comma-separated list of page IDs.
+ */
+function onlinesched_sanitize_page_id_csv($value)
+{
+    $ids = array();
+    foreach (explode(',', (string)$value) as $piece) {
+        $id = absint(trim($piece));
+        if ($id > 0 && !in_array($id, $ids, true)) {
+            $ids[] = $id;
+        }
+    }
+    return implode(',', $ids);
+}
+
+/**
+ * Human label for a date-pair option, used only in the settings-error message below.
+ */
+function onlinesched_date_pair_label($option_name)
+{
+    $labels = array(
+        'onlinesched_con_start' => 'Operational Start Date',
+        'onlinesched_con_end' => 'Operational End Date',
+        'onlinesched_public_date_start' => 'Public Start Date',
+        'onlinesched_public_date_end' => 'Public End Date',
+    );
+    return isset($labels[$option_name]) ? $labels[$option_name] : $option_name;
+}
+
+/**
+ * Sanitize one half of a start/end date pair, refusing to persist an inverted pair.
+ *
+ * register_setting() sanitize callbacks only ever see their own field's value, but
+ * options.php processes every registered option from a single options.php submission
+ * in one request, so $_POST already holds the paired field's submitted value at the
+ * moment either callback runs — reading it here is safe and requires no extra hook.
+ *
+ * If both dates in the pair are valid and would end up inverted (start after end),
+ * this field's submitted value is discarded in favor of its previously saved value,
+ * and a settings error is surfaced once per pair (from the start-field callback only,
+ * so the pair doesn't produce a duplicate message).
+ */
+function onlinesched_sanitize_date_pair($value, $option_name, $paired_option_name, $is_start_field)
+{
+    $sanitized = onlinesched_app_sanitize_date($value);
+
+    $paired_raw = array_key_exists($paired_option_name, $_POST)
+        ? wp_unslash($_POST[$paired_option_name])
+        : get_option($paired_option_name, '');
+    $paired_sanitized = onlinesched_app_sanitize_date($paired_raw);
+
+    if ('' !== $sanitized && '' !== $paired_sanitized) {
+        $start = $is_start_field ? $sanitized : $paired_sanitized;
+        $end = $is_start_field ? $paired_sanitized : $sanitized;
+
+        if ($start > $end) {
+            if ($is_start_field) {
+                add_settings_error(
+                    $option_name,
+                    'onlinesched_date_pair_inverted',
+                    sprintf(
+                        '%s must be on or before %s. The previous value was kept.',
+                        onlinesched_date_pair_label($option_name),
+                        onlinesched_date_pair_label($paired_option_name)
+                    )
+                );
+            }
+            return get_option($option_name, '');
+        }
+    }
+
+    return $sanitized;
+}
+
+function onlinesched_sanitize_con_start($value)
+{
+    return onlinesched_sanitize_date_pair($value, 'onlinesched_con_start', 'onlinesched_con_end', true);
+}
+
+function onlinesched_sanitize_con_end($value)
+{
+    return onlinesched_sanitize_date_pair($value, 'onlinesched_con_end', 'onlinesched_con_start', false);
+}
+
+function onlinesched_sanitize_public_date_start($value)
+{
+    return onlinesched_sanitize_date_pair($value, 'onlinesched_public_date_start', 'onlinesched_public_date_end', true);
+}
+
+function onlinesched_sanitize_public_date_end($value)
+{
+    return onlinesched_sanitize_date_pair($value, 'onlinesched_public_date_end', 'onlinesched_public_date_start', false);
+}
+
+function onlinesched_app_feed_settings_rows()
+{
+    $published = get_option('onlinesched_app_schedule_published', '1');
+    ?>
+    <tr>
+        <th scope="row">App Schedule Publication</th>
+        <td>
+            <input type="hidden" name="onlinesched_app_schedule_published" value="0" />
+            <label for="onlinesched_app_schedule_published">
+                <input type="checkbox" id="onlinesched_app_schedule_published" name="onlinesched_app_schedule_published" value="1"
+                    <?php checked('1' === (string)$published); ?> />
+                Publish the schedule to the app feed
+            </label>
+            <p class="description">Controls the JSON app feed's schedule section only. When disabled, the schedule section returns a successful empty response with <code>schedule_published: false</code> so app clients show an intentional pre-publication state; the meta, hours, and info sections stay available. Independent of the Schedule Calendar Subscriptions (ICS) setting above, and does not affect the public schedule page.</p>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row"><label for="onlinesched_con_start">Operational Start Date</label></th>
+        <td>
+            <input type="date" id="onlinesched_con_start" name="onlinesched_con_start"
+                   value="<?php echo esc_attr(get_option('onlinesched_con_start', '')); ?>" />
+            <p class="description">First day of convention operations, including pre-con setup days. App clients use this window for day tabs and con-week behavior.</p>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row"><label for="onlinesched_con_end">Operational End Date</label></th>
+        <td>
+            <input type="date" id="onlinesched_con_end" name="onlinesched_con_end"
+                   value="<?php echo esc_attr(get_option('onlinesched_con_end', '')); ?>" />
+            <p class="description">Last day of convention operations, including post-con activities such as dead dog.</p>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row"><label for="onlinesched_public_date_start">Public Start Date</label></th>
+        <td>
+            <input type="date" id="onlinesched_public_date_start" name="onlinesched_public_date_start"
+                   value="<?php echo esc_attr(get_option('onlinesched_public_date_start', '')); ?>" />
+            <p class="description">Official first convention day, for display.</p>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row"><label for="onlinesched_public_date_end">Public End Date</label></th>
+        <td>
+            <input type="date" id="onlinesched_public_date_end" name="onlinesched_public_date_end"
+                   value="<?php echo esc_attr(get_option('onlinesched_public_date_end', '')); ?>" />
+            <p class="description">Official last convention day, for display.</p>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row"><label for="onlinesched_app_info_page_select">App Info Pages</label></th>
+        <td>
+            <?php
+            $app_info_saved_csv = get_option('onlinesched_app_info_page_ids', '');
+            $app_info_selected_ids = array_filter(array_map('absint', explode(',', (string) $app_info_saved_csv)));
+            $app_info_pages = onlinesched_get_page_selector_pages();
+            $app_info_pages_by_id = array();
+            foreach ($app_info_pages as $app_info_page) {
+                $app_info_pages_by_id[(int) $app_info_page->ID] = $app_info_page;
+            }
+            ?>
+            <div id="onlinesched-app-info-pages">
+                <select id="onlinesched_app_info_page_select" class="regular-text onlinesched-page-select">
+                    <option value="0"><?php echo esc_html('-- Select a Page --'); ?></option>
+                    <?php foreach ($app_info_pages as $app_info_page) : ?>
+                        <option value="<?php echo esc_attr($app_info_page->ID); ?>">
+                            <?php echo esc_html(sprintf('%s%s', $app_info_page->post_title ? $app_info_page->post_title : '(no title)', 'publish' !== $app_info_page->post_status ? ' [' . $app_info_page->post_status . ']' : '')); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="button" class="button" id="onlinesched_app_info_page_add">Add</button>
+                <?php if (empty($app_info_pages)) : ?>
+                    <p class="description">No pages found. Create a WordPress page first, then return here.</p>
+                <?php endif; ?>
+                <ul id="onlinesched_app_info_page_list" class="onlinesched-app-info-page-list">
+                    <?php
+                    $app_info_selected_count = count($app_info_selected_ids);
+                    foreach (array_values($app_info_selected_ids) as $app_info_selected_index => $app_info_selected_id) :
+                        $app_info_selected_page = isset($app_info_pages_by_id[$app_info_selected_id]) ? $app_info_pages_by_id[$app_info_selected_id] : null;
+                        $app_info_selected_title = $app_info_selected_page
+                            ? ($app_info_selected_page->post_title ? $app_info_selected_page->post_title : '(no title)')
+                            : sprintf('(page #%d not found)', $app_info_selected_id);
+                        $app_info_selected_suffix = ($app_info_selected_page && 'publish' !== $app_info_selected_page->post_status) ? ' [' . $app_info_selected_page->post_status . ']' : '';
+                        $app_info_selected_display_title = $app_info_selected_title . $app_info_selected_suffix;
+                        $app_info_is_first = (0 === $app_info_selected_index);
+                        $app_info_is_last = ($app_info_selected_index === $app_info_selected_count - 1);
+                        ?>
+                        <li data-page-id="<?php echo esc_attr($app_info_selected_id); ?>">
+                            <span class="onlinesched-app-info-page-title"><?php echo esc_html($app_info_selected_display_title); ?></span>
+                            <button type="button" class="button-link onlinesched-app-info-page-up" aria-label="<?php echo esc_attr(sprintf('Move %s up', $app_info_selected_display_title)); ?>" <?php disabled($app_info_is_first); ?>>&uarr;</button>
+                            <button type="button" class="button-link onlinesched-app-info-page-down" aria-label="<?php echo esc_attr(sprintf('Move %s down', $app_info_selected_display_title)); ?>" <?php disabled($app_info_is_last); ?>>&darr;</button>
+                            <button type="button" class="button-link onlinesched-app-info-page-remove" aria-label="<?php echo esc_attr(sprintf('Remove %s', $app_info_selected_display_title)); ?>">&times;</button>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <input type="hidden" id="onlinesched_app_info_page_ids" name="onlinesched_app_info_page_ids"
+                       value="<?php echo esc_attr($app_info_saved_csv); ?>" />
+            </div>
+            <p class="description">Ordered pages served by the app feed's info section (parking, hotel, code of conduct, and similar). Only published pages appear in the feed. Choose a page and click Add, then use the arrows to reorder.</p>
+        </td>
+    </tr>
+    <script>
+        (function () {
+            var wrap = document.getElementById('onlinesched-app-info-pages');
+            if (!wrap) {
+                return;
+            }
+            var select = document.getElementById('onlinesched_app_info_page_select');
+            var addButton = document.getElementById('onlinesched_app_info_page_add');
+            var list = document.getElementById('onlinesched_app_info_page_list');
+            var hiddenInput = document.getElementById('onlinesched_app_info_page_ids');
+
+            function rows() {
+                return list.querySelectorAll('li[data-page-id]');
+            }
+
+            function currentIds() {
+                var ids = [];
+                rows().forEach(function (li) {
+                    ids.push(li.getAttribute('data-page-id'));
+                });
+                return ids;
+            }
+
+            function syncHiddenInput() {
+                hiddenInput.value = currentIds().join(',');
+            }
+
+            // Keep Up disabled on the first row and Down disabled on the last row after
+            // every add / remove / reorder, matching what PHP renders on initial load.
+            function refreshRowControls() {
+                var items = rows();
+                items.forEach(function (li, index) {
+                    var upBtn = li.querySelector('.onlinesched-app-info-page-up');
+                    var downBtn = li.querySelector('.onlinesched-app-info-page-down');
+                    if (upBtn) {
+                        upBtn.disabled = (index === 0);
+                    }
+                    if (downBtn) {
+                        downBtn.disabled = (index === items.length - 1);
+                    }
+                });
+            }
+
+            // A disabled button can't hold focus. If the control the user just used became
+            // disabled by moving to the edge, move focus to another enabled control in the
+            // same row instead of letting focus silently fall back to <body>.
+            function focusRowControl(li, preferredButton) {
+                if (preferredButton && !preferredButton.disabled) {
+                    preferredButton.focus();
+                    return;
+                }
+                var fallback = li.querySelector('button:not(:disabled)');
+                if (fallback) {
+                    fallback.focus();
+                }
+            }
+
+            function makeButton(className, label, html) {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = className;
+                button.setAttribute('aria-label', label);
+                button.innerHTML = html;
+                return button;
+            }
+
+            function addPage(id, label) {
+                if (!id || id === '0' || currentIds().indexOf(id) !== -1) {
+                    return;
+                }
+                var li = document.createElement('li');
+                li.setAttribute('data-page-id', id);
+
+                var titleSpan = document.createElement('span');
+                titleSpan.className = 'onlinesched-app-info-page-title';
+                titleSpan.textContent = label;
+                li.appendChild(titleSpan);
+
+                // Labels carry the page title, matching what PHP renders for pre-populated
+                // rows. Reorder never rebuilds a button (insertBefore only moves the existing
+                // <li>), so a row's labels stay correctly attached to its title as it moves.
+                li.appendChild(makeButton('button-link onlinesched-app-info-page-up', 'Move ' + label + ' up', '&uarr;'));
+                li.appendChild(makeButton('button-link onlinesched-app-info-page-down', 'Move ' + label + ' down', '&darr;'));
+                li.appendChild(makeButton('button-link onlinesched-app-info-page-remove', 'Remove ' + label, '&times;'));
+
+                list.appendChild(li);
+                syncHiddenInput();
+                refreshRowControls();
+            }
+
+            addButton.addEventListener('click', function () {
+                var id = select.value;
+                if (!id || id === '0') {
+                    return;
+                }
+                var label = select.options[select.selectedIndex].text;
+                addPage(id, label);
+                select.value = '0';
+            });
+
+            list.addEventListener('click', function (e) {
+                var target = e.target;
+                if (target.disabled) {
+                    return;
+                }
+                var li = target.closest('li[data-page-id]');
+                if (!li) {
+                    return;
+                }
+
+                if (target.classList.contains('onlinesched-app-info-page-remove')) {
+                    // Capture neighbors before removal — li.nextElementSibling/
+                    // previousElementSibling are only meaningful while still attached.
+                    var nextLi = li.nextElementSibling;
+                    var prevLi = li.previousElementSibling;
+
+                    li.parentNode.removeChild(li);
+                    syncHiddenInput();
+                    refreshRowControls();
+
+                    // The removed button is gone, so focus never lands on it — always send it
+                    // somewhere deliberate instead of letting it fall back to <body>.
+                    var nextFocus = null;
+                    if (nextLi) {
+                        nextFocus = nextLi.querySelector('.onlinesched-app-info-page-remove');
+                    } else if (prevLi) {
+                        nextFocus = prevLi.querySelector('.onlinesched-app-info-page-remove');
+                    }
+                    (nextFocus || addButton).focus();
+                } else if (target.classList.contains('onlinesched-app-info-page-up')) {
+                    var prev = li.previousElementSibling;
+                    if (prev) {
+                        list.insertBefore(li, prev);
+                        syncHiddenInput();
+                        refreshRowControls();
+                        focusRowControl(li, target);
+                    }
+                } else if (target.classList.contains('onlinesched-app-info-page-down')) {
+                    var next = li.nextElementSibling;
+                    if (next) {
+                        list.insertBefore(next, li);
+                        syncHiddenInput();
+                        refreshRowControls();
+                        focusRowControl(li, target);
+                    }
+                }
+            });
+
+            refreshRowControls();
+        })();
+    </script>
+    <?php
 }
 
 function onlinesched_calendar_subscriptions_setting_row()
@@ -269,12 +653,17 @@ function onlinesched_number_input_row($option_name, $label, $default, $descripti
     $managed_by_constant = defined($constant_name);
     $managed_by_filter = has_filter($filter_name);
     $managed_in_code = $managed_by_constant || $managed_by_filter;
+    $saved_value = absint(get_option($option_name, $default));
     ?>
     <tr>
         <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html($label); ?></label></th>
         <td>
+            <?php /* Disabled inputs never submit — this hidden field carries the saved value
+                     forward whenever the visible control above is disabled, so a managed-in-code
+                     row can never blank the stored fallback on save. */ ?>
+            <input type="hidden" name="<?php echo esc_attr($option_name); ?>" value="<?php echo esc_attr($saved_value); ?>" />
             <input type="number" min="0" id="<?php echo esc_attr($option_name); ?>" name="<?php echo esc_attr($option_name); ?>"
-                   value="<?php echo esc_attr(absint(get_option($option_name, $default))); ?>" class="small-text"
+                   value="<?php echo esc_attr($saved_value); ?>" class="small-text"
                 <?php disabled($managed_in_code); ?> />
             <?php if ($managed_by_constant) : ?>
                 <span class="description">Managed in code by <code><?php echo esc_html($constant_name); ?></code>.</span>
@@ -293,6 +682,7 @@ function onlinesched_color_input_row($key, $label, $description)
     $option_name = onlinesched_get_option_name($key);
     $default = $defaults[$key];
     $value = onlinesched_get_colors()[$key];
+    $saved_value = sanitize_hex_color(get_option($option_name, $default)) ?: $default;
     $constant_name = onlinesched_get_constant_name($key);
     $filter_name = 'os_config_' . sanitize_key($key);
     $managed_by_constant = defined($constant_name);
@@ -302,6 +692,11 @@ function onlinesched_color_input_row($key, $label, $description)
     <tr>
         <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html($label); ?></label></th>
         <td>
+            <?php /* Disabled inputs never submit — this hidden field carries the raw saved
+                     DB value forward whenever the visible control below is disabled, so a
+                     managed-in-code row can never blank (or silently overwrite with today's
+                     constant/filter value) the dormant stored fallback on save. */ ?>
+            <input type="hidden" name="<?php echo esc_attr($option_name); ?>" value="<?php echo esc_attr($saved_value); ?>" />
             <input
                 type="color"
                 id="<?php echo esc_attr($option_name); ?>"
@@ -323,14 +718,66 @@ function onlinesched_color_input_row($key, $label, $description)
     <?php
 }
 
+/**
+ * Slug => label for the Event Settings tabs, in display order.
+ *
+ * Single source of truth for the nav-tab-wrapper links and the matching
+ * onlinesched-tab-panel wrappers, so both always agree on what tabs exist.
+ */
+function onlinesched_settings_tabs()
+{
+    return array(
+        'basic-setup' => 'Basic Setup',
+        'calendar-subscriptions' => 'Schedule Calendar Subscriptions',
+        'app-feed' => 'App Feed',
+        'advanced-display' => 'Advanced Display',
+        'appearance' => 'Appearance',
+    );
+}
+
+/**
+ * The tab to show on render: from ?tab= when it names a real tab, else the first tab.
+ *
+ * Resolved server-side (not just client-side) so a full page load — including the
+ * options.php save redirect and JS-disabled navigation — always lands on the right
+ * panel without waiting on JS to run.
+ */
+function onlinesched_active_settings_tab()
+{
+    $tabs = onlinesched_settings_tabs();
+    $requested = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+    return array_key_exists($requested, $tabs) ? $requested : array_key_first($tabs);
+}
+
 function OnlineSched_options_page()
 {
+    $tabs = onlinesched_settings_tabs();
+    $active_tab = onlinesched_active_settings_tab();
+    $tab_base_url = admin_url('edit.php?post_type=os_event&page=onlinesched-settings');
     ?>
     <div class="wrap">
         <h1>Event Schedule Settings</h1>
+        <?php settings_errors(); ?>
         <form method="post" action="options.php">
             <?php settings_fields('onlinesched_option_group'); ?>
 
+            <h2 class="nav-tab-wrapper" id="onlinesched-settings-tabs" role="tablist">
+                <?php foreach ($tabs as $tab_slug => $tab_label) :
+                    $is_active_tab = ($tab_slug === $active_tab);
+                    ?>
+                    <a
+                        href="<?php echo esc_url(add_query_arg('tab', $tab_slug, $tab_base_url)); ?>"
+                        class="nav-tab<?php echo $is_active_tab ? ' nav-tab-active' : ''; ?>"
+                        data-tab="<?php echo esc_attr($tab_slug); ?>"
+                        id="onlinesched-tab-<?php echo esc_attr($tab_slug); ?>"
+                        role="tab"
+                        aria-selected="<?php echo $is_active_tab ? 'true' : 'false'; ?>"
+                        aria-controls="onlinesched-tab-panel-<?php echo esc_attr($tab_slug); ?>"
+                    ><?php echo esc_html($tab_label); ?></a>
+                <?php endforeach; ?>
+            </h2>
+
+            <div class="onlinesched-tab-panel" data-tab="basic-setup" id="onlinesched-tab-panel-basic-setup" role="tabpanel" aria-labelledby="onlinesched-tab-basic-setup"<?php echo ('basic-setup' === $active_tab) ? '' : ' style="display:none;"'; ?>>
             <h2>Basic Setup</h2>
             <table class="form-table" role="presentation">
                 <tr>
@@ -349,12 +796,24 @@ function OnlineSched_options_page()
                 onlinesched_page_dropdown_row('onlinesched_map_page_id', 'Map Tab Content Page', 'Page content rendered inside the kiosk Map tab.');
                 ?>
             </table>
+            </div>
 
+            <div class="onlinesched-tab-panel" data-tab="calendar-subscriptions" id="onlinesched-tab-panel-calendar-subscriptions" role="tabpanel" aria-labelledby="onlinesched-tab-calendar-subscriptions"<?php echo ('calendar-subscriptions' === $active_tab) ? '' : ' style="display:none;"'; ?>>
             <h2>Schedule Calendar Subscriptions</h2>
             <table class="form-table" role="presentation">
                 <?php onlinesched_calendar_subscriptions_setting_row(); ?>
             </table>
+            </div>
 
+            <div class="onlinesched-tab-panel" data-tab="app-feed" id="onlinesched-tab-panel-app-feed" role="tabpanel" aria-labelledby="onlinesched-tab-app-feed"<?php echo ('app-feed' === $active_tab) ? '' : ' style="display:none;"'; ?>>
+            <h2>App Feed</h2>
+            <p>Settings for the JSON app feed consumed by mobile companion apps and other structured clients.</p>
+            <table class="form-table" role="presentation">
+                <?php onlinesched_app_feed_settings_rows(); ?>
+            </table>
+            </div>
+
+            <div class="onlinesched-tab-panel" data-tab="advanced-display" id="onlinesched-tab-panel-advanced-display" role="tabpanel" aria-labelledby="onlinesched-tab-advanced-display"<?php echo ('advanced-display' === $active_tab) ? '' : ' style="display:none;"'; ?>>
             <h2>Advanced Display</h2>
             <p>These defaults are fine for most sites. Keep them boring unless your theme needs a custom nudge.</p>
             <table class="form-table" role="presentation">
@@ -370,7 +829,9 @@ function OnlineSched_options_page()
                 onlinesched_text_input_row('onlinesched_room_sort_priority', 'Room Sort Priority', '', 'Optional comma-separated room names that should sort before the normal alphabetical room order.');
                 ?>
             </table>
+            </div>
 
+            <div class="onlinesched-tab-panel" data-tab="appearance" id="onlinesched-tab-panel-appearance" role="tabpanel" aria-labelledby="onlinesched-tab-appearance"<?php echo ('appearance' === $active_tab) ? '' : ' style="display:none;"'; ?>>
             <h2>Appearance</h2>
             <p>FM colors are the defaults. Change these only when a site needs its own palette.</p>
             <table class="form-table" role="presentation">
@@ -597,6 +1058,91 @@ function OnlineSched_options_page()
                         }
                     });
                 }());
+            </script>
+            </div>
+
+            <script>
+                (function () {
+                    var tabWrapper = document.getElementById('onlinesched-settings-tabs');
+                    if (!tabWrapper) {
+                        return;
+                    }
+                    var tabs = Array.prototype.slice.call(tabWrapper.querySelectorAll('.nav-tab'));
+                    var panels = document.querySelectorAll('.onlinesched-tab-panel');
+                    // settings_fields() always renders this hidden field; options.php redirects
+                    // Save back to whatever URL it holds. Real navigation (JS off) keeps it in
+                    // sync automatically because the browser reloads with ?tab= in the address
+                    // bar; the JS-driven instant switch below has to update it by hand or Save
+                    // always returns to whichever tab was active on page load.
+                    var refererInput = document.querySelector('input[name="_wp_http_referer"]');
+
+                    // Full WAI-ARIA APG tabs pattern (automatic activation), applied only once
+                    // JS is confirmed running: PHP renders plain, naturally-tabbable links (so
+                    // JS-off keyboard/mouse users can still reach and click every tab); JS then
+                    // layers on roving tabindex (only the active tab is Tab-reachable) and
+                    // ArrowLeft/ArrowRight/Home/End to move focus+activation between tabs.
+                    //
+                    // The links are real, fully-qualified hrefs (?tab=... included) rendered by
+                    // PHP, so activation only ever needs to toggle classes/visibility/tabindex —
+                    // no need to recompute or validate the target tab id here.
+                    function activateTab(tab, opts) {
+                        var tabId = tab.getAttribute('data-tab');
+                        var tabHref = tab.getAttribute('href');
+                        var moveFocus = !opts || false !== opts.moveFocus;
+
+                        tabs.forEach(function (candidate) {
+                            var isActive = candidate === tab;
+                            candidate.classList.toggle('nav-tab-active', isActive);
+                            candidate.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                            candidate.setAttribute('tabindex', isActive ? '0' : '-1');
+                        });
+                        panels.forEach(function (panel) {
+                            panel.style.display = (panel.getAttribute('data-tab') === tabId) ? '' : 'none';
+                        });
+
+                        history.replaceState(null, '', tabHref);
+                        if (refererInput) {
+                            refererInput.value = tabHref;
+                        }
+                        if (moveFocus) {
+                            tab.focus();
+                        }
+                    }
+
+                    // Roving tabindex starts here: PHP doesn't render tabindex at all (so
+                    // JS-off users get normal link tab order), JS sets it up on init.
+                    tabs.forEach(function (tab) {
+                        tab.setAttribute('tabindex', tab.classList.contains('nav-tab-active') ? '0' : '-1');
+
+                        tab.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            activateTab(tab, { moveFocus: false });
+                        });
+                    });
+
+                    tabWrapper.addEventListener('keydown', function (e) {
+                        var currentIndex = tabs.indexOf(document.activeElement);
+                        if (currentIndex === -1) {
+                            return;
+                        }
+
+                        var targetIndex = null;
+                        if ('ArrowRight' === e.key) {
+                            targetIndex = (currentIndex + 1) % tabs.length;
+                        } else if ('ArrowLeft' === e.key) {
+                            targetIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+                        } else if ('Home' === e.key) {
+                            targetIndex = 0;
+                        } else if ('End' === e.key) {
+                            targetIndex = tabs.length - 1;
+                        }
+
+                        if (null !== targetIndex) {
+                            e.preventDefault();
+                            activateTab(tabs[targetIndex]);
+                        }
+                    });
+                })();
             </script>
 
             <?php submit_button(); ?>

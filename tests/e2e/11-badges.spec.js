@@ -72,7 +72,7 @@ test.describe('11 — Badges', () => {
   });
 
   test('VIP badge renders on VIP-tagged events', async ({ page }) => {
-    await page.fill(S.searchInput, 'VIP Tail Grooming Lounge');
+    await page.fill(S.searchInput, 'VIP Tail Care Lounge');
     await page.waitForTimeout(400);
     const items = page.locator(`${S.scheduleItem}:visible`);
     const count = await items.count();
@@ -109,7 +109,7 @@ test.describe('11 — Badges', () => {
   // ── Row Highlights ──
 
   test('VIP-tagged events have row highlight color (#fff0b2)', async ({ page }) => {
-    await page.fill(S.searchInput, 'VIP Tail Grooming Lounge');
+    await page.fill(S.searchInput, 'VIP Tail Care Lounge');
     await page.waitForTimeout(400);
     const items = page.locator(`${S.scheduleItem}:visible`);
     const count = await items.count();

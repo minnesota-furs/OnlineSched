@@ -1,5 +1,38 @@
 # Changelog
 
+## 3.0.0
+
+**Breaking change: the public JSON feed (`json.php`) has a new response contract.**
+
+- `json.php` is now a sectioned, schema-versioned app feed:
+  `?section=meta` (handshake: revisions, change stamp, convention window,
+  publication state, info page index), `?section=schedule` (default — full
+  active-year schedule with durable event UIDs, ISO 8601 times, room/tag
+  dictionaries, first-class `cancelled`/`adult` booleans),
+  `?section=hours` (lossless free-form export of the configured Hours page
+  blocks), and `?section=info` (admin-curated pages with sanitized content and
+  image lists).
+- The previous signage-oriented output (flat array of `room`/`title`/
+  `startTime`/`description`) is retired. This is a deliberate, owner-accepted
+  breaking change made while the project had no known external feed
+  consumers; signage displays should migrate to `?section=schedule` fields.
+  The `room`/`rooms`/`tag`/`tags`/`group` filter parameters keep working.
+  The deprecated `programming=1`/`gaming=1` legacy group aliases are removed;
+  use `group=programming` / `group=gaming`.
+- New central feed invalidation service (`onlinesched_touch_feed()`) with
+  per-section revision counters covering event saves, quick/bulk edits,
+  status transitions, deletions, term edits, imports (one touch per batch;
+  dry runs never touch), year deletes, and relevant settings changes.
+- All feed responses send `ETag`/`Last-Modified` and honor `If-None-Match`
+  with `304 Not Modified`.
+- Durable event identity: `event_uid` derived from the import external event
+  id (per year), or a UUID persisted in post meta for manually created
+  events.
+- New Event Settings: App Schedule Publication (independent of the ICS
+  subscription toggle; disabled state returns a successful empty schedule
+  with `schedule_published: false`), Operational Start/End Dates, Public
+  Start/End Dates, and App Info Pages.
+
 ## 2.2.1
 
 - Added the opt-in `cancelled_title_prefix` parameter to full and filtered schedule ICS feeds. When set to `1`, `true`, `yes`, or `on`, cancelled event summaries are prefixed with `Cancelled - ` for display systems that ignore `STATUS:CANCELLED`.

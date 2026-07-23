@@ -174,41 +174,217 @@ publishing.
 
 ### JSON Feed
 
-OnlineSched includes a small public JSON feed for signs, lobby screens, static pages,
-and other lightweight displays that need schedule data without loading the full
+OnlineSched includes a public JSON app feed for the companion app, kiosks, and other
+structured clients that need schedule, hours, and info data without loading the full
 interactive schedule.
 
-Examples:
+**Breaking change in 3.0.0**: `json.php` replaced its former signage-oriented output
+(a flat array of `room`/`title`/`startTime`/`description`) with the sectioned,
+schema-versioned contract documented below. This was a deliberate, owner-accepted
+break made while the project had no known external feed consumers; see
+[CHANGELOG](CHANGELOG.md) for the full list of what changed. Signage displays built
+against the old output should migrate to `?section=schedule`.
+
+The feed has four sections, selected with `?section=`:
 
 ```text
-/wp-content/plugins/OnlineSched/json.php?room=main-stage
-/wp-content/plugins/OnlineSched/json.php?rooms=main-stage,panel-room-a
-/wp-content/plugins/OnlineSched/json.php?tag=essential
-/wp-content/plugins/OnlineSched/json.php?room=all
-/wp-content/plugins/OnlineSched/json.php?group=programming
+/wp-content/plugins/OnlineSched/json.php?section=meta
+/wp-content/plugins/OnlineSched/json.php?section=schedule
+/wp-content/plugins/OnlineSched/json.php?section=hours
+/wp-content/plugins/OnlineSched/json.php?section=info
+/wp-content/plugins/OnlineSched/json.php?section=info&page=parking
+/wp-content/plugins/OnlineSched/json.php
 ```
 
-Parameters:
+Omitting `section` is the same as `?section=schedule`.
+
+#### `meta` — handshake
+
+The first call an app makes. Reports the schema version, a revision number per
+section, a composed change stamp, the convention window, publication state, and the
+configured info-page index.
+
+```json
+{
+  "schema_version": 1,
+  "con_name": "Furry Migration",
+  "year": "2026",
+  "timezone": "America/Chicago",
+  "revisions": { "schedule": 41, "hours": 7, "info": 12 },
+  "change_stamp": "41.7.12",
+  "con_start": "2026-09-09",
+  "con_end": "2026-09-14",
+  "public_dates": { "start": "2026-09-11", "end": "2026-09-13" },
+  "schedule_published": true,
+  "sections": ["schedule", "hours", "info"],
+  "info_pages": [
+    { "slug": "parking", "title": "Parking", "updated": "2026-07-20T15:04:00Z" }
+  ]
+}
+```
+
+An app can poll `meta` cheaply and only refetch a section whose revision number (or
+the composed `change_stamp`) has moved since its last successful fetch.
+
+#### `schedule` — full active-year schedule
+
+```json
+{
+  "schema_version": 1,
+  "generated": "2026-07-23T14:02:11Z",
+  "timezone": "America/Chicago",
+  "year": "2026",
+  "schedule_published": true,
+  "rooms": [{ "slug": "main-stage", "name": "Main Stage" }],
+  "tags": [{ "slug": "essentials", "name": "Essentials" }],
+  "events": [
+    {
+      "event_uid": "2026:OPENCER01",
+      "wp_post_id": 417,
+      "title": "Opening Ceremonies",
+      "start": "2026-09-11T18:00:00-05:00",
+      "end": "2026-09-11T19:00:00-05:00",
+      "rooms": ["main-stage"],
+      "tags": ["essentials"],
+      "panelists": ["Board"],
+      "description_html": "<p>Kick off Furry Migration 2026 with the board and special guests.</p>",
+      "cancelled": false,
+      "adult": false,
+      "modified": "2026-07-20T12:00:00Z"
+    }
+  ]
+}
+```
+
+Parameters (same room/tag matching as the ICS schedule feed):
 
 * `room` or `rooms` - one or more `os_room` slugs, comma separated. Omit this value or use `all` to include every room.
 * `tag` or `tags` - one or more `os_tag` slugs, comma separated. Use `all` to include every tag.
-* `group` - a named room/tag group configured by your theme or custom plugin.
-* `limit` - when set to a positive number, returns up to that many upcoming events. When omitted, the feed returns events for the active schedule year.
+* `group` - a named room/tag group (see [JSON Groups](#json-groups) below). A requested-but-unconfigured group returns an empty schedule rather than guessing.
 
-Each item contains:
+`cancelled` and `adult` are derived from tag names, matched case-insensitively: an
+event tagged `Cancelled` (or `Canceled`) reports `cancelled: true`; an event tagged
+`Restricted` reports `adult: true`. `event_uid` is a durable identity safe to key
+app-side favorites and reminders on — see [Event UID](#event-uid) below.
 
-* `room` - the room name text.
-* `title` - the event title. Restricted events include ` [Adult]` for display compatibility.
-* `startTime` - the event start time in the site's WordPress timezone.
-* `description` - the event description with normal post HTML sanitized.
+When schedule publication is turned off (see [App Feed Settings](#app-feed-settings)
+below), this section still responds `200 OK` with `schedule_published: false` and
+empty `events`/`rooms`/`tags` arrays — never an error or a 404.
 
-Room and tag values are WordPress term slugs, not display names (see [Finding Slugs](#finding-slugs) below).
+#### `hours` — configured Hours page, losslessly
+
+A direct export of the Hours blocks on the page configured under **Event Scheduling
+> Event Settings > Hours Page**. Free-form hours/note text is exported as sanitized
+plain text (`sanitize_text_field`) preserving the authored structure; there is no
+open/close time parsing.
+
+```json
+{
+  "schema_version": 1,
+  "generated": "2026-07-23T13:40:00Z",
+  "departments": [
+    {
+      "name": "Dealers Den",
+      "location": "",
+      "days": [
+        { "day": "Friday", "entries": [{ "hours_text": "Noon – 6 PM", "note": "" }] }
+      ]
+    }
+  ]
+}
+```
+
+#### `info` — admin-curated pages
+
+```text
+/wp-content/plugins/OnlineSched/json.php?section=info
+```
+
+returns the configured page index:
+
+```json
+{
+  "schema_version": 1,
+  "generated": "2026-07-23T12:00:00Z",
+  "pages": [
+    { "slug": "parking", "title": "Parking", "updated": "2026-07-20T15:04:00Z" }
+  ]
+}
+```
+
+Add `&page={slug}` for one page's sanitized content and image list:
+
+```text
+/wp-content/plugins/OnlineSched/json.php?section=info&page=parking
+```
+
+```json
+{
+  "schema_version": 1,
+  "generated": "2026-07-23T12:00:00Z",
+  "page": {
+    "slug": "parking",
+    "title": "Parking",
+    "updated": "2026-07-20T15:04:00Z",
+    "content_html": "<h2>Ramps</h2><p>The closest ramp is attached to the hotel.</p>",
+    "images": ["https://example.org/wp-content/uploads/2026/07/parking-map.png"]
+  }
+}
+```
+
+An unknown slug returns `404` with `{"schema_version": 1, "error": "unknown_info_page"}`.
+
+#### ETag / Last-Modified / 304
+
+Every section response sends `ETag` and, once a section has moved at least once,
+`Last-Modified`. Send the returned `ETag` back as `If-None-Match` on the next request
+to get a `304 Not Modified` with no body when nothing has changed. ETags combine the
+schema version, the section's revision number, the request's resolved filters, and a
+hash of the exact response bytes — so an ETag changes if and only if the
+representation changes, and identical representations keep identical ETags. Body,
+`ETag`, and `Last-Modified` are always derived from one coherent revision snapshot,
+even when schedule edits land mid-request.
+
+#### Event UID
+
+`event_uid` is stable across CSV reimports, so it is safe to key app-side favorites
+and reminders on. Imported events derive it from the schedule year and the CSV's
+external event ID, so deleting and reimporting a schedule year reproduces the same
+UID for the same external ID. Manually created events (no external ID) get a UUID
+generated once and persisted in post meta.
+
+#### App Feed Settings
+
+Configured under **Event Scheduling > Event Settings > App Feed**:
+
+* **App Schedule Publication** - controls the `schedule` section only, independent of
+  Schedule Calendar Subscriptions (ICS) above. When disabled, `schedule` responds
+  successfully with `schedule_published: false` and empty `events`/`rooms`/`tags` so
+  app clients can show an intentional pre-publication state. The `meta`, `hours`, and
+  `info` sections, and the public schedule page, are unaffected.
+* **Operational Start/End Date** - the convention's operational window, including
+  pre-con setup and post-con activities such as dead dog. Reported in `meta` as
+  `con_start`/`con_end`. The start date must be on or before the end date; saving
+  an inverted pair keeps the previously saved dates and shows an error instead.
+* **Public Start/End Date** - the official, publicly announced convention dates.
+  Reported in `meta` as `public_dates.start`/`public_dates.end`. Same start-before-end
+  rule as above.
+* **App Info Pages** - the pages served by the `info` section (parking, hotel, code
+  of conduct, and similar), picked from a page dropdown and added to an ordered list
+  with an Add button. Use the list's Up/Down/Remove controls to reorder or drop a
+  page; the order shown is the order the app feed serves them in. Only published
+  pages appear in the feed.
+
+Section revisions bump automatically on every relevant change: event saves,
+publish/trash/restore, taxonomy term edits, CSV imports and year deletes (each as one
+batch touch, not once per row), and the settings above.
 
 #### JSON Groups
 
-Groups let a site keep short, readable feed URLs for signs and external displays.
-OnlineSched does not ship organization-specific groups by default. If a group is
-requested but not configured, the feed returns an empty JSON array instead of guessing.
+Groups let a site keep short, readable feed URLs for the `schedule` section (signs,
+kiosks, and other external displays). OnlineSched does not ship organization-specific
+groups by default. If a group is requested but not configured, the schedule section
+returns an empty result instead of guessing.
 
 Add groups from a theme or small site plugin with the `os_json_room_groups` filter:
 
@@ -249,10 +425,6 @@ registered through the filter.
 Sites that prefer configuration over code can store an array or JSON object in the
 `onlinesched_json_room_groups` option. The filter still runs after the option is read,
 so a theme can add, change, or remove groups for the current site.
-
-Older displays may still call `programming=1` or `gaming=1`. OnlineSched treats those
-as deprecated aliases for `group=programming` and `group=gaming`; new integrations
-should use the `group` parameter directly.
 
 ### Finding Slugs
 

@@ -225,8 +225,12 @@ function export_os_event_csv()
 		$event_id = get_post_meta($post_id, 'onlinesched_external_event_id', true);
 
 		if (empty($event_id)) {
-			// Generate a unique EventId
-			$event_id = generate_unique_event_id();
+			// Manually created events carry a persisted feed UUID. Reuse it as
+			// the external id so an export → delete-year → reimport roundtrip
+			// reproduces the same durable event_uid (the app keys favorites and
+			// reminders on it); a random id here would orphan them.
+			$feed_uuid = trim((string) get_post_meta($post_id, 'onlinesched_event_uid', true));
+			$event_id = ('' !== $feed_uuid) ? $feed_uuid : generate_unique_event_id();
 
 			// Save the EventId as post meta
 			update_post_meta($post_id, 'onlinesched_external_event_id', $event_id);

@@ -144,6 +144,28 @@ npm run test:calendar-settings
 The wrapper refuses any container other than `onlinesched-vanilla-cli` and any site URL other
 than `http://localhost:8081`. The original option is restored even if an assertion fails.
 
+## App Feed
+
+The app feed harness exercises the sectioned `json.php` contract (`meta`, `schedule`, `hours`,
+`info`) end to end on the disposable Vanilla site: the feed-revision invalidation service
+(including suspension and nested suspend/resume), a mutation-to-section matrix built on real
+posts/terms/options, CSV import and delete-year batch semantics (dry runs never touch,
+real runs fire exactly one revision bump regardless of row count), durable `event_uid`
+identity across delete-year and reimport, builder output shape against the contract fixtures
+in `tests/fixtures/app-feed/`, publication gating, schedule-year scoping, and cancelled/adult
+tag derivation. An HTTP layer then checks `ETag`/`304`, the default section, and the `info`
+404 path directly against the running site.
+
+```bash
+npm run test:app-feed
+```
+
+The wrapper refuses any container other than `onlinesched-vanilla-cli` and any site URL other
+than `http://localhost:8081`, and fails loudly with the exact startup command if the Vanilla
+environment is not running. Every fixture the harness creates (posts, pages, terms, options)
+is uniquely named per run and removed again in a `finally` block, so it is safe to run
+repeatedly against the same disposable site.
+
 ## Deterministic Fixture Tests
 
 Run the standalone fixture checks without starting a browser:
@@ -206,6 +228,9 @@ npm run test:cli
 
 # Check the calendar subscription setting on the disposable Vanilla site
 npm run test:calendar-settings
+
+# Run the app feed (json.php) integration harness on the disposable Vanilla site
+npm run test:app-feed
 
 # Run the fast, container-free fixture check
 npm run test:fixture
