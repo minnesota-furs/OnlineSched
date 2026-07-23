@@ -21,6 +21,7 @@
     "hours",
     "info"
   ],
+  "schedule_url": "https://www.furrymigration.org/schedule/",
   "info_pages": [
     {
       "slug": "parking",

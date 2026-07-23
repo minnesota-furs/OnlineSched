@@ -3,7 +3,7 @@
 Plugin Name: OnlineSched
 Plugin URI: https://github.com/minnesota-furs/OnlineSched
 Description: A flexible event scheduling plugin for conventions and organizations.
-Version: 3.0.0
+Version: 3.0.1
 Requires at least: 6.4
 Requires PHP: 8.2
 License: GPL-2.0-or-later

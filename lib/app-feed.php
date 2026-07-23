@@ -193,8 +193,29 @@ function onlinesched_app_feed_meta($revisions = null) {
 		),
 		'schedule_published' => onlinesched_app_schedule_published(),
 		'sections'           => onlinesched_feed_sections(),
+		// Public schedule page URL. Clients can deep-link a specific event by
+		// appending '#evt={wp_post_id}' — the schedule front end owns that
+		// hash format (src/js/new_schedule.js) and activates the right
+		// day/modal on load. Empty string when no schedule page is configured.
+		'schedule_url'       => onlinesched_app_feed_schedule_url(),
 		'info_pages'         => onlinesched_app_feed_info_index(),
 	);
+}
+
+/**
+ * Permalink of the configured public schedule page, or ''.
+ *
+ * @return string
+ */
+function onlinesched_app_feed_schedule_url() {
+	$page_id = function_exists('onlinesched_get_page_id')
+		? (int) onlinesched_get_page_id('schedule', 'schedule')
+		: (int) get_option('onlinesched_schedule_page_id', 0);
+	if ($page_id <= 0) {
+		return '';
+	}
+	$permalink = get_permalink($page_id);
+	return is_string($permalink) ? $permalink : '';
 }
 
 /**

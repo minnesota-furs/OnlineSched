@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.1
+
+- The JSON app feed's meta section now includes `schedule_url` — the public
+  schedule page's permalink (empty string when no schedule page is
+  configured). Clients can deep-link a specific event by appending
+  `#evt={wp_post_id}`; the schedule front end owns that hash format and
+  activates the correct day and event on load. Additive change; no existing
+  fields altered.
+
 ## 3.0.0
 
 **Breaking change: the public JSON feed (`json.php`) has a new response contract.**

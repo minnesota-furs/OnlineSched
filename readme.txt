@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 3.0.0
+Stable tag: 3.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,6 +113,10 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 3.0.1 =
+
+The JSON app feed's meta section now includes schedule_url, the public schedule page permalink; clients can deep-link an event by appending #evt={wp_post_id}. Additive change.
 
 = 3.0.0 =
 
