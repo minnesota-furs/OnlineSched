@@ -6,6 +6,7 @@ const ONLINESCHED_FIXTURE_DEFAULT_COUNT = 150;
 const ONLINESCHED_FIXTURE_DEFAULT_START_ID = 4000;
 const ONLINESCHED_FIXTURE_DEFAULT_DAYS = 3;
 const ONLINESCHED_FIXTURE_DEFAULT_SEED = 20270630;
+const ONLINESCHED_FIXTURE_ESSENTIALS_PER_DAY = 5;
 const ONLINESCHED_FIXTURE_PRNG_MODULUS = 2147483647;
 const ONLINESCHED_FIXTURE_PRNG_MULTIPLIER = 48271;
 
@@ -217,6 +218,7 @@ function onlinesched_fixture_build_events(array $configuration): array {
 	}
 
 	onlinesched_fixture_apply_anchors($events, $configuration);
+	onlinesched_fixture_apply_essential_anchors($events, $configuration);
 
 	return $events;
 }
@@ -272,6 +274,56 @@ function onlinesched_fixture_apply_anchors(array &$events, array $configuration)
 		$events[$unscheduled_offset][6] = 'Furry Migration Staff';
 		$events[$unscheduled_offset][7] = '45';
 		$events[$unscheduled_offset][8] = 'Volunteer, Unscheduled';
+	}
+}
+
+/**
+ * @param array<int, array<int, int|string>> $events
+ * @param array<string, mixed> $configuration
+ */
+function onlinesched_fixture_apply_essential_anchors(array &$events, array $configuration): void {
+	$titles = array(
+		'Convention Essentials Briefing',
+		'Guest of Honor Meet and Greet',
+		'Special Guest Spotlight',
+		'Fursuit Parade',
+		'Charity Auction for Wildlife',
+	);
+	$times = array('09:30:00', '11:00:00', '13:00:00', '14:30:00', '16:00:00');
+	$rooms = array('Main Stage', 'Lakeshore', 'Greenway A', 'Dealers Den', 'Consuite');
+	$secondary_tags = array('Guest Of Honor', 'Special Guest', 'VIP');
+
+	for ($day_index = 0; $day_index < $configuration['days']; $day_index++) {
+		$date = $configuration['start_date']->modify('+' . $day_index . ' days')->format('Y-m-d');
+		$essential_index = 0;
+
+		foreach ($events as $event_index => $event) {
+			if ($event[2] !== $date) {
+				continue;
+			}
+
+			$title = $titles[$essential_index];
+			if ($essential_index === 0 && $day_index === 0) {
+				$title = 'Opening Howl Ceremony';
+			} elseif ($essential_index === 0 && $day_index === ($configuration['days'] - 1)) {
+				$title = 'Closing Howl and Dead Dog';
+			}
+
+			$secondary_tag = $secondary_tags[($day_index + $essential_index) % count($secondary_tags)];
+			$event_id = $events[$event_index][0];
+			$events[$event_index][1] = $title . ' (Event #' . $event_id . ')';
+			$events[$event_index][3] = $times[$essential_index];
+			$events[$event_index][4] = 'A featured convention event included in the Essentials schedule for attendee planning and testing.';
+			$events[$event_index][5] = $rooms[$essential_index];
+			$events[$event_index][6] = 'Furry Migration Staff';
+			$events[$event_index][7] = '60';
+			$events[$event_index][8] = 'Essentials, ' . $secondary_tag;
+			$essential_index++;
+
+			if ($essential_index === ONLINESCHED_FIXTURE_ESSENTIALS_PER_DAY) {
+				break;
+			}
+		}
 	}
 }
 

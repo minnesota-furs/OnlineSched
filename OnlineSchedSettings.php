@@ -152,6 +152,7 @@ function OnlineSched_admin_init()
     onlinesched_register_main_setting('onlinesched_public_date_end', 'onlinesched_sanitize_public_date_end');
     onlinesched_register_main_setting('onlinesched_app_info_page_ids', 'onlinesched_sanitize_page_id_csv');
     onlinesched_register_main_setting('onlinesched_room_sort_priority', 'sanitize_text_field');
+    onlinesched_register_main_setting('onlinesched_time_min_step', 'onlinesched_sanitize_minute_step');
     foreach (onlinesched_get_color_defaults() as $key => $unused) {
         onlinesched_register_main_setting(onlinesched_get_option_name($key), 'onlinesched_sanitize_color_option');
     }
@@ -177,6 +178,39 @@ function onlinesched_sanitize_icon_classes($value)
 function onlinesched_sanitize_checkbox($value)
 {
     return ($value == '1' ? '1' : '0');
+}
+
+/**
+ * Sanitizer for the event-form minute-dropdown increment.
+ */
+function onlinesched_sanitize_minute_step($value)
+{
+    $step = (int) $value;
+    return in_array($step, array(1, 5, 15, 30), true) ? (string) $step : '15';
+}
+
+function onlinesched_minute_step_row()
+{
+    $current = (int) get_option('onlinesched_time_min_step', 15);
+    $choices = array(
+        30 => 'Half hour (:00, :30)',
+        15 => 'Quarter hour (:00, :15, :30, :45)',
+        5  => 'Five minutes',
+        1  => 'Every minute',
+    );
+    ?>
+    <tr>
+        <th scope="row"><label for="onlinesched_time_min_step">Event Start-Time Minutes</label></th>
+        <td>
+            <select name="onlinesched_time_min_step" id="onlinesched_time_min_step">
+                <?php foreach ($choices as $step => $label) : ?>
+                    <option value="<?php echo esc_attr($step); ?>" <?php selected($current, $step); ?>><?php echo esc_html($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <p class="description">Minute choices offered in the event edit form. An event whose saved minute is not on this grid still shows every minute while editing, so its time is never silently changed.</p>
+        </td>
+    </tr>
+    <?php
 }
 
 /**
@@ -757,7 +791,14 @@ function OnlineSched_options_page()
     ?>
     <div class="wrap">
         <h1>Event Schedule Settings</h1>
-        <?php settings_errors(); ?>
+        <?php
+        // Custom settings pages don't get WordPress's automatic "Settings
+        // saved." notice; surface it from the options.php redirect flag.
+        if (isset($_GET['settings-updated']) && !get_settings_errors()) {
+            add_settings_error('onlinesched_messages', 'onlinesched_settings_saved', 'Settings saved.', 'updated');
+        }
+        settings_errors();
+        ?>
         <form method="post" action="options.php">
             <?php settings_fields('onlinesched_option_group'); ?>
 
@@ -827,6 +868,7 @@ function OnlineSched_options_page()
                 onlinesched_text_input_row('onlinesched_calendar_name', 'Calendar Name', onlinesched_get_calendar_name(), 'Name shown by calendar clients for full-schedule subscriptions.');
                 onlinesched_text_input_row('onlinesched_ical_filename_prefix', 'iCal Filename Prefix', 'onlinesched', 'Short lowercase prefix for downloaded .ics files.');
                 onlinesched_text_input_row('onlinesched_room_sort_priority', 'Room Sort Priority', '', 'Optional comma-separated room names that should sort before the normal alphabetical room order.');
+                onlinesched_minute_step_row();
                 ?>
             </table>
             </div>

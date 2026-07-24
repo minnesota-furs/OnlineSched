@@ -188,6 +188,10 @@ days, and deterministic seed `20270630`. `--start-date` is always required. The 
 `--count`, `--start-id`, `--days`, and `--seed` arguments support other disposable schedules
 without changing the nine-column CSV format.
 
+Each generated schedule day includes five deterministic `Essentials` events. Those anchors
+also rotate through the customary `Guest Of Honor`, `Special Guest`, and `VIP` tags so the
+Essential tab and related app behavior have representative data for any chosen start date.
+
 Generated CSV files stay ignored under `tests/fixtures/generated/`. The fixture test verifies
 byte-for-byte repeatability, the committed golden SHA-256, date-boundary behavior, expected
 anchor rows, and invalid-argument handling.

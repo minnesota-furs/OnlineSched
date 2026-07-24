@@ -521,6 +521,26 @@ function OnlineSched_taxonomy_dropdown($id, $taxonomy)
 	}
 }
 
+/**
+ * Minute-dropdown increment from settings, widened to every minute when the
+ * event's saved minute is off the configured grid — the dropdown must always
+ * be able to show the true stored time, or saving would silently change it.
+ *
+ * @param string $time_min The event's saved minute value ('' when unset).
+ * @return int
+ */
+function OnlineSched_minute_step($time_min)
+{
+	$step = (int) get_option('onlinesched_time_min_step', 15);
+	if (!in_array($step, array(1, 5, 15, 30), true)) {
+		$step = 15;
+	}
+	if ($time_min !== '' && ((int) $time_min) % $step !== 0) {
+		return 1;
+	}
+	return $step;
+}
+
 function OnlineSched_select_num($name, $value, $start, $end, $step = 1)
 {
 	$ret = '<select name="' . $name . '">';
@@ -563,7 +583,7 @@ function OnlineSched_timeslot_metabox($os_event)
 				<?php
 				echo OnlineSched_select_num('os_event_time_hr', $time_hr, 1, 24) .
 					":" .
-					OnlineSched_select_num('os_event_time_min', $time_min, 0, 59, 30);
+					OnlineSched_select_num('os_event_time_min', $time_min, 0, 59, OnlineSched_minute_step($time_min));
 				?>
             </td>
             <td>

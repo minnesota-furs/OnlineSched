@@ -76,6 +76,8 @@ try {
 	$has_cancelled = false;
 	$has_unscheduled = false;
 	$anchors = array();
+	$essential_dates = array();
+	$essential_secondary_tags = array();
 	foreach (array_slice($rows, 1) as $row) {
 		if ($row[2] !== '') {
 			$scheduled_dates[$row[2]] = ($scheduled_dates[$row[2]] ?? 0) + 1;
@@ -86,10 +88,23 @@ try {
 		$has_cancelled = $has_cancelled || str_contains((string) $row[1], 'Cancelled Event');
 		$has_unscheduled = $has_unscheduled || ($row[2] === '' && $row[3] === '');
 		$anchors[(string) $row[0]] = $row;
+		$tags = array_map('trim', explode(',', (string) $row[8]));
+		if (in_array('Essentials', $tags, true)) {
+			$essential_dates[$row[2]] = ($essential_dates[$row[2]] ?? 0) + 1;
+			foreach (array('Guest Of Honor', 'Special Guest', 'VIP') as $secondary_tag) {
+				if (in_array($secondary_tag, $tags, true)) {
+					$essential_secondary_tags[$secondary_tag] = true;
+				}
+			}
+		}
 	}
 	ksort($scheduled_dates);
+	ksort($essential_dates);
 	fixture_test_assert(array_keys($scheduled_dates) === array('2027-06-30', '2027-07-01', '2027-07-02', '2027-07-03'), 'Four-day fixture does not cover the requested June 30 through July 3 range.');
 	fixture_test_assert(max($scheduled_dates) - min($scheduled_dates) <= 1, 'Scheduled event distribution differs by more than one event between days.');
+	fixture_test_assert(array_keys($essential_dates) === array_keys($scheduled_dates), 'Every generated schedule day must contain an Essentials-tagged event.');
+	fixture_test_assert(array_unique(array_values($essential_dates)) === array(5), 'Every generated schedule day must contain five Essentials-tagged events.');
+	fixture_test_assert(array_keys($essential_secondary_tags) === array('Guest Of Honor', 'Special Guest', 'VIP'), 'Fixture is missing customary Essential secondary-tag coverage.');
 	fixture_test_assert($has_multiline && $has_multi_speaker && $has_multi_tag && $has_cancelled && $has_unscheduled, 'Fixture is missing required representative CSV coverage.');
 	fixture_test_assert(str_contains((string) $anchors['4126'][1], 'Sound Design for Games') && $anchors['4126'][3] === '17:45:00', 'Timestamp anchor 4126 is missing or unstable.');
 	fixture_test_assert(
@@ -98,6 +113,22 @@ try {
 		&& str_starts_with((string) $anchors['4131'][4], 'Coyote Stuff:')
 		&& $anchors['4131'][5] === 'Dealers Den',
 		'Update anchor 4131 is missing or unstable.'
+	);
+
+	$three_day = $temporary_directory . '/three-day.csv';
+	fixture_test_assert(fixture_test_run($generator, array('--start-date=2026-07-31', '--days=3', '--output=' . $three_day)) === 0, 'Three-day fixture generation failed.');
+	$three_day_rows = fixture_test_read_csv($three_day);
+	$three_day_essential_dates = array();
+	foreach (array_slice($three_day_rows, 1) as $row) {
+		$tags = array_map('trim', explode(',', (string) $row[8]));
+		if (in_array('Essentials', $tags, true)) {
+			$three_day_essential_dates[$row[2]] = ($three_day_essential_dates[$row[2]] ?? 0) + 1;
+		}
+	}
+	ksort($three_day_essential_dates);
+	fixture_test_assert(
+		$three_day_essential_dates === array('2026-07-31' => 5, '2026-08-01' => 5, '2026-08-02' => 5),
+		'Three-day fixture must contain five Essentials-tagged events on Friday, Saturday, and Sunday.'
 	);
 
 	$december = $temporary_directory . '/december.csv';
