@@ -202,7 +202,10 @@ function onlinesched_fixture_build_events(array $configuration): array {
 				$tags = $theme['tags'];
 
 				if ($hour >= 21 && $prng->chance(30, 100)) {
-					$tags .= ', Adult';
+					// "Restricted" is the tag the app feed keys its adult flag on
+					// (onlinesched_app_feed checks the restricted slug); "Adult"
+					// here produced [18+] titles the feed did not flag.
+					$tags .= ', Restricted';
 					$name = '[18+] ' . $name;
 					$description .= ' Restricted to attendees 18 years and older.';
 				}
