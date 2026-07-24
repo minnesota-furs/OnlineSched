@@ -199,6 +199,10 @@ function onlinesched_app_feed_meta($revisions = null) {
 		// day/modal on load. Empty string when no schedule page is configured.
 		'schedule_url'       => onlinesched_app_feed_schedule_url(),
 		'info_pages'         => onlinesched_app_feed_info_index(),
+		// Site-provided endpoint map: {name: url}. Empty by default; themes or
+		// plugins add entries via the filter to advertise additional feeds
+		// alongside this one. Object-cast so an empty map serializes as {}.
+		'links'              => (object) apply_filters('onlinesched_app_feed_meta_links', array()),
 	);
 }
 

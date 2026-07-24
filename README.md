@@ -219,12 +219,18 @@ configured info-page index.
   "sections": ["schedule", "hours", "info"],
   "info_pages": [
     { "slug": "parking", "title": "Parking", "updated": "2026-07-20T15:04:00Z" }
-  ]
+  ],
+  "links": {}
 }
 ```
 
 An app can poll `meta` cheaply and only refetch a section whose revision number (or
 the composed `change_stamp`) has moved since its last successful fetch.
+
+`links` is a site-provided endpoint map, empty by default. A theme or plugin can
+add entries through the `onlinesched_app_feed_meta_links` filter (an associative
+array of `name => url`) to advertise additional site-specific feeds alongside this
+one, letting clients discover them from the handshake instead of hardcoding URLs.
 
 #### `schedule` — full active-year schedule
 

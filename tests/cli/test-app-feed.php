@@ -711,6 +711,37 @@ try {
 	$pass('con_name falls back from a blank calendar_name to the site name');
 
 	// -------------------------------------------------------------------
+	// A3b. meta 'links': empty object by default, filter-extensible
+	// -------------------------------------------------------------------
+
+	$meta_links_default = onlinesched_app_feed_meta();
+	$assert(array_key_exists('links', $meta_links_default), "The meta section must contain a 'links' key.");
+	$assert($meta_links_default['links'] instanceof stdClass, "'links' must be an object (so an empty map serializes as {}), got " . gettype($meta_links_default['links']) . '.');
+	$assert(array() === get_object_vars($meta_links_default['links']), "'links' must be empty by default; got " . wp_json_encode($meta_links_default['links']) . '.');
+	$assert('{}' === wp_json_encode($meta_links_default['links']), "An empty 'links' map must serialize as {}, not []; got " . wp_json_encode($meta_links_default['links']) . '.');
+
+	$onlinesched_aft_links_filter = static function ($links) {
+		$links = is_array($links) ? $links : array();
+		$links['example'] = 'https://example.test/feed';
+		return $links;
+	};
+	add_filter('onlinesched_app_feed_meta_links', $onlinesched_aft_links_filter);
+	$meta_links_filtered = onlinesched_app_feed_meta();
+	remove_filter('onlinesched_app_feed_meta_links', $onlinesched_aft_links_filter);
+
+	$links_vars = get_object_vars($meta_links_filtered['links']);
+	$assert(
+		array('example' => 'https://example.test/feed') === $links_vars,
+		"An entry added via the onlinesched_app_feed_meta_links filter must appear in 'links'; got " . wp_json_encode($links_vars) . '.'
+	);
+	$meta_links_after = onlinesched_app_feed_meta();
+	$assert(
+		array() === get_object_vars($meta_links_after['links']),
+		"'links' must return to empty once the filter is removed (no caching of filtered values); got " . wp_json_encode($meta_links_after['links']) . '.'
+	);
+	$pass("meta 'links' is an empty object by default and picks up entries from the onlinesched_app_feed_meta_links filter");
+
+	// -------------------------------------------------------------------
 	// A4. Versioned upgrade: legacy serialized-blob migration (schema v3)
 	// -------------------------------------------------------------------
 
