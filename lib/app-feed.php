@@ -636,7 +636,11 @@ function onlinesched_app_feed_send(array $payload, $section, $variant = '', $rev
 	$if_none_match = isset($_SERVER['HTTP_IF_NONE_MATCH'])
 		? trim(wp_unslash($_SERVER['HTTP_IF_NONE_MATCH']))
 		: '';
-	if ('' !== $if_none_match && false !== strpos($if_none_match, $etag)) {
+	// Compare on the unquoted core token: proxies and mod_deflate rewrap the
+	// ETag (W/"token-gzip"), and an exact quoted match would silently disable
+	// every 304 behind such a server. The token embeds a content hash, so a
+	// substring match cannot false-positive.
+	if ('' !== $if_none_match && false !== strpos($if_none_match, trim($etag, '"'))) {
 		status_header(304);
 		exit;
 	}
