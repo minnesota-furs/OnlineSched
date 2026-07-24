@@ -110,13 +110,25 @@ if [[ -z "$etag" ]]; then
 fi
 echo "PASS: section=meta returns 200 + application/json + ETag ($etag)"
 
-# 2. Same request with If-None-Match must 304.
+# 2. Same request with the exact or mod_deflate-wrapped If-None-Match must
+#    return 304. Production Apache has been observed rewriting "token" as
+#    W/"token-gzip"; both forms must reach the same unchanged representation.
 http_status_code="$(http_status "$BASE_URL/wp-content/plugins/OnlineSched/json.php?section=meta" -H "If-None-Match: $etag")"
 if [[ "$http_status_code" != "304" ]]; then
 	echo "FAIL: a repeat json.php?section=meta request with If-None-Match returned HTTP $http_status_code, expected 304." >&2
 	exit 1
 fi
 echo "PASS: repeat request with If-None-Match returns 304"
+
+etag_core="${etag#\"}"
+etag_core="${etag_core%\"}"
+gzip_etag="W/\"${etag_core}-gzip\""
+http_status_code="$(http_status "$BASE_URL/wp-content/plugins/OnlineSched/json.php?section=meta" -H "If-None-Match: $gzip_etag")"
+if [[ "$http_status_code" != "304" ]]; then
+	echo "FAIL: a repeat json.php?section=meta request with gzip-wrapped If-None-Match returned HTTP $http_status_code, expected 304." >&2
+	exit 1
+fi
+echo "PASS: repeat request with gzip-wrapped If-None-Match returns 304"
 
 # 3. Bare json.php (no section param) must default to the schedule section shape.
 http_status_code="$(http_status "$BASE_URL/wp-content/plugins/OnlineSched/json.php")"
