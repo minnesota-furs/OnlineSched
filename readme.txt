@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 3.0.1
+Stable tag: 3.0.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,6 +113,15 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 3.0.2 =
+* Data-integrity release: backslashes now survive CSV import, export, and
+  import rollback. Previously an unslashed programmatic save could strip a
+  backslash, so stored text containing a literal \u0026 escape lost its
+  backslash and rendered as "u0026" (the live hours-page defect). The CSV
+  exporter's escape handling now matches the importer, and rollback restores
+  metadata byte-exactly. Includes a permanent slash-integrity test harness.
+  Already-corrupted stored content must be repaired in place.
 
 = 3.0.1 =
 

@@ -6,8 +6,9 @@ Data-integrity release: backslash preservation through every CSV and
 rollback path.
 
 - CSV import now slashes post data before `wp_insert_post`, so backslashes in
-  titles and descriptions survive (previously a stored `&` could degrade
-  to `u0026` — the class behind the live hours-page corruption).
+  titles and descriptions survive (previously text containing a literal
+  `\u0026` escape sequence lost its backslash and rendered as `u0026` — the
+  class behind the live hours-page corruption).
 - The CSV exporter writes with an empty escape parameter, matching the
   importer's `fgetcsv` calls; backslash-before-quote content now round-trips
   export -> import byte-exactly. The export body was split into
