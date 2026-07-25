@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.0.2
+
+Data-integrity release: backslash preservation through every CSV and
+rollback path.
+
+- CSV import now slashes post data before `wp_insert_post`, so backslashes in
+  titles and descriptions survive (previously a stored `&` could degrade
+  to `u0026` — the class behind the live hours-page corruption).
+- The CSV exporter writes with an empty escape parameter, matching the
+  importer's `fgetcsv` calls; backslash-before-quote content now round-trips
+  export -> import byte-exactly. The export body was split into
+  `onlinesched_export_csv_rows()` so tests can capture exact exporter output.
+- Import rollback now slashes snapshot metadata before `update_post_meta`,
+  restoring slash-bearing meta byte-exactly.
+- New permanent regression harness: `tests/cli/test-slash-integrity.sh`
+  (vanilla environment only) covers `&`, single/doubled backslashes,
+  backslash-before-quote, export/reimport equality, and rollback content and
+  metadata equality.
+- The fix cannot reconstruct backslashes already lost from stored data;
+  affected content must be repaired in place.
+
 ## 3.0.1
 
 - The JSON app feed's meta section now includes `schedule_url` — the public

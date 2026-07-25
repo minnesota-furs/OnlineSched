@@ -199,18 +199,34 @@ function handle_os_event_csv_upload($file)
 
 function export_os_event_csv()
 {
-
-	// Kill the hidden fields
-	remove_filter('parse_query', 'OnlineSched_posts_filter');
-
-
 	$filename = 'os_event_export_' . wp_date('Ymd') . '.csv';
 
 	header('Content-Type: text/csv');
 	header('Content-Disposition: attachment;filename=' . $filename);
 
 	$output = fopen('php://output', 'w');
-	fputcsv($output, array('ID', 'Name', 'Date', 'Time', 'Description', 'Room_Type', 'Speakers', 'Length', 'Tags'));
+	onlinesched_export_csv_rows($output);
+	fclose($output);
+	exit();
+}
+
+/**
+ * Write the export CSV rows to an open stream. Split from the download
+ * handler (headers + exit) so the slash-integrity test can capture the exact
+ * bytes the exporter produces.
+ *
+ * @param resource $output Open writable stream.
+ */
+function onlinesched_export_csv_rows($output)
+{
+	// Kill the hidden fields
+	remove_filter('parse_query', 'OnlineSched_posts_filter');
+
+	// Escape parameter '' matches the importer's fgetcsv calls exactly: with
+	// PHP's default backslash escape a backslash-before-quote in content is
+	// written in a form the non-escaping importer misreads (corruption on
+	// export -> import round trips).
+	fputcsv($output, array('ID', 'Name', 'Date', 'Time', 'Description', 'Room_Type', 'Speakers', 'Length', 'Tags'), ',', '"', '');
 
 	$args = array(
 		'post_type' => 'os_event',
@@ -260,11 +276,8 @@ function export_os_event_csv()
 		$length = get_post_meta($post_id, 'onlinesched_timelen', true);
 		$tags = !empty($tags) ? implode(', ', $tags) : '';
 
-		fputcsv($output, array($event_id, $name, $date, $time, $description, $room_type, $speakers, $length, $tags));
+		fputcsv($output, array($event_id, $name, $date, $time, $description, $room_type, $speakers, $length, $tags), ',', '"', '');
 	}
-
-	fclose($output);
-	exit();
 }
 
 function online_create_custom_slug($text)

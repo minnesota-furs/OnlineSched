@@ -636,7 +636,10 @@ function onlinesched_import_restore_post($state)
 	}
 	foreach ($state['meta'] as $meta_key => $meta_state) {
 		if ($meta_state['exists']) {
-			update_post_meta($state['ID'], $meta_key, $meta_state['value']);
+			// Snapshot values are raw DB truth; update_post_meta unslashes
+			// once, so restore must slash or backslashes are stripped from
+			// the metadata it promises to put back verbatim.
+			update_post_meta($state['ID'], $meta_key, wp_slash($meta_state['value']));
 		} else {
 			delete_post_meta($state['ID'], $meta_key);
 		}
