@@ -5,7 +5,7 @@
  * invalidation service, CSV import/delete-year batch semantics, durable
  * event_uid identity, and the versioned feed-schema upgrade.
  *
- * Reworked against Kaiser's round-4 storage redesign:
+ * Storage-redesign coverage:
  *   - The public contract is still 3-part: onlinesched_get_feed_change_stamp()
  *     is "schedule.hours.info". The internal 'meta' revision still exists and
  *     surfaces ONLY through the meta ETag:
@@ -38,7 +38,7 @@
  *     batch (their whole point is "one logical change, one touch, regardless
  *     of row count").
  *
- * Round-5 additions (Kaiser's round-3 repair ticket):
+ * Also covers:
  *   - onlinesched_app_feed_etag() takes optional $revisions/$content_hash args;
  *     onlinesched_app_feed_send() now hashes the exact response bytes and
  *     passes that hash through, so the ETag changes whenever the
@@ -59,7 +59,7 @@
  *     always coalesce first; no test changes needed beyond keeping the
  *     existing "moved" (>) assertions green.
  *
- * Round-7 additions (Kaiser's five terse findings, independently diagnosed
+ * Also covers:
  * and repaired):
  *   - onlinesched_app_feed_build_consistent(): rebuilds (bounded 3 attempts)
  *     when a revision moves mid-build; test forces exactly one rebuild via a
@@ -81,7 +81,7 @@
  *     concurrent timestamp can never regress the stored revtime; tested
  *     directly.
  *
- * Round-8 additions (Kaiser's final-byte recheck; four required regressions):
+ * Also covers:
  *   a. Persistent SQL failure spanning BOTH the direct UPDATE/INSERT path and
  *      the update_option() fallback: onlinesched_feed_atomic_bump() and
  *      onlinesched_touch_feed() must report false, and onlinesched_feed_touched

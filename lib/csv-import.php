@@ -135,10 +135,7 @@ function onlinesched_import_csv(string $file_path, array $options = array()): ar
 				$post_data['ID'] = $row['post_id'];
 			}
 
-			// wp_insert_post expects slashed data and unslashes once; passing
-			// raw CSV values here would silently strip backslashes from
-			// titles and descriptions (the "& becomes u0026" class of
-			// corruption).
+			// wp_insert_post unslashes once; slash or backslashes are lost.
 			$post_id = wp_insert_post(wp_slash($post_data), true);
 			if (is_wp_error($post_id) || !$post_id) {
 				$message = is_wp_error($post_id) ? $post_id->get_error_message() : 'WordPress returned no post ID.';
@@ -622,9 +619,7 @@ function onlinesched_import_snapshot_post($post_id)
 
 function onlinesched_import_restore_post($state)
 {
-	// The snapshot holds raw DB values; wp_update_post unslashes once, so the
-	// restore must slash or it would strip backslashes from the very content
-	// it promises to put back verbatim.
+	// Snapshot holds raw DB values; wp_update_post unslashes once.
 	$restored = wp_update_post(wp_slash(array(
 		'ID'           => $state['ID'],
 		'post_title'   => $state['post_title'],
@@ -636,9 +631,7 @@ function onlinesched_import_restore_post($state)
 	}
 	foreach ($state['meta'] as $meta_key => $meta_state) {
 		if ($meta_state['exists']) {
-			// Snapshot values are raw DB truth; update_post_meta unslashes
-			// once, so restore must slash or backslashes are stripped from
-			// the metadata it promises to put back verbatim.
+			// update_post_meta unslashes once; slash the raw snapshot value.
 			update_post_meta($state['ID'], $meta_key, wp_slash($meta_state['value']));
 		} else {
 			delete_post_meta($state['ID'], $meta_key);

@@ -222,10 +222,8 @@ function onlinesched_export_csv_rows($output)
 	// Kill the hidden fields
 	remove_filter('parse_query', 'OnlineSched_posts_filter');
 
-	// Escape parameter '' matches the importer's fgetcsv calls exactly: with
-	// PHP's default backslash escape a backslash-before-quote in content is
-	// written in a form the non-escaping importer misreads (corruption on
-	// export -> import round trips).
+	// Empty escape matches the importer's fgetcsv; the default corrupts
+	// backslash-before-quote round trips.
 	fputcsv($output, array('ID', 'Name', 'Date', 'Time', 'Description', 'Room_Type', 'Speakers', 'Length', 'Tags'), ',', '"', '');
 
 	$args = array(

@@ -2,11 +2,9 @@
 /**
  * Slash/backslash integrity regressions (3.0.2).
  *
- * Reproduces the corruption class behind the live "u0026" hours defect:
- * unslashed programmatic saves strip backslashes, and a fputcsv/fgetcsv
- * escape-parameter mismatch corrupts backslash-before-quote content on
- * export/import round trips. Run via tests/cli/test-slash-integrity.sh on
- * the disposable Vanilla environment ONLY.
+ * Backslash preservation through import, export, reimport, and rollback.
+ * Run via tests/cli/test-slash-integrity.sh on the disposable Vanilla
+ * environment ONLY.
  *
  * Covered permanently:
  * - import insert preserves \u0026, single/doubled backslashes, and
