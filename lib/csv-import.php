@@ -135,7 +135,11 @@ function onlinesched_import_csv(string $file_path, array $options = array()): ar
 				$post_data['ID'] = $row['post_id'];
 			}
 
-			$post_id = wp_insert_post($post_data, true);
+			// wp_insert_post expects slashed data and unslashes once; passing
+			// raw CSV values here would silently strip backslashes from
+			// titles and descriptions (the "& becomes u0026" class of
+			// corruption).
+			$post_id = wp_insert_post(wp_slash($post_data), true);
 			if (is_wp_error($post_id) || !$post_id) {
 				$message = is_wp_error($post_id) ? $post_id->get_error_message() : 'WordPress returned no post ID.';
 				onlinesched_import_add_error($result, $row['line'], $row['external_id'], $message, false);
@@ -618,12 +622,15 @@ function onlinesched_import_snapshot_post($post_id)
 
 function onlinesched_import_restore_post($state)
 {
-	$restored = wp_update_post(array(
+	// The snapshot holds raw DB values; wp_update_post unslashes once, so the
+	// restore must slash or it would strip backslashes from the very content
+	// it promises to put back verbatim.
+	$restored = wp_update_post(wp_slash(array(
 		'ID'           => $state['ID'],
 		'post_title'   => $state['post_title'],
 		'post_content' => $state['post_content'],
 		'post_status'  => $state['post_status'],
-	), true);
+	)), true);
 	if (is_wp_error($restored)) {
 		return $restored;
 	}
