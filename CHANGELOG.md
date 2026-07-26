@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.3
+
+- Meta, Schedule, Hours, and Info app-feed responses now send an explicit
+  60-second `Expires` header aligned with their existing
+  `Cache-Control: public, max-age=60` policy.
+- This prevents W3 Total Cache's global one-year `application/json` browser
+  lifetime from making dynamic convention data stale.
+
 ## 3.0.2
 
 Data-integrity release: backslash preservation through every CSV and

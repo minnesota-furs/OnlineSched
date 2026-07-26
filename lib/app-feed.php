@@ -628,6 +628,7 @@ function onlinesched_app_feed_send(array $payload, $section, $variant = '', $rev
 	}
 
 	header('Cache-Control: public, max-age=60');
+	header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 60) . ' GMT');
 	header('ETag: ' . $etag);
 	if ($last_modified_time > 0) {
 		header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $last_modified_time) . ' GMT');

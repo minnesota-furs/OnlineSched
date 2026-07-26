@@ -108,7 +108,18 @@ if [[ -z "$etag" ]]; then
 	cat "$response_dir/headers" >&2
 	exit 1
 fi
-echo "PASS: section=meta returns 200 + application/json + ETag ($etag)"
+expires_count="$(grep -ci '^expires:' "$response_dir/headers" || true)"
+if [[ "$expires_count" != "1" ]]; then
+	echo "FAIL: json.php?section=meta sent $expires_count Expires headers, expected exactly one." >&2
+	cat "$response_dir/headers" >&2
+	exit 1
+fi
+if ! grep -qi '^cache-control:.*public.*max-age=60' "$response_dir/headers"; then
+	echo "FAIL: json.php?section=meta did not retain Cache-Control: public, max-age=60." >&2
+	cat "$response_dir/headers" >&2
+	exit 1
+fi
+echo "PASS: section=meta returns 200 + application/json + ETag + explicit Expires ($etag)"
 
 # 2. Same request with the exact or mod_deflate-wrapped If-None-Match must
 #    return 304. Production Apache has been observed rewriting "token" as
