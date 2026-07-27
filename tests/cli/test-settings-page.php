@@ -273,20 +273,29 @@ try {
 		'A valid con_start/con_end pair must save the submitted con_start unchanged.'
 	);
 
-	// public_date_start/public_date_end get the same treatment.
-	update_option( 'onlinesched_public_date_start', '2026-08-01' );
-	update_option( 'onlinesched_public_date_end', '2026-08-05' );
+	// Public datetimes get the same treatment, including time on one day.
+	update_option( 'onlinesched_public_date_start', '2026-08-01T09:00' );
+	update_option( 'onlinesched_public_date_end', '2026-08-05T18:00' );
 	$_POST = array(
-		'onlinesched_public_date_start' => '2026-08-10',
-		'onlinesched_public_date_end' => '2026-08-05',
+		'onlinesched_public_date_start' => '2026-08-10T09:00',
+		'onlinesched_public_date_end' => '2026-08-05T18:00',
 	);
 	$assert(
-		'2026-08-01' === onlinesched_sanitize_public_date_start( $_POST['onlinesched_public_date_start'] ),
+		'2026-08-01T09:00' === onlinesched_sanitize_public_date_start( $_POST['onlinesched_public_date_start'] ),
 		'An inverted public_date_start/public_date_end submission must keep the previously saved public_date_start.'
 	);
 	$assert(
-		'2026-08-05' === onlinesched_sanitize_public_date_end( $_POST['onlinesched_public_date_end'] ),
+		'2026-08-05T18:00' === onlinesched_sanitize_public_date_end( $_POST['onlinesched_public_date_end'] ),
 		'An inverted public_date_start/public_date_end submission must keep the previously saved public_date_end.'
+	);
+
+	$_POST = array(
+		'onlinesched_public_date_start' => '2026-08-05T19:00',
+		'onlinesched_public_date_end' => '2026-08-05T18:00',
+	);
+	$assert(
+		'2026-08-01T09:00' === onlinesched_sanitize_public_date_start( $_POST['onlinesched_public_date_start'] ),
+		'A same-day public start after the public end must be rejected.'
 	);
 
 	// -----------------------------------------------------------------
@@ -303,6 +312,10 @@ try {
 	ob_start();
 	onlinesched_app_feed_settings_rows();
 	$app_feed_html = ob_get_clean();
+	$assert(
+		false !== strpos( $app_feed_html, 'type="datetime-local"' ),
+		'Public start/end controls must accept a WordPress-local date and time.'
+	);
 
 	$assert(
 		implode( ',', $ids ) === $hidden_input_value( $app_feed_html, 'onlinesched_app_info_page_ids' ),

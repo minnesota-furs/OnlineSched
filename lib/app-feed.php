@@ -52,16 +52,21 @@ function onlinesched_app_info_page_ids() {
 }
 
 /**
- * Operational convention window and public dates from settings.
+ * Operational convention window and public datetimes from settings.
  *
- * @return array{con_start:string, con_end:string, public_start:string, public_end:string}
+ * @return array{con_start:string, con_end:string, public_start:string, public_end:string, public_start_at:string, public_end_at:string}
  */
 function onlinesched_app_con_dates() {
+	$public_start = onlinesched_app_sanitize_local_datetime(get_option('onlinesched_public_date_start', ''));
+	$public_end   = onlinesched_app_sanitize_local_datetime(get_option('onlinesched_public_date_end', ''));
+
 	return array(
-		'con_start'    => onlinesched_app_sanitize_date(get_option('onlinesched_con_start', '')),
-		'con_end'      => onlinesched_app_sanitize_date(get_option('onlinesched_con_end', '')),
-		'public_start' => onlinesched_app_sanitize_date(get_option('onlinesched_public_date_start', '')),
-		'public_end'   => onlinesched_app_sanitize_date(get_option('onlinesched_public_date_end', '')),
+		'con_start'      => onlinesched_app_sanitize_date(get_option('onlinesched_con_start', '')),
+		'con_end'        => onlinesched_app_sanitize_date(get_option('onlinesched_con_end', '')),
+		'public_start'   => '' === $public_start ? '' : substr($public_start, 0, 10),
+		'public_end'     => '' === $public_end ? '' : substr($public_end, 0, 10),
+		'public_start_at' => onlinesched_app_local_datetime_iso8601($public_start),
+		'public_end_at'   => onlinesched_app_local_datetime_iso8601($public_end),
 	);
 }
 
@@ -80,6 +85,53 @@ function onlinesched_app_sanitize_date($value) {
 		return '';
 	}
 	return $value;
+}
+
+/**
+ * Accept a WordPress-local datetime. Legacy date-only values become midnight.
+ *
+ * @param mixed $value Raw option/POST value.
+ * @return string
+ */
+function onlinesched_app_sanitize_local_datetime($value) {
+	$value = trim((string) $value);
+	$date  = onlinesched_app_sanitize_date($value);
+	if ('' !== $date) {
+		return $date . 'T00:00';
+	}
+	if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/', $value, $m)) {
+		return '';
+	}
+	if (
+		!checkdate((int) $m[2], (int) $m[3], (int) $m[1])
+		|| (int) $m[4] > 23
+		|| (int) $m[5] > 59
+	) {
+		return '';
+	}
+
+	$datetime = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $value, wp_timezone());
+	if (!$datetime || $datetime->format('Y-m-d\TH:i') !== $value) {
+		return '';
+	}
+
+	return $value;
+}
+
+/**
+ * Convert a WordPress-local datetime to an offset-bearing instant.
+ *
+ * @param mixed $value Sanitized or raw local datetime.
+ * @return string
+ */
+function onlinesched_app_local_datetime_iso8601($value) {
+	$value = onlinesched_app_sanitize_local_datetime($value);
+	if ('' === $value) {
+		return '';
+	}
+
+	$datetime = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $value, wp_timezone());
+	return $datetime ? $datetime->format('Y-m-d\TH:i:sP') : '';
 }
 
 // ---------------------------------------------------------------------------
@@ -188,8 +240,10 @@ function onlinesched_app_feed_meta($revisions = null) {
 		'con_start'          => $dates['con_start'],
 		'con_end'            => $dates['con_end'],
 		'public_dates'       => array(
-			'start' => $dates['public_start'],
-			'end'   => $dates['public_end'],
+			'start'    => $dates['public_start'],
+			'end'      => $dates['public_end'],
+			'start_at' => $dates['public_start_at'],
+			'end_at'   => $dates['public_end_at'],
 		),
 		'schedule_published' => onlinesched_app_schedule_published(),
 		'sections'           => onlinesched_feed_sections(),

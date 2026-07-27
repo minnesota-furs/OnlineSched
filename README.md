@@ -214,7 +214,12 @@ configured info-page index.
   "change_stamp": "41.7.12",
   "con_start": "2026-09-09",
   "con_end": "2026-09-14",
-  "public_dates": { "start": "2026-09-11", "end": "2026-09-13" },
+  "public_dates": {
+    "start": "2026-09-11",
+    "end": "2026-09-13",
+    "start_at": "2026-09-11T10:00:00-05:00",
+    "end_at": "2026-09-13T18:00:00-05:00"
+  },
   "schedule_published": true,
   "sections": ["schedule", "hours", "info"],
   "info_pages": [
@@ -372,9 +377,11 @@ Configured under **Event Scheduling > Event Settings > App Feed**:
   pre-con setup and post-con activities such as dead dog. Reported in `meta` as
   `con_start`/`con_end`. The start date must be on or before the end date; saving
   an inverted pair keeps the previously saved dates and shows an error instead.
-* **Public Start/End Date** - the official, publicly announced convention dates.
-  Reported in `meta` as `public_dates.start`/`public_dates.end`. Same start-before-end
-  rule as above.
+* **Public Start/End Date and Time** - the official public convention window in
+  the WordPress site timezone. `public_dates.start`/`end` remain date-only for
+  display compatibility; `public_dates.start_at`/`end_at` are offset-bearing
+  instants for app countdowns. Legacy date-only settings are treated as midnight.
+  The same start-before-end rule applies, including times on the same day.
 * **App Info Pages** - the pages served by the `info` section (parking, hotel, code
   of conduct, and similar), picked from a page dropdown and added to an ordered list
   with an Add button. Use the list's Up/Down/Remove controls to reorder or drop a

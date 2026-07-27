@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.4
+
+- Public convention start/end settings now accept date and time in the
+  WordPress site timezone.
+- Meta keeps the existing date-only public window and adds offset-bearing
+  `start_at`/`end_at` values for accurate app countdowns.
+- Existing date-only values remain valid and are interpreted as midnight.
+
 ## 3.0.3
 
 - Meta, Schedule, Hours, and Info app-feed responses now send an explicit

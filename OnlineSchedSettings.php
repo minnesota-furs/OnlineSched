@@ -236,8 +236,8 @@ function onlinesched_date_pair_label($option_name)
     $labels = array(
         'onlinesched_con_start' => 'Operational Start Date',
         'onlinesched_con_end' => 'Operational End Date',
-        'onlinesched_public_date_start' => 'Public Start Date',
-        'onlinesched_public_date_end' => 'Public End Date',
+        'onlinesched_public_date_start' => 'Public Start Date and Time',
+        'onlinesched_public_date_end' => 'Public End Date and Time',
     );
     return isset($labels[$option_name]) ? $labels[$option_name] : $option_name;
 }
@@ -299,12 +299,42 @@ function onlinesched_sanitize_con_end($value)
 
 function onlinesched_sanitize_public_date_start($value)
 {
-    return onlinesched_sanitize_date_pair($value, 'onlinesched_public_date_start', 'onlinesched_public_date_end', true);
+    return onlinesched_sanitize_public_datetime_pair($value, 'onlinesched_public_date_start', 'onlinesched_public_date_end', true);
 }
 
 function onlinesched_sanitize_public_date_end($value)
 {
-    return onlinesched_sanitize_date_pair($value, 'onlinesched_public_date_end', 'onlinesched_public_date_start', false);
+    return onlinesched_sanitize_public_datetime_pair($value, 'onlinesched_public_date_end', 'onlinesched_public_date_start', false);
+}
+
+function onlinesched_sanitize_public_datetime_pair($value, $option_name, $paired_option_name, $is_start_field)
+{
+    $sanitized = onlinesched_app_sanitize_local_datetime($value);
+    $paired_raw = array_key_exists($paired_option_name, $_POST)
+        ? wp_unslash($_POST[$paired_option_name])
+        : get_option($paired_option_name, '');
+    $paired_sanitized = onlinesched_app_sanitize_local_datetime($paired_raw);
+
+    if ('' !== $sanitized && '' !== $paired_sanitized) {
+        $start = $is_start_field ? $sanitized : $paired_sanitized;
+        $end = $is_start_field ? $paired_sanitized : $sanitized;
+        if ($start > $end) {
+            if ($is_start_field) {
+                add_settings_error(
+                    $option_name,
+                    'onlinesched_date_pair_inverted',
+                    sprintf(
+                        '%s must be on or before %s. The previous value was kept.',
+                        onlinesched_date_pair_label($option_name),
+                        onlinesched_date_pair_label($paired_option_name)
+                    )
+                );
+            }
+            return get_option($option_name, '');
+        }
+    }
+
+    return $sanitized;
 }
 
 function onlinesched_app_feed_settings_rows()
@@ -340,19 +370,19 @@ function onlinesched_app_feed_settings_rows()
         </td>
     </tr>
     <tr>
-        <th scope="row"><label for="onlinesched_public_date_start">Public Start Date</label></th>
+        <th scope="row"><label for="onlinesched_public_date_start">Public Start Date and Time</label></th>
         <td>
-            <input type="date" id="onlinesched_public_date_start" name="onlinesched_public_date_start"
-                   value="<?php echo esc_attr(get_option('onlinesched_public_date_start', '')); ?>" />
-            <p class="description">Official first convention day, for display.</p>
+            <input type="datetime-local" id="onlinesched_public_date_start" name="onlinesched_public_date_start"
+                   value="<?php echo esc_attr(onlinesched_app_sanitize_local_datetime(get_option('onlinesched_public_date_start', ''))); ?>" />
+            <p class="description">Official public opening time in the WordPress site timezone (<?php echo esc_html(wp_timezone_string()); ?>). App countdowns use this value.</p>
         </td>
     </tr>
     <tr>
-        <th scope="row"><label for="onlinesched_public_date_end">Public End Date</label></th>
+        <th scope="row"><label for="onlinesched_public_date_end">Public End Date and Time</label></th>
         <td>
-            <input type="date" id="onlinesched_public_date_end" name="onlinesched_public_date_end"
-                   value="<?php echo esc_attr(get_option('onlinesched_public_date_end', '')); ?>" />
-            <p class="description">Official last convention day, for display.</p>
+            <input type="datetime-local" id="onlinesched_public_date_end" name="onlinesched_public_date_end"
+                   value="<?php echo esc_attr(onlinesched_app_sanitize_local_datetime(get_option('onlinesched_public_date_end', ''))); ?>" />
+            <p class="description">Official public closing time in the WordPress site timezone (<?php echo esc_html(wp_timezone_string()); ?>).</p>
         </td>
     </tr>
     <tr>

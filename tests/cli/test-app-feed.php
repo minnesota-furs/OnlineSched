@@ -691,6 +691,22 @@ try {
 	$assert('' === onlinesched_app_sanitize_date('not-a-date'), 'onlinesched_app_sanitize_date() must reject a non-date string.');
 	$assert('' === onlinesched_app_sanitize_date(''), 'onlinesched_app_sanitize_date() must reject an empty string.');
 	$pass('onlinesched_app_sanitize_date() enforces real calendar dates via checkdate()');
+	$assert('2026-09-11T00:00' === onlinesched_app_sanitize_local_datetime('2026-09-11'), 'Legacy public dates must become midnight in the WordPress timezone.');
+	$assert('2026-09-11T10:30' === onlinesched_app_sanitize_local_datetime('2026-09-11T10:30'), 'A valid public local datetime must pass through.');
+	$assert('' === onlinesched_app_sanitize_local_datetime('2026-09-11T24:00'), 'Invalid public local hours must be rejected.');
+	$assert('' === onlinesched_app_sanitize_local_datetime('2026-02-29T10:00'), 'Invalid public local calendar dates must be rejected.');
+	$original_timezone_string = get_option('timezone_string', '');
+	update_option('timezone_string', 'America/Chicago');
+	$assert(
+		'2026-07-23T10:00:00-05:00' === onlinesched_app_local_datetime_iso8601('2026-07-23T10:00'),
+		'Public summer datetimes must use the WordPress site timezone offset.'
+	);
+	$assert(
+		'2026-01-23T10:00:00-06:00' === onlinesched_app_local_datetime_iso8601('2026-01-23T10:00'),
+		'Public winter datetimes must use the WordPress site timezone offset.'
+	);
+	update_option('timezone_string', $original_timezone_string);
+	$pass('public local datetime validation preserves legacy dates and rejects invalid wall times');
 
 	// -------------------------------------------------------------------
 	// A3. con_name fallback chain: calendar_name -> site name -> literal default
@@ -1591,8 +1607,8 @@ try {
 	update_option('onlinesched_app_schedule_published', '1');
 	update_option('onlinesched_con_start', '2031-05-30');
 	update_option('onlinesched_con_end', '2031-06-03');
-	update_option('onlinesched_public_date_start', '2031-05-31');
-	update_option('onlinesched_public_date_end', '2031-06-02');
+	update_option('onlinesched_public_date_start', '2031-05-31T10:00');
+	update_option('onlinesched_public_date_end', '2031-06-02T18:00');
 
 	$shapes_room = wp_insert_term('AFT Shapes Room ' . $run_id, 'os_room');
 	$assert(!is_wp_error($shapes_room), 'Shapes room term must be created.');
@@ -1738,6 +1754,16 @@ try {
 	// --- E: builder shapes vs. contract fixtures (fixtures are back to 3-part) ---
 
 	$meta = onlinesched_app_feed_meta();
+	$assert('2031-05-31' === $meta['public_dates']['start'], 'Meta public start date must stay date-only for compatible display.');
+	$assert('2031-06-02' === $meta['public_dates']['end'], 'Meta public end date must stay date-only for compatible display.');
+	$assert(
+		'2031-05-31T10:00:00' === substr($meta['public_dates']['start_at'], 0, 19),
+		'Meta public start instant must preserve the WordPress-local wall time.'
+	);
+	$assert(
+		1 === preg_match('/[+-]\d{2}:\d{2}$/', $meta['public_dates']['start_at']),
+		'Meta public start instant must include the WordPress timezone offset.'
+	);
 	$check_shape('onlinesched_app_feed_meta() shape matches the contract fixture', static function () use ($assert_shape, $meta, $load_fixture) {
 		$assert_shape($meta, $load_fixture('meta.json'), 'meta');
 	});
