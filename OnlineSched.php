@@ -523,7 +523,7 @@ function OnlineSched_taxonomy_dropdown($id, $taxonomy)
 
 /**
  * Minute-dropdown increment from settings, widened to every minute when the
- * event's saved minute is off the configured grid — the dropdown must always
+ * event's saved minute is off the configured grid - the dropdown must always
  * be able to show the true stored time, or saving would silently change it.
  *
  * @param string $time_min The event's saved minute value ('' when unset).

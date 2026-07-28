@@ -1,18 +1,13 @@
 <?php
 
-/*
+/**
+ * Suspends Yoast's indexing around a bulk import.
  *
-// Usage in your importer:
-function run_import() {
-$yoast_pauser = new YoastPauser();
-$yoast_pauser->pause();
-
-// Your import code here
-// ...
-
-$yoast_pauser->resume();
-$yoast_pauser->rebuild_index();
-}
+ * $pauser = new YoastPauser();
+ * $pauser->pause();
+ * // ... import ...
+ * $pauser->resume();
+ * $pauser->rebuild_index();
  */
 class YoastPauser {
     private $paused = false;
@@ -71,9 +66,7 @@ class YoastPauser {
         # Add Filter w3tc_dbcache_can_cache_sql
         add_filter('w3tc_dbcache_can_cache_sql', function() { return 'DONT_CACHE_MY_CRONS'; });
 
-        ########## CHANGE CACHE REJECT REASON for DB CACHING...
-        // Create the closure by reference
-        // https://stackoverflow.com/a/17560595/701049
+        // Binds a closure to read the private property by reference.
         $reader = function & ($object, $property) {
             $value = & Closure::bind(function & () use ($property) {
                 return $this->$property;

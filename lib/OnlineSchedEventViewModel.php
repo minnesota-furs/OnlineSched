@@ -152,7 +152,7 @@ class OnlineSchedEventViewModel {
 
 		// Re-fetch badge logic from options/filters to ensure consistency
 		$badge_types_present = array(); // Fetch the active term types once and cache in metadata.
-		// For now, we'll implement the core VIP/GOH/Cancelled badges as a baseline.
+		// The core VIP, GOH and Cancelled badges only.
 
 		$badges = '';
 

@@ -79,8 +79,8 @@ function onlinesched_render_schedule($args = array()) {
 
         echo '<div class="os-container' . ($args['mode'] === 'kiosk' ? ' os-container--kiosk' : '') . '"><div class="os-row"><div class="os-schedule-main">';
 
-        // If it's not the dedicated page, we might want to skip printing h1/content here
-        // But for now we stick to the structure that was in page-schedule.php
+        // Keeps the dedicated page's structure even when embedded, so the two
+        // paths render the same shape.
         $current_post = get_post();
         if ($current_post instanceof WP_Post && is_page() && !has_shortcode($current_post->post_content, 'onlinesched_schedule')) {
             echo '<h1>' . esc_html(get_the_title()) . '</h1>';

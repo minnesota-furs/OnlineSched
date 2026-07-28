@@ -1,32 +1,34 @@
-// @author kurst@mnfurs.org Kurst Hyperyote for Furry Migration
-//
-// Pre-flight: abort before any spec runs unless the SPECIFIC seed fixtures
-// the browser specs depend on are present — not merely "some events exist".
-//
-// A weak "count > 0" gate lets a broken or partial seed through (e.g. the
-// Essential-tag assignment silently failing, badge_type term meta missing,
-// or a reseed interrupted mid-run) and then produces a wall of unrelated
-// spec failures/skips with no single, clear cause. This checks the exact
-// fixtures the specs are written against, derived from the seed scripts
-// themselves (the single source of truth — see tests/README.md "Seed Data"):
-//
-//   - vanilla-wp, furry-wp, and every other project (the shared Furry
-//     Migration reference stack) all seed via
-//     tests/fixtures/seed-test-events.sh, whose 12 named events are the
-//     authoritative fixture set (that script's own idempotency check already
-//     keys off these same titles). Four of them carry the "Essential" tag
-//     that 02-tabs/07-hash-routing depend on; one each carry the
-//     Cancelled/Restricted/Sensory/VIP tags that 03-filters/11-badges depend
-//     on. Presence is checked both by exact title AND by the
-//     `schedule-tag-{slug}` class the frontend renders per assigned tag
-//     (lib/render.php), so a title-only match can't hide a broken tag
-//     assignment.
-//   - gaming-wp seeds via tests/docker-gaming/seed-gaming.sh instead: 500
-//     randomly-titled events across 20 rooms and a fixed tag pool, with no
-//     fixed titles to check. Mirrors the exact thresholds
-//     tests/e2e/16-gaming-demo.spec.js itself asserts (20 rooms, >=10 tags,
-//     >=400 events), so a broken/partial gaming seed is caught here instead
-//     of failing that spec with a less specific message.
+/**
+ * @author kurst@mnfurs.org Kurst Hyperyote for Furry Migration
+ *
+ * Pre-flight: abort before any spec runs unless the SPECIFIC seed fixtures
+ * the browser specs depend on are present - not merely "some events exist".
+ *
+ * A weak "count > 0" gate lets a broken or partial seed through (e.g. the
+ * Essential-tag assignment silently failing, badge_type term meta missing,
+ * or a reseed interrupted mid-run) and then produces a wall of unrelated
+ * spec failures/skips with no single, clear cause. This checks the exact
+ * fixtures the specs are written against, derived from the seed scripts
+ * themselves (the single source of truth - see tests/README.md "Seed Data"):
+ *
+ *   - vanilla-wp, furry-wp, and every other project (the shared Furry
+ *     Migration reference stack) all seed via
+ *     tests/fixtures/seed-test-events.sh, whose 12 named events are the
+ *     authoritative fixture set (that script's own idempotency check already
+ *     keys off these same titles). Four of them carry the "Essential" tag
+ *     that 02-tabs/07-hash-routing depend on; one each carry the
+ *     Cancelled/Restricted/Sensory/VIP tags that 03-filters/11-badges depend
+ *     on. Presence is checked both by exact title AND by the
+ *     `schedule-tag-{slug}` class the frontend renders per assigned tag
+ *     (lib/render.php), so a title-only match can't hide a broken tag
+ *     assignment.
+ *   - gaming-wp seeds via tests/docker-gaming/seed-gaming.sh instead: 500
+ *     randomly-titled events across 20 rooms and a fixed tag pool, with no
+ *     fixed titles to check. Mirrors the exact thresholds
+ *     tests/e2e/16-gaming-demo.spec.js itself asserts (20 rooms, >=10 tags,
+ *     >=400 events), so a broken/partial gaming seed is caught here instead
+ *     of failing that spec with a less specific message.
+ */
 const { chromium } = require('@playwright/test');
 const selectors = require('./helpers/selectors');
 
@@ -45,9 +47,8 @@ const PROJECT_FIX_COMMANDS = {
 };
 const DEFAULT_FIX_COMMAND = 'npm run test:seed';
 
-// The 12 event titles tests/fixtures/seed-test-events.sh creates (also that
-// script's own --force reseed/idempotency list). Authoritative for every
-// project except gaming-wp.
+// The event titles seed-test-events.sh creates, and its own reseed list.
+// Authoritative for every project except gaming-wp.
 const SEED_TEST_EVENTS_TITLES = [
   'Opening Howl Ceremony',
   'Fursuit Parade Staging',
@@ -63,11 +64,8 @@ const SEED_TEST_EVENTS_TITLES = [
   'VIP Tail Care Lounge',
 ];
 
-// Minimum visible-event count per tag slug that same seed script's
-// badge-testing events establish. schedule-tag-{slug} is the class
-// lib/render.php adds per assigned os_tag term — this is what
-// 02-tabs/03-filters/07-hash-routing/11-badges actually key off, not just an
-// event existing somewhere with that tag's name.
+// Minimum visible events per tag slug. The specs key off the rendered
+// schedule-tag-{slug} class, not merely an event carrying that tag.
 const SEED_TEST_EVENTS_TAG_COUNTS = {
   essential: 4, // Opening Howl Ceremony, Coyote vs Raccoon Dance-Off, Charity Auction for Critter Rescue, Closing Howl and Dead Dog
   cancelled: 1, // Napping in the Raccoon Lounge
@@ -123,12 +121,8 @@ function getPreflightTargets() {
   return targets;
 }
 
-// WordPress's wptexturize() renders a straight apostrophe in a post_title as
-// a curly one (and would do the same for straight quotes / spaced hyphens),
-// so "Writing Your Fursona's Story" comes back from the DOM as "...Fursona’s
-// Story". Normalize both sides before comparing rather than hand-picking
-// Unicode escapes, so any future title with an apostrophe/quote/dash is
-// still matched correctly.
+// wptexturize() curls straight quotes and dashes in a post_title, so both sides
+// are normalized rather than hand-picking Unicode escapes per title.
 function normalizeTitle(text) {
   return text
     .replace(/[‘’]/g, "'")

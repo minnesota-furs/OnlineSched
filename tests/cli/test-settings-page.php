@@ -3,8 +3,8 @@
  * Disposable Vanilla-only integration checks for the Event Settings page:
  *
  * - managed-in-code number/color rows render a hidden fallback input alongside
- *   their disabled visible control (markup precondition), AND — separately, as a
- *   real end-to-end check, not just a markup assertion — a full simulation of the
+ *   their disabled visible control (markup precondition), AND - separately, as a
+ *   real end-to-end check, not just a markup assertion - a full simulation of the
  *   actual wp-admin/options.php 'update' save loop (real update_option() calls
  *   through the real registered sanitize callbacks, reached through the real
  *   'allowed_options' whitelist register_setting() wires up) proves a
@@ -38,10 +38,8 @@ $hidden_input_value = static function ( $html, $name ) {
 	return 1 === preg_match( $pattern, $html, $m ) ? $m[1] : null;
 };
 
-// Finds the reorder/remove <button class="...$class..."> tag within one row's
-// HTML and returns its disabled state and aria-label text. Matched by CSS
-// class (stable identity) rather than aria-label text, since the aria-label
-// now embeds the page title and varies per row.
+// Matched by CSS class rather than aria-label text, since the label embeds the
+// page title and varies per row.
 $find_row_button = static function ( $li_html, $class ) {
 	if ( 1 !== preg_match( '/<button[^>]*class="[^"]*' . preg_quote( $class, '/' ) . '[^"]*"[^>]*>/', $li_html, $m ) ) {
 		throw new RuntimeException( "No button with class \"$class\" found in row markup." );
@@ -59,11 +57,8 @@ $find_row_button = static function ( $li_html, $class ) {
 
 $missing = '__onlinesched_settings_page_test_missing__';
 
-// register_setting() only populates the real 'allowed_options' whitelist once
-// admin_init has run. Call the plugin's own admin_init handler directly — what
-// WordPress calls on every real wp-admin page load — rather than firing the
-// whole admin_init action, to avoid unrelated admin_init hooks from other
-// handlers in this fixture (e.g. CSV export headers) making noise here.
+// The allowed_options whitelist only fills once admin_init has run, so call the
+// plugin's own handler rather than firing the whole action.
 OnlineSched_admin_init();
 $allowed_options = apply_filters( 'allowed_options', array() );
 $assert(
@@ -76,21 +71,15 @@ $assert(
 	'onlinesched_sticky_offset_desktop must be in the real allowed_options whitelist for onlinesched_option_group.'
 );
 
-// Snapshot every option in the real group (not just the handful this file
-// touches directly) so the end-to-end save-loop simulation below — which
-// resubmits the whole group, exactly like the single always-rendered form
-// does — can restore the database to its pre-test state regardless of outcome.
+// The whole group is snapshotted, because the save-loop below resubmits all of
+// it and must be able to restore the database whatever happens.
 $originals = array();
 foreach ( $group_options as $group_option_name ) {
 	$originals[ $group_option_name ] = get_option( $group_option_name, $missing );
 }
 
-// This is the literal per-option loop from wp-admin/options.php's 'update'
-// action handler (trim -> wp_unslash -> update_option), copied verbatim and
-// scoped to whichever $options list is passed in. Calling the real
-// update_option() means the real registered sanitize_callback for each
-// option — the one register_setting() wired up above — actually runs, the
-// same as it would on a genuine Save click.
+// The literal per-option loop from wp-admin/options.php, so each option's real
+// registered sanitize_callback runs exactly as it would on a Save click.
 $run_options_php_update_loop = static function ( array $options, array $post ) {
 	foreach ( $options as $option ) {
 		$option = trim( $option );
@@ -106,10 +95,8 @@ $run_options_php_update_loop = static function ( array $options, array $post ) {
 	}
 };
 
-// Mirrors real browser form serialization for one field name: a disabled
-// input never submits, and when several non-disabled inputs share a name
-// (the hidden-fallback pattern), the later one in DOM order is what
-// PHP/$_POST ends up with.
+// Mirrors browser form serialization: a disabled input never submits, and the
+// later of two inputs sharing a name is what $_POST ends up with.
 $browser_submitted_value = static function ( $html, $name ) {
 	preg_match_all( '/<input\b[^>]*>/', $html, $tags );
 	$value = null;
@@ -142,12 +129,8 @@ $restore = static function () use ( $originals, $missing, $post_backup, $get_bac
 
 try {
 	// -----------------------------------------------------------------
-	// P1 markup precondition: managed-in-code number/color rows render a
-	// hidden fallback carrying the saved value alongside the disabled
-	// visible control. This section only asserts what got RENDERED — it
-	// does not submit anything or call update_option(). The real save-loop
-	// proof that this markup actually prevents data loss is the next
-	// section, "REAL end-to-end options.php save-loop simulation" below.
+	// Markup precondition only: what gets rendered, not what a save does.
+	// The save-loop simulation below proves the markup prevents data loss.
 	// -----------------------------------------------------------------
 
 	update_option( 'onlinesched_sticky_offset_desktop', '42' );
@@ -177,22 +160,13 @@ try {
 	);
 
 	// -----------------------------------------------------------------
-	// REAL end-to-end options.php save-loop simulation. Not a markup
-	// assertion: this actually runs the literal wp-admin/options.php
-	// 'update' loop — real update_option() calls, dispatching through the
-	// real registered sanitize_callback via sanitize_option() — against a
-	// full "Save with nothing else changed" $_POST built from the whole
-	// real allowed_options whitelist for this group, with the
-	// constant-managed field's submitted value derived by parsing the
-	// actual rendered row markup the way a browser's form serialization
-	// would. Proves the fix holds under the real save mechanism, not just
-	// that the right tags are present in the HTML.
+	// End-to-end save-loop simulation: the real options.php update loop over
+	// a full unchanged-Save payload, not a markup assertion.
 	// -----------------------------------------------------------------
 
 	update_option( 'onlinesched_sticky_offset_desktop', '55' );
-	// (ONLINESCHED_STICKY_OFFSET_DESKTOP is already defined from the markup
-	// precondition section above — constants can't be undefined mid-process,
-	// and that's fine: it's exactly the "managed in code" state under test.)
+	// The constant is already defined above and cannot be undefined mid-process,
+	// which is exactly the managed-in-code state under test.
 
 	ob_start();
 	onlinesched_number_input_row( 'onlinesched_sticky_offset_desktop', 'Desktop Sticky Offset', 0, 'Test description.' );
@@ -203,9 +177,8 @@ try {
 		'Precondition: a browser submitting the real rendered row must send the hidden fallback\'s saved value for this field name.'
 	);
 
-	// A full resubmit: every other option in the group keeps its own current
-	// value (a real "Save" with nothing else touched), and this one field
-	// gets whatever a browser would actually submit for it.
+	// A full resubmit with every other option at its current value, and this
+	// field carrying whatever a browser would actually submit.
 	$post_payload = array();
 	foreach ( $group_options as $group_option_name ) {
 		$post_payload[ $group_option_name ] = (string) get_option( $group_option_name, '' );
@@ -219,9 +192,8 @@ try {
 		'REAL SAVE-LOOP: after running the actual update_option()/sanitize_option() pipeline for the whole onlinesched_option_group with this row disabled by a constant, the option must read back as the previously saved 55 — not blanked or zeroed.'
 	);
 
-	// Counterfactual, to prove this simulation would have caught the
-	// original bug: reproduce the PRE-FIX markup contract — a disabled
-	// input with no hidden fallback submits nothing for that field name.
+	// Counterfactual: a disabled input with no hidden fallback submits nothing,
+	// which is what this simulation has to catch.
 	$post_payload_without_fallback = $post_payload;
 	unset( $post_payload_without_fallback['onlinesched_sticky_offset_desktop'] );
 	$run_options_php_update_loop( $group_options, $post_payload_without_fallback );
@@ -299,9 +271,8 @@ try {
 	);
 
 	// -----------------------------------------------------------------
-	// App Info Pages: Up disabled on the first row, Down disabled on the
-	// last row, every control's aria-label includes the page title, and
-	// the hidden CSV field pre-populates from the option.
+	// App Info Pages: end-row controls disabled, aria-labels naming the page,
+	// and the hidden CSV field pre-populated from the option.
 	// -----------------------------------------------------------------
 
 	$pages = get_pages( array( 'number' => 3 ) );
@@ -344,9 +315,8 @@ try {
 		$assert( ! $down_mid['disabled'], 'A middle App Info Pages row must NOT have its Move Down control disabled.' );
 	}
 
-	// Every reorder/remove control's aria-label must name the row's page, so
-	// screen reader users hear "Move Hotel up" / "Remove Parking", not a bare
-	// "Move up" that gives no clue which row a control belongs to.
+	// Each control's aria-label must name its row's page, or a screen reader
+	// announces "Move up" with no clue which row it belongs to.
 	foreach ( $ids as $row_index => $page_id ) {
 		$expected_title = get_the_title( $page_id );
 		$assert( '' !== trim( (string) $expected_title ), 'Test fixture sanity: every configured page id must resolve to a non-empty title.' );

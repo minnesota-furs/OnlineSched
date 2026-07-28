@@ -96,6 +96,33 @@ Each schedule uses a fixed set of element IDs for tabs, event links, and modals.
 
 If you need two schedule views, use one shortcode with the `tabs`, `tag`, or `room` attribute, or place the views on separate pages and link between them. The dedicated **Online Schedule** page template has the same one-schedule-per-page limitation.
 
+## Theme Asset Integration
+
+The plugin loads its typeface and icon font under their own stylesheet handles, so
+a theme that already provides either can opt out without touching the main bundle:
+
+```php
+add_filter( 'onlinesched_load_fonts', '__return_false' );
+add_filter( 'onlinesched_load_fontawesome', '__return_false' );
+```
+
+To keep the stylesheet but change the typeface, override the CSS variable instead
+of disabling the handle:
+
+```php
+add_action( 'wp_head', function () {
+    echo ':root{--os-font-family:"YourFont",sans-serif;}';
+} );
+```
+
+Sizes inside the schedule are em-relative to `--os-font-size-base`, so the
+surrounding theme's body size does not distort internal proportions. Override it
+when your content uses a different base:
+
+```css
+:root { --os-font-size-base: 18px; }
+```
+
 ## Calendar Feeds and External Endpoints
 
 OnlineSched exposes public read-only endpoints for calendar clients, kiosks, signage,

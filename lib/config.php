@@ -288,7 +288,7 @@ function onlinesched_add_color_inline_style($handle = 'online-schedule-css')
 
     $css .= " .schedule-favorite-toggle:hover i, .schedule-favorite-toggle.active i { color: var(--os-fav-active) !important; }";
 
-    // Header Flare — opacity only; the icon itself is injected as a DOM element by onlinesched_get_flare_html().
+    // Header Flare - opacity only; the icon itself is injected as a DOM element by onlinesched_get_flare_html().
     $enable_flare = get_option('onlinesched_enable_header_flare', '1');
     $flare_opacity = ($enable_flare === '1' ? '0.15' : '0');
     $css .= " :root { --os-flare-opacity: {$flare_opacity}; }";
@@ -328,7 +328,7 @@ function onlinesched_get_flare_html()
         return '';
     }
 
-    // FA icon — allow only valid slug characters, then normalize to bare slug.
+    // FA icon - allow only valid slug characters, then normalize to bare slug.
     $icon = preg_replace('/[^a-z0-9\-]/', '', $icon);
     $slug = preg_replace('/^fa\-/', '', $icon); // strip leading fa- prefix
     if (empty($slug)) {

@@ -2,7 +2,7 @@
 /**
  * Public app feed: sectioned, schema-versioned JSON.
  *
- * GET json.php?section=schedule   (default — bare json.php returns the schedule)
+ * GET json.php?section=schedule   (default - bare json.php returns the schedule)
  * GET json.php?section=meta
  * GET json.php?section=hours
  * GET json.php?section=info[&page={slug}]
@@ -28,10 +28,8 @@ $section = isset($_REQUEST['section']) && !is_array($_REQUEST['section'])
 	? sanitize_key(wp_unslash($_REQUEST['section']))
 	: 'schedule';
 
-// Body, ETag, Last-Modified, and embedded revision values all derive from one
-// snapshot, verified unchanged across the build (see
-// onlinesched_app_feed_build_consistent) so a mutation landing mid-request
-// can never tear content apart from its revision metadata.
+// Body, ETag, Last-Modified and revision values all derive from one verified
+// snapshot, so a mutation mid-request cannot tear content from its metadata.
 switch ($section) {
 	case 'meta':
 		list($payload, $revisions) = onlinesched_app_feed_build_consistent('onlinesched_app_feed_meta');
@@ -65,10 +63,8 @@ switch ($section) {
 	case 'schedule':
 	default:
 		$filters = onlinesched_app_feed_request_filters();
-		// Resolved values that filters can change without an option write
-		// (group definitions are already resolved inside $filters; the
-		// publication flag can be filtered) belong in the ETag variant; the
-		// payload hash in the ETag covers every remaining dependency.
+		// Values a filter can change without an option write belong in the ETag
+		// variant; the payload hash covers every remaining dependency.
 		$variant = wp_json_encode($filters) . '|pub:' . (int) onlinesched_app_schedule_published();
 		list($payload, $revisions) = onlinesched_app_feed_build_consistent(
 			static function ($revisions) use ($filters) {

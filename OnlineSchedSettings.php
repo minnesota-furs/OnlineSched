@@ -10,10 +10,8 @@ function onlinesched_settings_capability()
     return 'edit_onlinesched_event_schedules';
 }
 
-// Settings groups are admin-form internals: only settings_fields($group) and options.php
-// see them. Nothing outside this plugin's own code references them, so they need no legacy
-// aliases. If we ever rename a group again, add a one-line migration that maps any saved
-// state; do not introduce dual-group registration.
+// Settings groups are admin-form internals with no external consumers, so a
+// rename needs a migration rather than dual-group registration.
 add_filter('option_page_capability_onlinesched_option_group', 'onlinesched_settings_capability');
 add_filter('option_page_capability_onlinesched_social_login_group', 'onlinesched_settings_capability');
 
@@ -248,7 +246,7 @@ function onlinesched_date_pair_label($option_name)
  * register_setting() sanitize callbacks only ever see their own field's value, but
  * options.php processes every registered option from a single options.php submission
  * in one request, so $_POST already holds the paired field's submitted value at the
- * moment either callback runs — reading it here is safe and requires no extra hook.
+ * moment either callback runs - reading it here is safe and requires no extra hook.
  *
  * If both dates in the pair are valid and would end up inverted (start after end),
  * this field's submitted value is discarded in favor of its previously saved value,
@@ -722,7 +720,7 @@ function onlinesched_number_input_row($option_name, $label, $default, $descripti
     <tr>
         <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html($label); ?></label></th>
         <td>
-            <?php /* Disabled inputs never submit — this hidden field carries the saved value
+            <?php /* Disabled inputs never submit - this hidden field carries the saved value
                      forward whenever the visible control above is disabled, so a managed-in-code
                      row can never blank the stored fallback on save. */ ?>
             <input type="hidden" name="<?php echo esc_attr($option_name); ?>" value="<?php echo esc_attr($saved_value); ?>" />
@@ -756,7 +754,7 @@ function onlinesched_color_input_row($key, $label, $description)
     <tr>
         <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html($label); ?></label></th>
         <td>
-            <?php /* Disabled inputs never submit — this hidden field carries the raw saved
+            <?php /* Disabled inputs never submit - this hidden field carries the raw saved
                      DB value forward whenever the visible control below is disabled, so a
                      managed-in-code row can never blank (or silently overwrite with today's
                      constant/filter value) the dormant stored fallback on save. */ ?>
@@ -802,8 +800,8 @@ function onlinesched_settings_tabs()
 /**
  * The tab to show on render: from ?tab= when it names a real tab, else the first tab.
  *
- * Resolved server-side (not just client-side) so a full page load — including the
- * options.php save redirect and JS-disabled navigation — always lands on the right
+ * Resolved server-side (not just client-side) so a full page load - including the
+ * options.php save redirect and JS-disabled navigation - always lands on the right
  * panel without waiting on JS to run.
  */
 function onlinesched_active_settings_tab()

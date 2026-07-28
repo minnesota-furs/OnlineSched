@@ -120,6 +120,27 @@ compatibility baseline without relying on Furry Migration theme behavior. See th
 - Do not add jQuery or Bootstrap dependencies.
 - Do not commit OAuth credentials, local environment secrets, or production URLs.
 
+### Comments
+
+Comments earn their place or they go. The rules are enforced mechanically:
+
+- **Two lines maximum** for a prose comment. Structured `/** */` docblocks are
+  exempt from the length cap, since they are the documented API surface.
+- **Comment the why, never the what.** If the line below already says it, delete it.
+- **No tracker numbers, no attribution, no history.** Git blame and the pull
+  request already hold who changed what and when.
+- **ASCII only** in code and comments.
+- **Explain how to run something in a docblock or in the docs**, not as loose
+  inline instructions.
+
+Run the check from the plugin root:
+
+```bash
+npm run lint:comments
+```
+
+It also runs as the first step of `npm test`.
+
 ## Testing
 
 **You do not need the Furry Migration stack to contribute or run the standalone checks.**

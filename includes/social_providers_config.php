@@ -64,10 +64,7 @@ return [
                 'color' => '171A21',
             ],
         ],
-        // Add more providers here as needed
-        // 'Yahoo' => [...],
-        // 'Facebook' => [...],
-        // 'Twitter' => [...],
-        // 'Instagram' => [...],
+        // Further HybridAuth providers follow the same shape as the entries
+        // above.
     ],
 ];

@@ -37,8 +37,8 @@ test.describe('14 — Standalone Verification', () => {
   });
 
   test('schedule page does not include theme-specific wrapper markup', async ({ page }) => {
-    // Exclude the vanilla wp-block-library and theme-specific block styles if they use these classes.
-    // We are looking for the Phase 6/8 leaks: title-left, title-right, hours-of-operations (the old class)
+    // Looks only for the legacy theme class leaks, not the vanilla block-library
+    // styles that may share these names.
     const leaks = await page.evaluate(() => {
       return document.querySelectorAll('.title-left, .title-right, .hours-of-operations').length;
     });

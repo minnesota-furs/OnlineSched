@@ -76,7 +76,7 @@ function onlinesched_get_feed_change_stamp() {
 /**
  * Per-section revision storage: one integer option row per section, bumped
  * with a single atomic SQL increment. Concurrent requests can never lose an
- * increment — there is no read-modify-write to race and no retry budget to
+ * increment - there is no read-modify-write to race and no retry budget to
  * exhaust (an earlier optimistic-CAS design measurably lost ~10% of
  * increments under 8-way contention). Revision *times* are informational and
  * stored as ordinary options; last-writer-wins is fine for a timestamp.
@@ -110,7 +110,7 @@ function onlinesched_feed_atomic_bump($section) {
 			break;
 		}
 		if (false === $updated) {
-			break; // SQL error — take the fallback below, never a silent no-op.
+			break; // SQL error - take the fallback below, never a silent no-op.
 		}
 		// Row absent (fresh install): baseline is 1, so first bump lands at 2.
 		$inserted = $wpdb->query($wpdb->prepare(
@@ -124,16 +124,13 @@ function onlinesched_feed_atomic_bump($section) {
 		if (false === $inserted) {
 			break;
 		}
-		// Lost the insert race to another process; its row now exists — retry
+		// Lost the insert race to another process; its row now exists - retry
 		// the atomic UPDATE.
 	}
 
 	if (!$moved) {
-		// Try to guarantee movement even at the cost of a possible lost
-		// concurrent increment on this degraded path — but VERIFY: under a
-		// persistent DB failure update_option also fails, and reporting
-		// success while nothing moved would let clients cache stale content
-		// with no signal anywhere.
+		// Guarantees movement at the cost of a possible lost concurrent
+		// increment, but verifies: a false success caches stale content.
 		$current = max(1, (int) get_option($option, 1));
 		$moved = (bool) update_option($option, (string) ($current + 1), false);
 		if (!$moved) {
@@ -244,7 +241,7 @@ function onlinesched_touch_feed($sections, $reason = '') {
 	}
 
 	// Honest result: if nothing moved (persistent database failure), no
-	// invalidation happened — fire no action, flush nothing, report failure.
+	// invalidation happened - fire no action, flush nothing, report failure.
 	if (empty($moved_sections)) {
 		return false;
 	}
@@ -274,7 +271,7 @@ function onlinesched_touch_feed($sections, $reason = '') {
  * bump. One meaningful change should move a revision by one.
  *
  * @param string   $set     'save-flow' | 'transitioned' | 'deleting'.
- * @param int|null $post_id ID to add (or remove when $remove) — null reads.
+ * @param int|null $post_id ID to add (or remove when $remove) - null reads.
  * @param bool     $remove  Remove instead of add.
  * @return array<int, true>
  */
@@ -297,7 +294,7 @@ function onlinesched_feed_id_set($set, $post_id = null, $remove = false) {
  * Mark the save flow early so per-field hooks inside it coalesce.
  * save_post_{$type} fires BEFORE the generic save_post where the plugin's
  * meta/term writes live (priority 10), so the marker goes on the earliest
- * hook and the closing handler on generic save_post at a late priority —
+ * hook and the closing handler on generic save_post at a late priority -
  * otherwise the flow would be unmarked before the meta writes happen.
  */
 add_action('save_post_os_event', 'onlinesched_feed_mark_save_flow', 1);
@@ -306,7 +303,7 @@ function onlinesched_feed_mark_save_flow($post_id) {
 }
 
 /**
- * Close of the save flow — covers same-status title/content edits, quick
+ * Close of the save flow - covers same-status title/content edits, quick
  * edit, and programmatic wp_update_post, which fire no status transition.
  * Generic save_post at priority 99 so every plugin meta/term write
  * (priority 10) has already happened and coalesced. Also assigns the durable
@@ -448,9 +445,9 @@ function onlinesched_feed_touch_on_term_edit() {
  * output-relevant options belong here and nowhere else.
  *
  * Output-changing FILTERS (os_json_room_groups, os_event_uid,
- * os_app_schedule_published, …) have no change event to hook; their resolved
+ * os_app_schedule_published, ...) have no change event to hook; their resolved
  * values must enter the ETag instead (the schedule ETag variant already
- * carries resolved filters and the publication flag — see
+ * carries resolved filters and the publication flag - see
  * onlinesched_app_feed_etag callers), or the site code changing filter
  * behavior must call onlinesched_touch_feed() itself. Documented in README.
  *
@@ -528,9 +525,8 @@ function onlinesched_feed_maybe_upgrade() {
 		}
 	}
 
-	// Backfill durable UUIDs for manually created events (no external id), so
-	// the feed's read path never needs to write. Exception-safe: a throw from
-	// a meta hook must not leave touch handling suspended for the request.
+	// Backfills durable UUIDs so the feed's read path never writes. A throw from
+	// a meta hook must not leave touch handling suspended.
 	if (function_exists('onlinesched_ensure_event_uid_meta')) {
 		onlinesched_feed_touch_suspend();
 		try {

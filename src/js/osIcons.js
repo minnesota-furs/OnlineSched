@@ -1,5 +1,5 @@
 /**
- * Icon Utility for Phase 10.5
+ * Icon state utility.
  */
 export function updateIconClasses(icon, state) {
     if (!icon) return;

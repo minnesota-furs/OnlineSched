@@ -168,7 +168,7 @@ test.describe('05 — Modals', () => {
     test('element exists in DOM', async ({ page }) => {
       await expect(page.locator(S.androidModal)).toHaveCount(1);
     });
-    // Full open/close test requires Android UA override — covered by manual QA.
+    // Full open/close test requires Android UA override - covered by manual QA.
   });
 });
 

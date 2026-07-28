@@ -106,7 +106,7 @@ test.describe('03 — Filters', () => {
     await page.waitForTimeout(300);
     const afterTag = await page.locator(`${S.scheduleItem}:visible`).count();
 
-    // Now also select a specific room — should narrow results further or keep same
+    // Now also select a specific room - should narrow results further or keep same
     const roomOption = await page.locator(`${S.selectRooms} option:not([value="all"])`).first().getAttribute('value');
     if (!roomOption) return test.skip();
     await page.selectOption(S.selectRooms, roomOption);

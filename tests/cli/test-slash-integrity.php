@@ -129,9 +129,8 @@ foreach ($hostile as $key => $value) {
 	$check("post-roundtrip description preserves $key", $value, $post ? $normalize($post->post_content) : null);
 }
 
-// Rollback restores slash-bearing content and metadata byte-exactly. The
-// snapshot captures a fixed meta-key list, so the probe rides one of those
-// keys (external_event_id) with hostile slash content.
+// The snapshot captures a fixed meta-key list, so the probe rides one of those
+// keys with hostile slash content.
 $victim = $find_post($ids['backslash-then-quote']);
 if ($victim) {
 	$victim_id  = $victim->ID;

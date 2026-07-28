@@ -211,11 +211,8 @@ export function new_schedule() {
         clipboardEffect.className = 'os-clipboard-effect';
         clipboardEffect.innerHTML = '<i class="fas fa-clipboard-check"></i> Copied!';
 
-        // showModal() promotes a <dialog> to the browser top layer, which renders above
-        // everything in the normal stacking context regardless of z-index. Appending the
-        // effect to document.body would put it behind the dialog backdrop and make it
-        // invisible. When the trigger lives inside an open <dialog>, we must append the
-        // effect inside that dialog so it shares the same top-layer rendering context.
+        // An open <dialog> renders in the top layer above any z-index, so the effect
+        // must be appended inside it rather than to document.body to be visible.
         const parentDialog = clipObject.closest('dialog');
         const container = (parentDialog && parentDialog.open) ? parentDialog : document.body;
 

@@ -25,15 +25,15 @@ if (!onlinesched_calendar_subscriptions_enabled()) {
  * @since          available since Release 1.0
  */
 
-/* Usage
-room=<panels> room name, can be comma separated
-room=all all rooms
-tag=<tags> by tag, can be comma separated
-tag=all all tags
-limit = 2 limits to the newest 2.
-textlen = <number> limits description length (default 250). If textlen is 0 or negative, shows full description.
-cancelled_title_prefix = <boolean> prefixes cancelled event titles for clients that ignore STATUS:CANCELLED.
-*/
+/**
+ * Query parameters.
+ *
+ * room=<names>              One or more room names, comma separated; `all` for every room.
+ * tag=<tags>                One or more tag slugs, comma separated; `all` for every tag.
+ * limit=<number>            Return only the newest N events.
+ * textlen=<number>          Truncate the description (default 250); 0 or less for the full text.
+ * cancelled_title_prefix=<bool>  Prefix cancelled titles, for clients that ignore STATUS:CANCELLED.
+ */
 
 define('EOL', "\r\n");
 

@@ -186,7 +186,7 @@ function onlinesched_delete_schedule_year(string $year, array $options = array()
 	$result['duration_seconds'] = microtime(true) - $started;
 
 	if ($result['deleted'] > 0) {
-		// onlinesched_touch_feed() owns the W3TC flush — exactly once.
+		// onlinesched_touch_feed() owns the W3TC flush - exactly once.
 		onlinesched_touch_feed('schedule', 'delete-year');
 	}
 

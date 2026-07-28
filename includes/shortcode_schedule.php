@@ -51,7 +51,7 @@ function onlinesched_enqueue_schedule_assets() {
     $plugin_url = ONLINESCHED_PLUGIN_URL;
     $plugin_path = ONLINESCHED_PLUGIN_DIR;
 
-    // Main plugin CSS (no FA, no font-faces — those are separate handles below).
+    // Main plugin CSS (no FA, no font-faces - those are separate handles below).
     wp_enqueue_style('online-schedule-css',
         $plugin_url . 'build/main.css',
         array(),
@@ -62,7 +62,7 @@ function onlinesched_enqueue_schedule_assets() {
         onlinesched_add_color_inline_style('online-schedule-css');
     }
 
-    // Font Awesome — separate handle so sites that already load FA can opt out:
+    // Font Awesome - separate handle so sites that already load FA can opt out:
     //   add_filter( 'onlinesched_load_fontawesome', '__return_false' );
     if (apply_filters('onlinesched_load_fontawesome', true)) {
         wp_enqueue_style(
@@ -73,10 +73,8 @@ function onlinesched_enqueue_schedule_assets() {
         );
     }
 
-    // Metropolis font — separate handle so themes supplying their own font can opt out:
-    //   add_filter( 'onlinesched_load_fonts', '__return_false' );
-    // Override the typeface entirely via CSS variable instead of disabling:
-    //   add_action( 'wp_head', fn() => print ':root{--os-font-family:"YourFont",sans-serif;}' );
+    // Its own handle so a theme can opt out or override the typeface. See
+    // "Theme Asset Integration" in README.md.
     if (apply_filters('onlinesched_load_fonts', true)) {
         wp_enqueue_style(
             'onlinesched-fonts',

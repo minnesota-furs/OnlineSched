@@ -37,7 +37,7 @@ test.describe('07 — Hash Routing', () => {
     await page.waitForTimeout(300);
 
     const firstId = await page.locator(S.scheduleItem).first().getAttribute('id');
-    // IDs are like "onlineevt-12345" → hash is "#evt=12345"
+    // IDs are like "onlineevt-12345" -> hash is "#evt=12345"
     const hash = firstId ? '#evt=' + firstId.replace('onlineevt-', '') : null;
     if (!hash) test.skip(true, 'No schedule items found');
 

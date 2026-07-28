@@ -194,7 +194,7 @@ function onlinesched_import_csv(string $file_path, array $options = array()): ar
 	}
 
 	if (($result['inserted'] + $result['updated']) > 0) {
-		// onlinesched_touch_feed() owns the W3TC flush — exactly once.
+		// onlinesched_touch_feed() owns the W3TC flush - exactly once.
 		onlinesched_touch_feed('schedule', 'csv-import');
 	}
 

@@ -11,10 +11,10 @@
  *     surfaces ONLY through the meta ETag:
  *     onlinesched_app_feed_etag('meta') === '"os-{schema}-meta-{stamp}+{metaRev}"'.
  *   - The optimistic-CAS revision store (which measurably lost ~10% of
- *     increments under 8-way concurrency — see the prior round's report) is
+ *     increments under 8-way concurrency - see the prior round's report) is
  *     gone. Each tracked section now has two plain option rows,
  *     onlinesched_feed_rev_{section} and onlinesched_feed_revtime_{section},
- *     bumped by onlinesched_feed_atomic_bump() — a single atomic SQL
+ *     bumped by onlinesched_feed_atomic_bump() - a single atomic SQL
  *     `UPDATE ... SET option_value = CAST(option_value AS UNSIGNED) + 1`.
  *     There is no read-modify-write to race, so the 8x25 concurrency proof
  *     (test-app-feed.sh, real parallel `wp eval` processes) is expected to
@@ -32,7 +32,7 @@
  *     the schedule builder OMITS such events entirely rather than serve a
  *     provisional identity.
  *   - Single-mutation deltas are asserted as "moved" (>), not locked to an
- *     exact count — coalescing logic in feed-revisions.php is free to change
+ *     exact count - coalescing logic in feed-revisions.php is free to change
  *     how many hooks contribute to one logical mutation. Exactly-once
  *     assertions are kept ONLY for the CSV import batch and the delete-year
  *     batch (their whole point is "one logical change, one touch, regardless
@@ -85,10 +85,10 @@
  *   a. Persistent SQL failure spanning BOTH the direct UPDATE/INSERT path and
  *      the update_option() fallback: onlinesched_feed_atomic_bump() and
  *      onlinesched_touch_feed() must report false, and onlinesched_feed_touched
- *      must not fire — then recovery once the corruption is removed.
+ *      must not fire - then recovery once the corruption is removed.
  *   b. Retry exhaustion / torn-pair: a build callback that keeps moving the
  *      revision on every invocation must still get back a coherent (payload,
- *      revisions) pair from onlinesched_app_feed_build_consistent() — stale
+ *      revisions) pair from onlinesched_app_feed_build_consistent() - stale
  *      relative to a fresh read is fine, torn is not.
  *   c. onlinesched_app_feed_meta() must compose change_stamp/revisions
  *      strictly from a supplied handcrafted snapshot, never a live read.
@@ -97,7 +97,7 @@
  *
  * The mutation matrix uses only real WordPress mutations
  * (wp_insert_post/wp_update_post/update_post_meta/wp_set_object_terms/real
- * option updates) — never a direct do_action() call to simulate a hook.
+ * option updates) - never a direct do_action() call to simulate a hook.
  *
  * Run through tests/cli/test-app-feed.sh, which enforces the same
  * vanilla-only container/site-URL safety checks as the other CLI harnesses
@@ -169,7 +169,7 @@ function onlinesched_app_feed_test_is_list($value) {
 /**
  * Recursively assert that $actual has the same key set and value types as
  * $expected. Arrays-of-objects compare element shape against the first
- * fixture element (only when $actual is non-empty — an empty result array
+ * fixture element (only when $actual is non-empty - an empty result array
  * is a valid shape on its own, e.g. an unpublished schedule).
  *
  * @param mixed    $actual
@@ -251,10 +251,8 @@ $assert_shape = static function ($actual, $expected, $label) use ($assert) {
 	$assert(empty($errors), "{$label} shape mismatch:\n" . implode("\n", $errors));
 };
 
-// Shape assertions are exactly what this suite exists to police, so a shape
-// mismatch is recorded rather than aborting the run: every other independent
-// check still executes and reports, and the overall run still fails at the
-// end if anything was recorded here.
+// A shape mismatch is recorded rather than aborting, so every other check still
+// runs; the overall run fails at the end if anything was recorded.
 $shape_failures = array();
 $check_shape = static function ($label, callable $fn) use (&$shape_failures, &$checks) {
 	try {
@@ -282,10 +280,10 @@ $option_names = array(
 	'onlinesched_hours_page_id',
 	'onlinesched_calendar_name',
 	'onlinesched_json_room_groups',
-	// A core WP option — captured/restored defensively as a safety net on top
+	// A core WP option - captured/restored defensively as a safety net on top
 	// of this test's own inline restore around the blogname check below.
 	'blogname',
-	// Retired legacy serialized blob — captured/restored defensively in case
+	// Retired legacy serialized blob - captured/restored defensively in case
 	// anything (including our own legacy-migration test below) touches it.
 	'onlinesched_feed_revisions',
 	'onlinesched_feed_schema_installed',
@@ -306,7 +304,7 @@ foreach ($option_names as $name) {
 }
 
 /**
- * Seed the per-section revision rows directly (test-only convenience — the
+ * Seed the per-section revision rows directly (test-only convenience - the
  * real code always mutates them through onlinesched_feed_atomic_bump() /
  * update_option(), never a blob write). Absent-row baseline is rev 1.
  *
@@ -372,10 +370,8 @@ try {
 	);
 	$pass('meta ETag format is "os-{schema}-meta-{public_stamp}+{internal_meta_rev}"');
 
-	// onlinesched_app_feed_send() now hashes the EXACT response bytes and
-	// passes that hash through as a 4th arg, appended as '-' + the first 20
-	// chars of the hash — the payload-hash property (ETag changes iff the
-	// representation changes) lives in this format, so pin it directly.
+	// The ETag suffix is the first 20 chars of a hash of the exact response
+	// bytes, which is what makes it change only when the representation does.
 	$sample_body = wp_json_encode(array('a' => 1));
 	$sample_hash = md5($sample_body);
 	$etag_with_hash = onlinesched_app_feed_etag('schedule', '', null, $sample_hash);
@@ -455,9 +451,8 @@ try {
 	$pass('nested suspend/resume tracks depth correctly');
 
 	// -------------------------------------------------------------------
-	// A1b. Regressing revtime: onlinesched_feed_advance_revtime() uses SQL
-	// GREATEST so an older concurrent timestamp can never regress the stored
-	// time.
+	// A1b. advance_revtime() uses SQL GREATEST, so an older concurrent
+	// timestamp can never regress the stored time.
 	// -------------------------------------------------------------------
 
 	onlinesched_touch_feed('schedule', 'revtime-baseline');
@@ -480,14 +475,8 @@ try {
 	$pass('onlinesched_feed_advance_revtime() never regresses (SQL GREATEST) and does advance forward');
 
 	// -------------------------------------------------------------------
-	// A1c. Atomic-bump failure fallback: onlinesched_feed_atomic_bump() must
-	// never silently no-op when the underlying SQL genuinely fails — it must
-	// fall back to a guaranteed-movement update_option() path. Exercised
-	// against a throwaway, isolated fake "section" — never a real tracked
-	// section — via a real SQL syntax error injected through WordPress's
-	// 'query' filter (applied to every $wpdb query), scoped to match only
-	// this fake option's name and to fire exactly once, so it cannot affect
-	// any other query on the site.
+	// A1c. atomic_bump() must fall back to update_option() rather than no-op
+	// when the SQL fails. Injected against a throwaway fake section only.
 	// -------------------------------------------------------------------
 
 	$atomic_fake_section = 'aft-atomic-test-' . $run_id;
@@ -529,15 +518,8 @@ try {
 	delete_option($atomic_fake_option);
 
 	// -------------------------------------------------------------------
-	// A1c2. Persistent SQL failure (round-8 regression a): corrupt BOTH the
-	// direct UPDATE/INSERT path AND the update_option() fallback for the
-	// WHOLE window (not just once) — atomic_bump() must return false,
-	// touch_feed() must return false, and onlinesched_feed_touched must NOT
-	// fire. Uses the real 'schedule' section (touch_feed only exercises its
-	// real "nothing moved" branch for a genuinely valid tracked section), but
-	// it is safe: every write attempt fails, so the stored value never
-	// changes — a complete no-op from the DB's perspective — and this test
-	// proves recovery immediately afterward.
+	// A1c2. With both the direct path and the fallback failing, both calls
+	// must return false and the touched hook must not fire.
 	// -------------------------------------------------------------------
 
 	$rev_before_persistent_failure = onlinesched_app_feed_test_rev('schedule');
@@ -591,9 +573,8 @@ try {
 	$pass('atomic_bump()/touch_feed() report honest failure under a persistent SQL error spanning the fallback too (no false success, no touched action fired), and recover cleanly once the corruption is removed');
 
 	// -------------------------------------------------------------------
-	// A1d. Snapshot mismatch: onlinesched_app_feed_build_consistent() rebuilds
-	// when a revision moves mid-build (bounded 3 attempts), and returns a
-	// revisions snapshot consistent with the accepted payload.
+	// A1d. build_consistent() rebuilds when a revision moves mid-build and
+	// returns a snapshot consistent with the accepted payload.
 	// -------------------------------------------------------------------
 
 	$consistent_build_calls = 0;
@@ -619,19 +600,16 @@ try {
 	$pass('onlinesched_app_feed_build_consistent() rebuilds exactly once when a revision moves mid-build, and the returned revisions match a fresh read');
 
 	// -------------------------------------------------------------------
-	// A1d2. Retry exhaustion / torn pair (round-8 regression b): when EVERY
-	// build invocation keeps moving the revision, build_consistent() must
-	// still return a COHERENT (payload, revisions) pair — never torn — even
-	// though it is stale relative to a fresh read once retries exhaust.
+	// A1d2. Once retries exhaust, the pair must still be coherent rather than
+	// torn, even though it is stale against a fresh read.
 	// -------------------------------------------------------------------
 
 	$torn_build_calls = 0;
 	list($torn_payload, $torn_revisions) = onlinesched_app_feed_build_consistent(
 		static function ($revisions) use (&$torn_build_calls) {
 			$torn_build_calls++;
-			// Keep moving the revision on every single invocation, so the
-			// snapshot the caller just took is stale again before it can
-			// even finish building.
+			// Move the revision on every invocation, so the caller's snapshot
+			// is stale again before it finishes building.
 			onlinesched_touch_feed('schedule', 'unit-test-torn-' . $torn_build_calls);
 			return array('call' => $torn_build_calls, 'schedule_rev_seen' => $revisions['schedule']['rev']);
 		}
@@ -649,10 +627,8 @@ try {
 	$pass('onlinesched_app_feed_build_consistent() returns a coherent (payload, revisions) pair even under continuous churn (retry exhaustion) — stale is acceptable, torn is not');
 
 	// -------------------------------------------------------------------
-	// A1e. Snapshot-derived change_stamp (round-8 regression c):
-	// onlinesched_app_feed_meta() must compose change_stamp and the
-	// revisions map strictly from its supplied snapshot, never from a live
-	// onlinesched_get_feed_change_stamp()/onlinesched_get_feed_revisions() read.
+	// A1e. app_feed_meta() must compose change_stamp and revisions strictly
+	// from its supplied snapshot, never from a live read.
 	// -------------------------------------------------------------------
 
 	$handcrafted_snapshot = array(
@@ -670,9 +646,8 @@ try {
 		array('schedule' => 101, 'hours' => 202, 'info' => 303) === $handcrafted_meta['revisions'],
 		'The revisions map must match the supplied snapshot exactly, regardless of live values: got ' . wp_json_encode($handcrafted_meta['revisions'])
 	);
-	// Sanity: the handcrafted values must not accidentally coincide with live
-	// revisions, or this test would pass even if onlinesched_app_feed_meta()
-	// silently read through to a live snapshot instead of using the one supplied.
+	// The handcrafted values must not coincide with live revisions, or the test
+	// passes even when the function reads through to a live snapshot.
 	$live_revisions_for_contrast = onlinesched_get_feed_revisions();
 	$assert(
 		101 !== $live_revisions_for_contrast['schedule']['rev']
@@ -761,9 +736,8 @@ try {
 	// A4. Versioned upgrade: legacy serialized-blob migration (schema v3)
 	// -------------------------------------------------------------------
 
-	// Clear the modern per-section rows first so the migration path's
-	// add_option() calls (which no-op against an existing row) actually take
-	// effect, rather than exercising the "seed missing rows at 1" path.
+	// The per-section rows are cleared first, or the migration's add_option()
+	// calls no-op and the seed-missing path is exercised instead.
 	foreach (array('schedule', 'hours', 'info', 'meta') as $onlinesched_aft_legacy_section) {
 		delete_option('onlinesched_feed_rev_' . $onlinesched_aft_legacy_section);
 		delete_option('onlinesched_feed_revtime_' . $onlinesched_aft_legacy_section);
@@ -788,11 +762,8 @@ try {
 		'onlinesched_feed_maybe_upgrade() must record schema version >= 3 (ONLINESCHED_FEED_SCHEMA_INSTALL_VERSION) after migrating the legacy blob.'
 	);
 
-	// The upgrade's final step touches the three FETCHABLE sections once
-	// (onlinesched_touch_feed(onlinesched_feed_sections(), 'feed-schema-upgrade')),
-	// so schedule/hours/info land at their migrated value + 1; 'meta' is not a
-	// fetchable section, so the final touch does not bump it — it stays at
-	// its migrated value.
+	// The upgrade's final touch covers only the fetchable sections, so those land
+	// at their migrated value plus one and 'meta' stays where it was.
 	$migrated = onlinesched_get_feed_revisions();
 	$assert(42 === $migrated['schedule']['rev'], "Migrated schedule rev must be 41+1=42 after the upgrade's final touch; got {$migrated['schedule']['rev']}.");
 	$assert(8 === $migrated['hours']['rev'], "Migrated hours rev must be 7+1=8; got {$migrated['hours']['rev']}.");
@@ -805,9 +776,8 @@ try {
 	$pass('onlinesched_feed_maybe_upgrade() migrates the legacy serialized blob into per-section rows, deletes the blob, and its final touch bumps the three fetchable sections');
 
 	// -------------------------------------------------------------------
-	// A4b. Upgrade exception (round-8 regression d): the v3 upgrade's UUID
-	// backfill wraps its suspend/resume in try/finally, so a throw from a
-	// meta hook mid-backfill must not leave touch handling stuck suspended.
+	// A4b. The upgrade's UUID backfill wraps suspend/resume in try/finally, so
+	// a throw mid-backfill cannot leave touch handling suspended.
 	// -------------------------------------------------------------------
 
 	$upgrade_exception_event_id = wp_insert_post(array(
@@ -851,11 +821,8 @@ try {
 	$pass('onlinesched_feed_maybe_upgrade(): an exception during the uuid backfill still leaves suspension depth at 0 (try/finally), and a subsequent touch works normally');
 
 	// -------------------------------------------------------------------
-	// B. Mutation-to-section matrix — real mutations only, never do_action().
-	// Single-mutation deltas assert "moved" (>), not an exact count: the
-	// coalescing logic in feed-revisions.php is free to change how many hooks
-	// contribute to one logical mutation. Exactly-once assertions are kept
-	// only for the CSV import batch and delete-year batch (section C).
+	// B. Real mutations only. Deltas assert movement, not an exact count, so
+	// coalescing stays free to change how many hooks contribute.
 	// -------------------------------------------------------------------
 
 	$b_year = 'aft-matrix-' . $run_id;
@@ -919,12 +886,8 @@ try {
 	$assert(onlinesched_app_feed_test_rev('schedule') > $rev, 'trash must move schedule.');
 	$pass('trash moves schedule');
 
-	// Since WordPress 5.6, wp_untrash_post() restores to 'draft' by default
-	// (which correctly does not need a schedule bump — a draft event isn't in
-	// the public feed either way). The admin "Restore" action additionally
-	// wires wp_untrash_post_set_previous_status() so a previously published
-	// event actually comes back as published; mirror that here so this
-	// checks the real admin-restore path.
+	// wp_untrash_post() restores to draft by default, so the admin Restore
+	// filter is wired here to exercise the real published-again path.
 	add_filter('wp_untrash_post_status', 'wp_untrash_post_set_previous_status', 10, 3);
 	$rev = onlinesched_app_feed_test_rev('schedule');
 	wp_untrash_post($event_id);
@@ -984,16 +947,15 @@ try {
 		$pass("option update: {$option_name} moves {$section}");
 	}
 
-	// onlinesched_feed_option_section_map() now also wires delete_option_ —
+	// onlinesched_feed_option_section_map() now also wires delete_option_ -
 	// onlinesched_con_start currently has the non-default value set above.
 	$rev = onlinesched_app_feed_test_rev('schedule');
 	delete_option('onlinesched_con_start');
 	$assert(onlinesched_app_feed_test_rev('schedule') > $rev, 'Deleting a tracked option (onlinesched_con_start) must move schedule via the delete_option_ hook.');
 	$pass('delete_option on a tracked option moves schedule');
 
-	// timezone_string / gmt_offset change every rendered event offset, so they
-	// move schedule too. Restored immediately (not just at teardown) since
-	// every builder call from here on renders times in the active timezone.
+	// These change every rendered event offset, so they move schedule too, and
+	// are restored immediately rather than at teardown.
 	$timezone_original = get_option('timezone_string', '');
 	$new_timezone = ('Europe/London' === $timezone_original) ? 'America/Chicago' : 'Europe/London';
 	$rev = onlinesched_app_feed_test_rev('schedule');
@@ -1010,9 +972,8 @@ try {
 	update_option('gmt_offset', $gmt_offset_original);
 	$pass('gmt_offset change moves schedule');
 
-	// onlinesched_calendar_name only shapes the meta handshake payload: it must
-	// move the meta ETag (internal meta revision) but NEVER the public
-	// change_stamp or any fetchable section.
+	// Shapes only the meta handshake, so it must move the meta ETag but never
+	// the public change_stamp or a fetchable section.
 	$calendar_name_original = get_option('onlinesched_calendar_name', $missing);
 	$new_calendar_name = 'AFT Calendar Name ' . $run_id;
 	if ($missing !== $calendar_name_original && (string) $calendar_name_original === $new_calendar_name) {
@@ -1038,9 +999,8 @@ try {
 	}
 	$pass('onlinesched_calendar_name change moves the meta ETag without moving the public change_stamp or any fetchable section');
 
-	// blogname is the con_name fallback when onlinesched_calendar_name is
-	// blank, so it is also a meta-only invalidation surface: same shape as
-	// the calendar_name check above.
+	// blogname is the con_name fallback, so it is a meta-only invalidation
+	// surface with the same shape as the check above.
 	$blogname_original = get_option('blogname', $missing);
 	$new_blogname = 'AFT Blogname ' . $run_id;
 	if ($missing !== $blogname_original && (string) $blogname_original === $new_blogname) {
@@ -1096,9 +1056,8 @@ try {
 	$assert(onlinesched_app_feed_test_rev('info') > $rev, 'Saving a configured app-info page must move info.');
 	$pass('saving a configured app-info page moves info');
 
-	// onlinesched_feed_sections_for_page() + the new transition_post_status /
-	// before_delete_post handlers: trashing or permanently deleting a
-	// configured page must also move its section, not just editing it.
+	// Trashing or permanently deleting a configured page must move its section
+	// too, not only editing it.
 	$trash_hours_page_id = wp_insert_post(array(
 		'post_type'    => 'page',
 		'post_status'  => 'publish',
@@ -1136,7 +1095,7 @@ try {
 	$pass('trashing a configured app-info page moves info');
 
 	// -------------------------------------------------------------------
-	// C. CSV import and delete-year batch semantics — EXACTLY-ONCE kept here
+	// C. CSV import and delete-year batch semantics - EXACTLY-ONCE kept here
 	// -------------------------------------------------------------------
 
 	$csv_year = 'aft-csv-' . $run_id;
@@ -1228,10 +1187,8 @@ try {
 	$created_post_ids = array_values(array_diff($created_post_ids, array($imported_post_id)));
 
 	// -------------------------------------------------------------------
-	// C2. Exception-without-revision: csv-import and delete-year wrap their
-	// batch in an outer catch. Partial writes/deletes before a thrown
-	// exception must still fire exactly one touch ('csv-import-partial' /
-	// 'delete-year-partial') AFTER suspension resumes, then rethrow.
+	// C2. Partial writes before a thrown exception must still fire exactly
+	// one partial touch after suspension resumes, then rethrow.
 	// -------------------------------------------------------------------
 
 	$exception_year = 'aft-exception-' . $run_id;
@@ -1306,9 +1263,8 @@ try {
 	$assert(true === $sanity_touch && onlinesched_app_feed_test_rev('schedule') > $rev_after_exception, 'A normal touch after the exception must still work (suspension not stuck).');
 	$pass('csv-import: a mid-batch exception fires exactly one csv-import-partial touch, then rethrows, and suspension recovers to depth 0');
 
-	// Same guarantee for delete-year: throw on before_delete_post for the 3rd
-	// of 4 fixture events, so exactly 2 permanent deletes land before the
-	// exception unwinds the batch.
+	// Same guarantee for delete-year: throwing on the third of four events
+	// leaves exactly two deletes landed before the batch unwinds.
 	$delete_exception_year = 'aft-delete-exception-' . $run_id;
 	$delete_exception_event_ids = array();
 	for ($i = 1; $i <= 4; $i++) {
@@ -1403,9 +1359,8 @@ try {
 	);
 	$pass('imported-row event_uid is durable across delete-year + reimport');
 
-	// A manual event gets its uuid persisted by the save_post_os_event hook at
-	// SAVE time (a real mutation, not a read-time side effect); reading the
-	// uid must never rewrite it.
+	// The uuid is persisted at save time, not as a read-time side effect, so
+	// reading the uid must never rewrite it.
 	$manual_event_id = wp_insert_post(array(
 		'post_type'   => 'os_event',
 		'post_status' => 'publish',
@@ -1430,10 +1385,8 @@ try {
 	);
 	$pass('manual events get a persisted event_uid at save time, and reads never rewrite it');
 
-	// UID precedence flipped: a persisted UUID always wins over
-	// onlinesched_external_event_id. CSV export lazily backfills an external
-	// id onto manually created events, and that backfill must never change a
-	// uid a client may already have stored against favorites/reminders.
+	// A persisted UUID always wins over an external id, so the backfill CSV
+	// export performs cannot change a uid a client already stored.
 	$precedence_event_id = wp_insert_post(array(
 		'post_type'   => 'os_event',
 		'post_status' => 'publish',
@@ -1466,10 +1419,8 @@ try {
 	);
 	$pass('a persisted event_uid uuid always wins over a later external_event_id backfill (uid precedence)');
 
-	// Destructive manual-uid roundtrip: OnlineSchedImportExporter's CSV export
-	// now reuses a manual event's persisted uuid as its external id (instead
-	// of a random int) — since a UUID rawurlencodes to itself, export ->
-	// delete-year -> reimport must reproduce the byte-identical durable uid.
+	// CSV export reuses a manual event's persisted uuid as its external id, and
+	// a UUID encodes to itself, so a full round trip reproduces the same uid.
 	$roundtrip_year = 'aft-roundtrip-' . $run_id;
 	$roundtrip_manual_id = wp_insert_post(array(
 		'post_type'    => 'os_event',
@@ -1548,9 +1499,8 @@ try {
 	);
 	$pass('export backfill (uuid reused as external id) survives delete-year + reimport with a byte-identical durable uid');
 
-	// Collision proofs: components are rawurlencoded and ':'-joined, so ids
-	// that differ only by a space/hyphen or contain only punctuation still
-	// produce distinct, non-empty uids.
+	// Components are rawurlencoded and colon-joined, so ids differing only by
+	// punctuation still produce distinct, non-empty uids.
 	$collision_year = 'aft-collision-' . $run_id;
 	$ev_space = wp_insert_post(array(
 		'post_type'   => 'os_event',
@@ -1817,10 +1767,8 @@ try {
 
 	// --- E continued: schedule ETag carries the resolved publication flag ---
 
-	// json.php builds the schedule ETag variant as
-	// wp_json_encode($filters) . '|pub:' . (int) onlinesched_app_schedule_published();
-	// replicate that exactly, at an otherwise-identical revision and filter
-	// set, to prove the ETag alone distinguishes published vs unpublished.
+	// Replicates json.php's ETag variant at an otherwise identical revision and
+	// filter set, so the ETag alone distinguishes published from unpublished.
 	$same_filters = array();
 	$variant_published = wp_json_encode($same_filters) . '|pub:1';
 	$variant_unpublished = wp_json_encode($same_filters) . '|pub:0';
@@ -1883,10 +1831,8 @@ try {
 	);
 	$pass('a manual event with no persisted uid is omitted from the schedule (fail closed); the read never writes the missing uid');
 
-	// Force the versioned upgrade to actually run (it is normally a once-per-
-	// schema-version no-op): drop the installed marker below the required
-	// version (now 3), then call the real upgrade function directly (WP_CLI
-	// context qualifies it to run, same as it would on any admin/CLI request).
+	// The upgrade is normally a once-per-schema-version no-op, so the installed
+	// marker is dropped below the required version to force a real run.
 	update_option('onlinesched_feed_schema_installed', 0);
 	onlinesched_feed_maybe_upgrade();
 	$assert(

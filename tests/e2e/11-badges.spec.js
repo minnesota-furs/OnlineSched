@@ -24,7 +24,7 @@ test.describe('11 — Badges', () => {
     await page.waitForTimeout(300);
   });
 
-  // ── Badge Presence ──
+  // -- Badge Presence --
 
   test('at least one badge element renders on the page', async ({ page }) => {
     const count = await page.locator(S.badge).count();
@@ -82,7 +82,7 @@ test.describe('11 — Badges', () => {
     await expect(badge).toContainText('VIP');
   });
 
-  // ── Badge Colors ──
+  // -- Badge Colors --
 
   test('Adult badge has red background (#d12229) and white text', async ({ page }) => {
     await page.fill(S.searchInput, 'After Dark Howl');
@@ -106,7 +106,7 @@ test.describe('11 — Badges', () => {
     expect(style.toLowerCase()).toContain('#ffffff');
   });
 
-  // ── Row Highlights ──
+  // -- Row Highlights --
 
   test('VIP-tagged events have row highlight color (#fff0b2)', async ({ page }) => {
     await page.fill(S.searchInput, 'VIP Tail Care Lounge');
@@ -118,7 +118,7 @@ test.describe('11 — Badges', () => {
     expect(style.toLowerCase()).toContain('#fff0b2');
   });
 
-  // ── Badge Visibility (show_badge: false should NOT render badge span) ──
+  // -- Badge Visibility (show_badge: false should NOT render badge span) --
 
   test('Guest Of Honor type does not render a visible badge span (show_badge=false)', async ({ page }) => {
     // Guest Of Honor has show_badge=false, so no .badge span should appear.
@@ -128,7 +128,7 @@ test.describe('11 — Badges', () => {
     expect(gohBadges + gohIconBadges).toBe(0);
   });
 
-  // ── Badges on Kiosk ──
+  // -- Badges on Kiosk --
 
   test.describe('Kiosk badges', () => {
     test.beforeEach(async ({ page }) => {
@@ -177,9 +177,8 @@ test.describe('11 — Badges', () => {
     });
   });
 
-  // ── Badge Defaults Validation ──
-  // Verify the expected default badge types are all configured in the DB.
-  // This catches cases where the seed script or restore-defaults is broken.
+  // -- Badge Defaults Validation --
+  // Catches a broken seed script or restore-defaults.
 
   test('all default badge types produce at least one badge on the page', async ({ page }) => {
     // Of the 8 defaults, only those with show_badge=true AND matching seed events render.

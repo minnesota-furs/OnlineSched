@@ -3,7 +3,7 @@
 const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
-// ── Mobile (375px) ──
+// -- Mobile (375px) --
 
 test.describe('09 — Responsive (mobile 375px)', () => {
   test.use({ viewport: { width: 375, height: 812 } });
@@ -131,7 +131,7 @@ test.describe('09 — Responsive (mobile 375px)', () => {
   });
 });
 
-// ── Tablet (768px) ──
+// -- Tablet (768px) --
 
 test.describe('09 — Responsive (tablet 768px)', () => {
   test.use({ viewport: { width: 768, height: 1024 } });
@@ -189,7 +189,7 @@ test.describe('09 — Responsive (tablet 768px)', () => {
   });
 });
 
-// ── Ultra-wide Tablet / Landscape (1366px) ──
+// -- Ultra-wide Tablet / Landscape (1366px) --
 
 test.describe('09 — Responsive (tablet-landscape 1366px)', () => {
   test.use({ viewport: { width: 1366, height: 1024 } });

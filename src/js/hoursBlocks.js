@@ -95,9 +95,8 @@ registerBlockType('onlinesched/hours-department', {
     save: () => el(InnerBlocks.Content),
 });
 
-// The day selector lives directly in the block content area - no need to open
-// the sidebar just to change Thursday to Friday. The <dt> / <dd> structure
-// matches the frontend so rows look right while editing.
+// The day selector sits in the block content rather than the sidebar, and the
+// markup matches the frontend so rows look right while editing.
 registerBlockType('onlinesched/hours-day', {
     title: __('Hours: Day', 'onlinesched'),
     icon: 'calendar-alt',
@@ -131,10 +130,8 @@ registerBlockType('onlinesched/hours-day', {
     save: () => el(InnerBlocks.Content),
 });
 
-// The hours and optional note are inline-editable RichText fields so the row
-// looks exactly like the frontend while editing. Formatting options (line break,
-// italics) belong in the Inspector sidebar - they are metadata about the row,
-// not its content.
+// Inline RichText so the row matches the frontend while editing; formatting
+// controls live in the Inspector, being metadata rather than content.
 registerBlockType('onlinesched/hours-time', {
     title: __('Hours: Time', 'onlinesched'),
     icon: 'clock',

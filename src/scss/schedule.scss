@@ -1,4 +1,4 @@
-// Phase 1: os- namespaced partials (additive - Bootstrap still loaded)
+// os- namespaced partials, additive alongside Bootstrap.
 @use 'variables';
 @use 'animations';
 @use 'grid';
@@ -11,10 +11,8 @@
 @use 'utilities';
 @use 'solo-event';
 
-// Scope all em-relative sizes inside the schedule to a predictable base.
-// Themes with a larger or smaller body font-size won't affect internal proportions.
-// Override if your surrounding content uses a different size:
-//   :root { --os-font-size-base: 18px; }
+// Scopes em-relative sizes to a predictable base, so the theme's body size does
+// not distort internal proportions. Overridable per README.md.
 #schedule {
   font-size: var(--os-font-size-base, 16px);
 }
@@ -239,14 +237,6 @@ dl.schedule-meta:after {
   background: #333;
 }
 
-/*                        .schedule-day > h2, .schedule-hour > h3 {
-                            font-family: "proxima nova", sans-serif;
-                            margin: 0 -20px;
-                            padding: 10px 20px;
-                            color: #fff;
-                            font-size: 18px;
-                        }
-*/
 
 #schedule .schedule-day > h2 {
   font-family: var(--os-font-family, system-ui, sans-serif);
@@ -435,7 +425,7 @@ dl.schedule-meta:after {
   }
 }
 
-// Kiosk hides action icons — remove reserved right gutter so title/panelist columns fill the row.
+// Kiosk hides action icons - remove reserved right gutter so title/panelist columns fill the row.
 .kiosk-schedule .schedule-calendar {
   display: none;
 }

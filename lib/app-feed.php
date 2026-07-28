@@ -147,11 +147,11 @@ function onlinesched_app_local_datetime_iso8601($value) {
  * component), so distinct ids can never collide ("A B" vs "A-B", ids that
  * differ only in punctuation, or ids containing the delimiter).
  *
- * Manually created events use a UUID persisted in post meta — assigned at
+ * Manually created events use a UUID persisted in post meta - assigned at
  * save time and by the versioned upgrade backfill, never here: this read
  * path performs zero writes. A manual event with no persisted UUID yet
  * (created before the upgrade ran, never re-saved, upgrade not yet run)
- * returns '' and the schedule builder OMITS it — the feed never serves a
+ * returns '' and the schedule builder OMITS it - the feed never serves a
  * provisional UID that a later backfill would change out from under stored
  * favorites/reminders. Fail closed, stay durable.
  *
@@ -162,9 +162,8 @@ function onlinesched_app_local_datetime_iso8601($value) {
 function onlinesched_get_event_uid($post_id, $year) {
 	$year_part = rawurlencode((string) $year);
 
-	// A persisted UUID always wins: CSV export lazily assigns external ids to
-	// manually created events, and that backfill must never change a UID that
-	// clients have already stored against favorites/reminders.
+	// A persisted UUID always wins, so the external id CSV export backfills
+	// cannot change a uid clients already stored.
 	$uuid = trim((string) get_post_meta($post_id, 'onlinesched_event_uid', true));
 	if ('' !== $uuid) {
 		$uid = $year_part . ':' . $uuid;
@@ -179,7 +178,7 @@ function onlinesched_get_event_uid($post_id, $year) {
 /**
  * Assign the persisted UUID for a manually created event if missing.
  *
- * Called from save-time hooks and the versioned upgrade — the feed's read
+ * Called from save-time hooks and the versioned upgrade - the feed's read
  * path never writes.
  *
  * @param int $post_id Event post ID.
@@ -216,8 +215,8 @@ function onlinesched_app_feed_meta($revisions = null) {
 		$stamp_parts[] = $revisions[$section]['rev'];
 	}
 
-	// Established config rail (option → constant → filter), then site title,
-	// then a neutral default — never blank.
+	// Established config rail (option -> constant -> filter), then site title,
+	// then a neutral default - never blank.
 	$con_name = function_exists('onlinesched_get_calendar_name')
 		? trim((string) onlinesched_get_calendar_name())
 		: trim((string) get_option('onlinesched_calendar_name', ''));
@@ -233,7 +232,7 @@ function onlinesched_app_feed_meta($revisions = null) {
 		'con_name'           => $con_name,
 		'year'               => (string) get_option('onlinesched_year', ''),
 		'timezone'           => wp_timezone_string(),
-		// Composed from the supplied snapshot, never a live read — the body
+		// Composed from the supplied snapshot, never a live read - the body
 		// must agree with the snapshot it was built from.
 		'revisions'          => $rev_numbers,
 		'change_stamp'       => implode('.', $stamp_parts),
@@ -247,15 +246,12 @@ function onlinesched_app_feed_meta($revisions = null) {
 		),
 		'schedule_published' => onlinesched_app_schedule_published(),
 		'sections'           => onlinesched_feed_sections(),
-		// Public schedule page URL. Clients can deep-link a specific event by
-		// appending '#evt={wp_post_id}' — the schedule front end owns that
-		// hash format (src/js/new_schedule.js) and activates the right
-		// day/modal on load. Empty string when no schedule page is configured.
+		// Public schedule page URL, empty when none is configured. The schedule
+		// front end owns the '#evt={id}' hash clients append to it.
 		'schedule_url'       => onlinesched_app_feed_schedule_url(),
 		'info_pages'         => onlinesched_app_feed_info_index(),
-		// Site-provided endpoint map: {name: url}. Empty by default; themes or
-		// plugins add entries via the filter to advertise additional feeds
-		// alongside this one. Object-cast so an empty map serializes as {}.
+		// Endpoint map that themes and plugins extend through the filter. Cast to
+		// an object so an empty map serializes as {} rather than [].
 		'links'              => (object) apply_filters('onlinesched_app_feed_meta_links', array()),
 	);
 }
@@ -406,7 +402,7 @@ function onlinesched_app_feed_event_terms($post_id, $taxonomy) {
 /**
  * Hours section: lossless export of the configured Hours page blocks.
  *
- * Free-form hours/smallText strings are preserved exactly as authored —
+ * Free-form hours/smallText strings are preserved exactly as authored -
  * no open/close parsing (structured intervals arrive in milestone 1.5).
  *
  * @return array
@@ -578,7 +574,7 @@ function onlinesched_app_feed_info($slug = '', $revisions = null) {
  * A mutation landing between the snapshot read and the content queries would
  * otherwise produce a body newer (or older) than the revisions/`generated`
  * values it carries. Re-read the snapshot after building; if any revision
- * moved mid-build, rebuild against the fresh snapshot (bounded retries —
+ * moved mid-build, rebuild against the fresh snapshot (bounded retries -
  * under pathological churn the last build is accepted, and the payload-hash
  * ETag keeps conditional requests correct regardless).
  *
@@ -597,9 +593,8 @@ function onlinesched_app_feed_build_consistent(callable $build) {
 		$revisions = $after;
 		$payload = $build($revisions);
 	}
-	// Always the snapshot this payload was BUILT from: when churn outlasts
-	// the retries the pair may be slightly stale, but it is never torn — a
-	// coherent stale pair beats fresh metadata on someone else's body.
+	// Always the snapshot this payload was built from: a coherent stale pair
+	// beats fresh metadata describing someone else's body.
 	return array($payload, $revisions);
 }
 
@@ -626,7 +621,7 @@ function onlinesched_app_feed_generated(array $revision) {
  * Strong ETag for a section response variant.
  *
  * Derived from the schema version, the section revision, and the request
- * variant (filters/slug) — never from response bytes, so identical
+ * variant (filters/slug) - never from response bytes, so identical
  * representations keep identical ETags across requests.
  *
  * @param string $section Section name ('meta' uses the composite stamp).
@@ -636,9 +631,8 @@ function onlinesched_app_feed_generated(array $revision) {
 function onlinesched_app_feed_etag($section, $variant = '', $revisions = null, $content_hash = '') {
 	$revisions = is_array($revisions) ? $revisions : onlinesched_get_feed_revisions();
 	if ('meta' === $section) {
-		// Public 3-part stamp plus the internal meta revision, so meta-only
-		// payload changes (calendar name, …) move the meta ETag without
-		// touching the public contract.
+		// The public stamp plus the internal meta revision, so a meta-only change
+		// moves the meta ETag without touching the public contract.
 		$parts = array();
 		foreach (onlinesched_feed_sections() as $fetchable) {
 			$parts[] = $revisions[$fetchable]['rev'];
@@ -659,7 +653,7 @@ function onlinesched_app_feed_etag($section, $variant = '', $revisions = null, $
  * Body, ETag, and Last-Modified all derive from one immutable revision
  * snapshot taken per request (a concurrent touch can never produce headers
  * from one revision and a body from another), and the strong ETag includes a
- * hash of the exact bytes sent — the ETag changes if and only if the
+ * hash of the exact bytes sent - the ETag changes if and only if the
  * representation changes, whatever the dependency (filters included).
  *
  * @param array      $payload   Response body.
@@ -691,10 +685,8 @@ function onlinesched_app_feed_send(array $payload, $section, $variant = '', $rev
 	$if_none_match = isset($_SERVER['HTTP_IF_NONE_MATCH'])
 		? trim(wp_unslash($_SERVER['HTTP_IF_NONE_MATCH']))
 		: '';
-	// Compare on the unquoted core token: proxies and mod_deflate rewrap the
-	// ETag (W/"token-gzip"), and an exact quoted match would silently disable
-	// every 304 behind such a server. The token embeds a content hash, so a
-	// substring match cannot false-positive.
+	// Compared on the unquoted core token, because proxies rewrap the ETag and
+	// an exact match would disable every 304 behind them.
 	if ('' !== $if_none_match && false !== strpos($if_none_match, trim($etag, '"'))) {
 		status_header(304);
 		exit;

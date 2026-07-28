@@ -15,7 +15,7 @@ $os-tabs-height: 48px;
   --os-tabs-height: #{$os-tabs-height};
   --os-radius: 4px;
   --os-transition: 0.2s ease;
-  // Typeface — override via CSS or disable onlinesched_load_fonts filter in your theme.
+  // Typeface - override via CSS or disable onlinesched_load_fonts filter in your theme.
   --os-font-family: system-ui, sans-serif;
   // Base font size for the schedule. All internal em values resolve from this.
   // Override to match your body text: :root { --os-font-size-base: 18px; }

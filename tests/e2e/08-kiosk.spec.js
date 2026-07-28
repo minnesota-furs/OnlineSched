@@ -1,5 +1,5 @@
 // @author kurst@mnfurs.org Kurst Hyperyote for Furry Migration
-// Kiosk mode tests — runs at 1920×1080 on Edge via the "kiosk" project.
+// Kiosk mode tests - runs at 1920x1080 on Edge via the "kiosk" project.
 const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
@@ -11,7 +11,7 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     await page.waitForTimeout(300);
   });
 
-  // ── Page & Layout ──
+  // -- Page & Layout --
 
   test('page loads with kiosk-schedule CSS class', async ({ page }) => {
     const hasKiosk = await page.evaluate(
@@ -22,7 +22,7 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
   });
 
   test('no standard WordPress header navigation', async ({ page }) => {
-    // Kiosk uses header-schedule.php — no #masthead, no .site-header, no .navbar
+    // Kiosk uses header-schedule.php - no #masthead, no .site-header, no .navbar
     const nav = await page.locator('#masthead, .site-header, .navbar').count();
     expect(nav).toBe(0);
   });
@@ -36,9 +36,7 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
   });
 
   test('no OneSignal script loaded', async ({ page }) => {
-    // PHP kiosk template does not yet filter out OneSignal.
-    // When lib/schedule.php is updated to exclude OneSignal for kiosk theming,
-    // remove this skip and let the assertion run.
+    // Drop this skip once the kiosk template excludes OneSignal.
     test.skip(true, 'OneSignal filtering for kiosk not yet implemented in PHP template');
     const onesignal = await page.evaluate(() =>
       document.querySelector('script[src*="OneSignal"], script[src*="onesignal"]')
@@ -52,7 +50,7 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  // ── Reduced Functionality (should NOT exist in kiosk) ──
+  // -- Reduced Functionality (should NOT exist in kiosk) --
 
   test('no favorite star buttons on events', async ({ page }) => {
     const count = await page.locator(S.favoriteBtn).count();
@@ -96,7 +94,7 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     expect(linkCount).toBe(0);
   });
 
-  // ── Core Features Must Still Work ──
+  // -- Core Features Must Still Work --
 
   test('tabs: Programming tab is active on load', async ({ page }) => {
     await expect(page.locator(S.tabProgramming)).toBeVisible();
@@ -121,9 +119,8 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
 
     await mapTab.click();
     await page.waitForTimeout(600); // extra time for Bootstrap tab transition
-    // Bootstrap adds 'active' class to the tab pane on switch.
-    // Use class check rather than toBeVisible() as kiosk CSS may use
-    // non-standard show/hide that Playwright's visibility heuristic misses.
+    // A class check rather than toBeVisible(), since kiosk CSS hides panes in a
+    // way Playwright's visibility heuristic misses.
     await expect(page.locator(S.tabMap)).toHaveClass(/os-tab-pane--active/);
   });
 
@@ -251,15 +248,14 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     await firstTitle.scrollIntoViewIfNeeded();
     await firstTitle.click();
     await expect(page.locator(S.scheduleModal)).toBeVisible({ timeout: 8000 });
-    // Bootstrap 3 binds the Escape key handler on the modal element itself (not on document),
-    // so we dispatch keydown directly to the modal to guarantee Bootstrap's handler fires.
-    // Also wait for Bootstrap's show animation + enforceFocus() to complete before pressing.
+    // The Escape handler is bound on the modal itself, so the key is dispatched
+    // there, and only after the show animation and focus trap settle.
     await page.waitForTimeout(400);
     await page.locator(S.scheduleModal).press('Escape');
     await expect(page.locator(S.scheduleModal)).toBeHidden({ timeout: 5000 });
   });
 
-  // ── Layout at 1920×1080 ──
+  // -- Layout at 1920x1080 --
 
   test('schedule items do not overflow viewport width', async ({ page }) => {
     const item = page.locator(S.scheduleItem).first();

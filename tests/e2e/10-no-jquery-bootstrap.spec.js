@@ -44,12 +44,8 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
     expect(count).toBe(0);
   });
 
-  // Col-* checks are scoped to OnlineSched-owned markup (#schedule + dialogs).
-  // Use regex /^col-XX-/ to match Bootstrap classes exactly — avoids false-positive
-  // hits on os-col-xs-* etc. (class* substring match would catch those too).
-  // Excluded from scope (not plugin-owned):
-  //   .schedule-description / #modal-schedule-description — user-generated WP post content
-  //   #footer — theme footer rendered inside #schedule by get_footer()
+  // Scoped to plugin-owned markup and anchored so os-col-* does not false
+  // positive; post content and the theme footer are out of scope.
   test('no Bootstrap col-xs- classes remain in OnlineSched DOM', async ({ page }) => {
     const count = await page.evaluate((S) => {
       const re = /^col-xs-/;

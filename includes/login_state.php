@@ -1,9 +1,6 @@
 <?php
-// login_state.php: no-store bootstrap for social login state and favorites sync.
-//
-// This is a standalone direct-hit endpoint, not an include-only file.
-// It loads WordPress itself via wp-load.php, so it intentionally does NOT
-// have the `if (!defined('ABSPATH')) exit;` guard that library files use.
+// A directly hit endpoint rather than an include, so it loads WordPress itself
+// and deliberately omits the ABSPATH guard that library files carry.
 require_once __DIR__ . '/../../../../wp-load.php';
 
 if (function_exists('onlinesched_send_private_no_store_headers')) {
