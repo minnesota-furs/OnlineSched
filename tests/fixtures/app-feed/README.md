@@ -12,7 +12,7 @@ first, then copy the change here in the same commit that changes
 
 Files (schema_version 1):
 
-- `meta.json` — handshake: revisions, change stamp, con window, publication
+- `meta.json` — handshake: revisions, resource manifest, con window, publication
 - `schedule.json` — full active-year schedule (events keyed by `event_uid`)
 - `hours.json` — lossless free-form hours export
 - `info-list.json` — info section index

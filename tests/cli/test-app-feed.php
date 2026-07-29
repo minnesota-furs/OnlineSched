@@ -733,6 +733,66 @@ try {
 	$pass("meta 'links' is an empty object by default and picks up entries from the onlinesched_app_feed_meta_links filter");
 
 	// -------------------------------------------------------------------
+	// A3c. Meta resources: revisioned core entries and bounded extensions
+	// -------------------------------------------------------------------
+
+	$meta_resources_default = onlinesched_app_feed_meta();
+	$assert(array_key_exists('resources', $meta_resources_default), "The meta section must contain a 'resources' key.");
+	$assert($meta_resources_default['resources'] instanceof stdClass, "'resources' must serialize as an object.");
+	$resource_vars = get_object_vars($meta_resources_default['resources']);
+	$assert(
+		array('hours', 'info', 'schedule') === array_keys($resource_vars),
+		'Core resources must be normalized into stable key order; got ' . wp_json_encode(array_keys($resource_vars)) . '.'
+	);
+	foreach (array('schedule', 'hours', 'info') as $resource_name) {
+		$resource = $resource_vars[$resource_name];
+		$assert(true === $resource['enabled'], "Core resource '{$resource_name}' must be enabled.");
+		$assert(1 === $resource['schema_version'], "Core resource '{$resource_name}' must advertise schema 1.");
+		$assert(
+			(string) $meta_resources_default['revisions'][$resource_name] === $resource['revision'],
+			"Core resource '{$resource_name}' revision must match the supplied Meta snapshot."
+		);
+		$assert(
+			false !== strpos($resource['url'], 'section=' . $resource_name)
+				&& false !== strpos($resource['url'], 'rev=' . $resource['revision']),
+			"Core resource '{$resource_name}' must use its exact revisioned URL."
+		);
+	}
+
+	$onlinesched_aft_resources_filter = static function ($resources) {
+		$resources['external'] = array(
+			'url'            => 'https://example.test/external.json?rev=abc123',
+			'schema_version' => 4,
+			'enabled'        => true,
+			'revision'       => 'abc123',
+		);
+		$resources['broken'] = array(
+			'url'            => 'https://example.test/broken.json',
+			'schema_version' => 1,
+			'enabled'        => true,
+			'revision'       => '',
+		);
+		$resources['disabled'] = array(
+			'url'            => '',
+			'schema_version' => 2,
+			'enabled'        => false,
+			'revision'       => '',
+		);
+		return $resources;
+	};
+	add_filter('onlinesched_app_feed_meta_resources', $onlinesched_aft_resources_filter);
+	$filtered_resources = get_object_vars(onlinesched_app_feed_meta()['resources']);
+	remove_filter('onlinesched_app_feed_meta_resources', $onlinesched_aft_resources_filter);
+
+	$assert(isset($filtered_resources['external']), 'A valid site resource added through the filter must be advertised.');
+	$assert(!isset($filtered_resources['broken']), 'An enabled resource without a revision must be dropped.');
+	$assert(
+		isset($filtered_resources['disabled']) && false === $filtered_resources['disabled']['enabled'],
+		'An explicit disabled resource must remain distinguishable from a missing resource.'
+	);
+	$pass('meta resources publish revisioned core entries and normalize site extensions');
+
+	// -------------------------------------------------------------------
 	// A4. Versioned upgrade: legacy serialized-blob migration (schema v3)
 	// -------------------------------------------------------------------
 

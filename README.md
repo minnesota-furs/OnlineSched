@@ -252,12 +252,39 @@ configured info-page index.
   "info_pages": [
     { "slug": "parking", "title": "Parking", "updated": "2026-07-20T15:04:00Z" }
   ],
+  "resources": {
+    "schedule": {
+      "url": "https://www.furrymigration.org/wp-content/plugins/OnlineSched/json.php?section=schedule&rev=41",
+      "schema_version": 1,
+      "enabled": true,
+      "revision": "41"
+    },
+    "hours": {
+      "url": "https://www.furrymigration.org/wp-content/plugins/OnlineSched/json.php?section=hours&rev=7",
+      "schema_version": 1,
+      "enabled": true,
+      "revision": "7"
+    },
+    "info": {
+      "url": "https://www.furrymigration.org/wp-content/plugins/OnlineSched/json.php?section=info&rev=12",
+      "schema_version": 1,
+      "enabled": true,
+      "revision": "12"
+    }
+  },
   "links": {}
 }
 ```
 
-An app can poll `meta` cheaply and only refetch a section whose revision number (or
-the composed `change_stamp`) has moved since its last successful fetch.
+An app can poll `meta` cheaply. A `304 Not Modified` ends the pass. On a changed
+response, `resources` gives each core section's exact revisioned URL, schema,
+enabled state, and opaque revision. Clients fetch only resources whose published
+revision differs from their last successful local commit.
+
+Site plugins can add independently published resources through the
+`onlinesched_app_feed_meta_resources` filter. The filter must only read completed
+local publication state; it must not fetch, render, or mutate data while Meta is
+being built. Enabled entries without both a URL and revision are dropped.
 
 `links` is a site-provided endpoint map, empty by default. A theme or plugin can
 add entries through the `onlinesched_app_feed_meta_links` filter (an associative

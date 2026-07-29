@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.0
+
+- Added the Meta `resources` manifest for revision-directed companion app
+  synchronization.
+- Added the `onlinesched_app_feed_meta_resources` filter for site-owned
+  resources whose published revisions are maintained outside OnlineSched.
+
 ## 3.0.4
 
 - Public convention start/end settings now accept date and time in the

@@ -36,5 +36,25 @@
       "updated": "2026-07-18T10:30:00Z"
     }
   ],
+  "resources": {
+    "schedule": {
+      "url": "https://www.furrymigration.org/wp-content/plugins/OnlineSched/json.php?section=schedule&rev=41",
+      "schema_version": 1,
+      "enabled": true,
+      "revision": "41"
+    },
+    "hours": {
+      "url": "https://www.furrymigration.org/wp-content/plugins/OnlineSched/json.php?section=hours&rev=7",
+      "schema_version": 1,
+      "enabled": true,
+      "revision": "7"
+    },
+    "info": {
+      "url": "https://www.furrymigration.org/wp-content/plugins/OnlineSched/json.php?section=info&rev=12",
+      "schema_version": 1,
+      "enabled": true,
+      "revision": "12"
+    }
+  },
   "links": {}
 }

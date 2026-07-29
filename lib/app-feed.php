@@ -250,10 +250,102 @@ function onlinesched_app_feed_meta($revisions = null) {
 		// front end owns the '#evt={id}' hash clients append to it.
 		'schedule_url'       => onlinesched_app_feed_schedule_url(),
 		'info_pages'         => onlinesched_app_feed_info_index(),
+		'resources'          => (object) onlinesched_app_feed_resources( $revisions ),
 		// Endpoint map that themes and plugins extend through the filter. Cast to
 		// an object so an empty map serializes as {} rather than [].
 		'links'              => (object) apply_filters('onlinesched_app_feed_meta_links', array()),
 	);
+}
+
+/**
+ * Resource manifest for one Meta snapshot.
+ *
+ * Site plugins may add independently published resources through
+ * onlinesched_app_feed_meta_resources. Reading that filter must be bounded and
+ * side-effect free.
+ *
+ * @param array $revisions Revision snapshot for request coherence.
+ * @return array
+ */
+function onlinesched_app_feed_resources( $revisions ) {
+	$base = ONLINESCHED_PLUGIN_URL . 'json.php';
+	$resources = array(
+		'schedule' => array(
+			'url'            => add_query_arg(
+				array(
+					'section' => 'schedule',
+					'rev'     => $revisions['schedule']['rev'],
+				),
+				$base
+			),
+			'schema_version' => ONLINESCHED_APP_FEED_SCHEMA_VERSION,
+			'enabled'        => true,
+			'revision'       => (string) $revisions['schedule']['rev'],
+		),
+		'hours'    => array(
+			'url'            => add_query_arg(
+				array(
+					'section' => 'hours',
+					'rev'     => $revisions['hours']['rev'],
+				),
+				$base
+			),
+			'schema_version' => ONLINESCHED_APP_FEED_SCHEMA_VERSION,
+			'enabled'        => true,
+			'revision'       => (string) $revisions['hours']['rev'],
+		),
+		'info'     => array(
+			'url'            => add_query_arg(
+				array(
+					'section' => 'info',
+					'rev'     => $revisions['info']['rev'],
+				),
+				$base
+			),
+			'schema_version' => ONLINESCHED_APP_FEED_SCHEMA_VERSION,
+			'enabled'        => true,
+			'revision'       => (string) $revisions['info']['rev'],
+		),
+	);
+
+	$resources = apply_filters(
+		'onlinesched_app_feed_meta_resources',
+		$resources,
+		$revisions
+	);
+	if ( ! is_array( $resources ) ) {
+		return array();
+	}
+
+	$normalized = array();
+	foreach ( $resources as $key => $resource ) {
+		$name = sanitize_key( $key );
+		if ( '' === $name || ! is_array( $resource ) ) {
+			continue;
+		}
+
+		$enabled  = ! empty( $resource['enabled'] );
+		$schema   = max( 1, (int) ( $resource['schema_version'] ?? 1 ) );
+		$revision = is_scalar( $resource['revision'] ?? null )
+			? trim( (string) $resource['revision'] )
+			: '';
+		$url = is_string( $resource['url'] ?? null )
+			? esc_url_raw( $resource['url'], array( 'http', 'https' ) )
+			: '';
+
+		if ( $enabled && ( '' === $url || '' === $revision ) ) {
+			continue;
+		}
+
+		$normalized[ $name ] = array(
+			'url'            => $url,
+			'schema_version' => $schema,
+			'enabled'        => $enabled,
+			'revision'       => $revision,
+		);
+	}
+	ksort( $normalized );
+	return $normalized;
 }
 
 /**

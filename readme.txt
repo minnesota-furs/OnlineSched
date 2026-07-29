@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 3.0.3
+Stable tag: 3.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -84,7 +84,7 @@ JSON app feed:
     /wp-content/plugins/OnlineSched/json.php?section=hours
     /wp-content/plugins/OnlineSched/json.php?section=info&page=parking
 
-The JSON feed is a sectioned, schema-versioned app feed for mobile companion apps and other structured clients: meta (handshake with revisions, change stamp, convention window, publication state), schedule (default; durable event UIDs, ISO 8601 times, cancelled/adult flags), hours (free-form hours text as authored), and info (admin-curated pages). All responses send ETag/Last-Modified and honor If-None-Match with 304. Use room and tag slugs, not display names.
+The JSON feed is a sectioned, schema-versioned app feed for mobile companion apps and other structured clients: meta (handshake with revisions, resource manifest, convention window, publication state), schedule (default; durable event UIDs, ISO 8601 times, cancelled/adult flags), hours (free-form hours text as authored), and info (admin-curated pages). All responses send ETag/Last-Modified and honor If-None-Match with 304. Use room and tag slugs, not display names.
 
 Sites can define named groups with the onlinesched_json_room_groups option or the os_json_room_groups filter; an unconfigured group returns an empty schedule instead of guessing. The pre-3.0.0 signage output and the programming=1/gaming=1 aliases were removed in 3.0.0 (see the changelog).
 
