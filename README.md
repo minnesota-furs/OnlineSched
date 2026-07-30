@@ -21,6 +21,7 @@ OnlineSched began as a prototype built by the original Furry Migration team, wit
 
 * [Installation](#installation)
 * [First-Time Setup](#first-time-setup)
+* [Managing Cancellations](#managing-cancellations)
 * [Embedding the Schedule](#embedding-the-schedule-shortcode)
 * [Calendar Feeds and External Endpoints](#calendar-feeds-and-external-endpoints)
 * [Favorites and Privacy](#favorites-and-privacy)
@@ -73,6 +74,22 @@ After activating the plugin, complete these steps before your schedule will appe
 6. **Optional: configure social login.** Go to **Event Scheduling > Social Login** to add credentials for the providers you want to use. No login providers appear until credentials are configured.
 
 Once those pieces are in place, the schedule is ready to publish.
+
+## Managing Cancellations
+
+When an event is cancelled, keep it published so people can see what happened.
+Open the event in the Classic Editor, find the **Cancellation** panel, check
+**This event is cancelled**, and update the event.
+
+That checkbox is a shortcut for OnlineSched's existing `Cancelled` Tag Type.
+It does not create another cancellation field or change the event's publication
+status. The checkbox and the native Tag Type box stay synchronized when either
+the `Cancelled` or `Canceled` spelling is added or removed.
+
+Avoid moving a cancelled event to Trash or changing it to Draft, Pending
+Review, or Private. Those actions make it disappear from schedules, calendar
+feeds, and companion applications. OnlineSched shows a warning before common
+editor and Events list actions remove a published event from public output.
 
 ## Embedding the Schedule (Shortcode)
 

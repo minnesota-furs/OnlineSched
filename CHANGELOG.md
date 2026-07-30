@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.2.0
+
+- Added a native Cancellation checkbox to the Classic Editor for events. The
+  checkbox uses the existing `os_tag` assignment and does not add a second
+  stored cancellation field.
+- Kept the checkbox and the native Tag Type box synchronized for the
+  `Cancelled` and `Canceled` aliases.
+- Added focused warnings before a published event is moved to Trash or changed
+  to a non-public status from the event editor or Events list.
+- Preserved normal programmatic saves, imports, public feeds, and the CSV
+  contract.
+
 ## 3.1.0
 
 - Added the Meta `resources` manifest for revision-directed companion app

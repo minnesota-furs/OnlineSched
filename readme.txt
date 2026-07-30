@@ -2,9 +2,9 @@
 Contributors: bl, bm, al
 Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
-Tested up to: 6.8
+Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 3.1.0
+Stable tag: 3.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,14 @@ Individual event calendar actions remain available because those events are alre
 
 Calendar applications control their own refresh timing, so a paused or resumed subscription may take time to update.
 
+= How should I cancel an event? =
+
+Keep the event published and open its Cancellation panel in the Classic Editor. Check This event is cancelled, then update the event.
+
+The checkbox manages the existing Cancelled Tag Type assignment. It does not create a second cancellation field or change the event's publication status. The checkbox and native Tag Type box stay synchronized if either Cancelled or Canceled is added or removed.
+
+Keeping the event published lets the schedule, calendar feeds, and companion applications tell attendees what happened. OnlineSched warns before a published event is moved to Trash or changed to a non-public status because that would make the event disappear from those places.
+
 = Can I override the schedule templates? =
 
 Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a matching path in your theme under an onlinesched/ folder. For example, to override the tab bar, create: your-theme/onlinesched/partials/schedule-tabs.php. The full list of overridable partials is in the README on GitHub.
@@ -113,6 +121,21 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 3.2.0 =
+* Adds a native Classic Editor cancellation checkbox backed by the existing
+  Cancelled Tag Type assignment.
+* Keeps the cancellation checkbox and native Tag Type box synchronized.
+* Warns before published events are removed from public output through common
+  editor and Events list actions.
+
+= 3.1.0 =
+* Adds the Meta resources manifest and filter for revision-directed companion
+  app synchronization.
+
+= 3.0.4 =
+* Adds offset-bearing public convention start and end times while preserving
+  existing date-only values.
 
 = 3.0.3 =
 * Dynamic JSON app-feed responses now send an explicit 60-second Expires

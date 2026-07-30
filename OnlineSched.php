@@ -3,7 +3,7 @@
 Plugin Name: OnlineSched
 Plugin URI: https://github.com/minnesota-furs/OnlineSched
 Description: A flexible event scheduling plugin for conventions and organizations.
-Version: 3.1.0
+Version: 3.2.0
 Requires at least: 6.4
 Requires PHP: 8.2
 License: GPL-2.0-or-later
@@ -59,6 +59,7 @@ require_once('includes/solo-event-block.php');
 require_once('includes/rest-api.php');
 require_once('includes/favorites.php');
 require_once('includes/privacy.php');
+require_once('includes/admin-event-safety.php');
 require_once("OnlineSchedBadgeTypes.php");
 require_once('OnlineSchedEssentials.php');
 require_once('OnlineSchedSocialLogin.php');
@@ -693,28 +694,6 @@ function OnlineSched_posts_filter($query)
 		$query->query_vars['meta_value'] = get_option('onlinesched_year');
 	}
 }
-
-function warn_before_deleting_os_event() {
-	global $post_type;
-
-	// Only apply to os_event post type
-	if ($post_type === 'os_event') {
-		?>
-        <script type="text/javascript">
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('a.submitdelete').forEach(function(link) {
-                    link.addEventListener('click', function(e) {
-                        if (!confirm("Are you sure you want to delete this event?\nIf you are canceling it, consider updating tags to be cancelled.\nThis will allow other people to know that it was cancelled just not disappear off their schedules.")) {
-                            e.preventDefault();
-                        }
-                    });
-                });
-            });
-        </script>
-		<?php
-	}
-}
-add_action('admin_footer', 'warn_before_deleting_os_event');
 
 function onlinesched_register_submenus() {
     add_submenu_page(

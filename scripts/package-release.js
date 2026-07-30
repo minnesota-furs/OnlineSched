@@ -29,7 +29,9 @@ const requiredRuntimeFiles = [
     'lib/feed-revisions.php',
     'lib/app-feed.php',
     'json.php',
+    'includes/admin-event-safety.php',
     'includes/wp-cli.php',
+    'assets/js/admin-event-safety.js',
     'vendor/autoload.php',
     'build/bundle.js',
     'build/main.css',
@@ -55,6 +57,7 @@ const topLevelFiles = [
 ];
 
 const topLevelDirs = [
+    'assets',
     'templates',
     'lib',
     'includes',

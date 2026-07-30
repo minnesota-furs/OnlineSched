@@ -427,6 +427,9 @@ function onlinesched_feed_touch_on_term_assignment($object_id, $terms, $tt_ids, 
 	if ('os_event' !== get_post_type($object_id)) {
 		return;
 	}
+	if (isset(onlinesched_feed_id_set('save-flow')[(int) $object_id])) {
+		return;
+	}
 	onlinesched_touch_feed('schedule', 'event-terms');
 }
 
