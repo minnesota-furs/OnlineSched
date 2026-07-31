@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.0
+
+- Added the site-neutral `onlinesched_meta_published` action with the exact
+  public Meta fingerprint after a completed feed publication.
+- Coalesced multiple feed touches in one request into a single shutdown
+  emission so consumers observe fully committed public data.
+
 ## 3.2.0
 
 - Added a native Cancellation checkbox to the Classic Editor for events. The

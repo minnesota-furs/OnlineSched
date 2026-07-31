@@ -740,6 +740,21 @@ function onlinesched_app_feed_etag($section, $variant = '', $revisions = null, $
 }
 
 /**
+ * Fingerprint of the current Meta representation: the exact ETag a meta
+ * request would receive, covering every section revision, resource revision,
+ * and link. This is the completed-publication identity; the public change
+ * stamp alone misses resource-only and meta-only movement.
+ *
+ * @param array|null $revisions Optional revision snapshot.
+ * @return string
+ */
+function onlinesched_app_feed_meta_fingerprint($revisions = null) {
+	$revisions = is_array($revisions) ? $revisions : onlinesched_get_feed_revisions();
+	$payload = onlinesched_app_feed_meta($revisions);
+	return onlinesched_app_feed_etag('meta', '', $revisions, md5((string) wp_json_encode($payload)));
+}
+
+/**
  * Send a section payload with conditional-request support, then exit.
  *
  * Body, ETag, and Last-Modified all derive from one immutable revision

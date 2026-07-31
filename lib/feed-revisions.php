@@ -253,6 +253,7 @@ function onlinesched_touch_feed($sections, $reason = '') {
 	 * @param string   $reason   Cause supplied by the mutating code path.
 	 */
 	do_action('onlinesched_feed_touched', $moved_sections, $reason);
+	onlinesched_feed_arm_meta_published();
 
 	if (function_exists('w3tc_flush_all')) {
 		w3tc_flush_all();
@@ -608,4 +609,37 @@ function onlinesched_feed_touch_on_page_delete($post_id, $post = null) {
 	if (!empty($sections)) {
 		onlinesched_touch_feed($sections, 'page-delete');
 	}
+}
+
+
+/**
+ * Arm one shutdown emission of the completed-publication action. Several
+ * touches inside one request coalesce into a single emission after every
+ * write has committed, so the fingerprint always describes readable bytes.
+ * Nothing here hooks save_post or depends on the request type; WP-CLI
+ * imports emit the same way.
+ */
+function onlinesched_feed_arm_meta_published() {
+	static $armed = false;
+	if ($armed) {
+		return;
+	}
+	$armed = true;
+	add_action('shutdown', 'onlinesched_feed_emit_meta_published', 90);
+}
+
+/**
+ * Emit the site-neutral completed-publication action with the full Meta
+ * fingerprint. Any consumer may listen; OnlineSched itself does nothing
+ * further with it and knows nothing about who subscribes.
+ */
+function onlinesched_feed_emit_meta_published() {
+	if (!function_exists('onlinesched_app_feed_meta_fingerprint')) {
+		require_once __DIR__ . '/app-feed.php';
+	}
+	$fingerprint = onlinesched_app_feed_meta_fingerprint();
+	if ('' === $fingerprint) {
+		return;
+	}
+	do_action('onlinesched_meta_published', $fingerprint);
 }
