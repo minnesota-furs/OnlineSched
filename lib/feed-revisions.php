@@ -480,14 +480,31 @@ function onlinesched_feed_option_section_map() {
 
 add_action('init', 'onlinesched_feed_register_option_hooks');
 function onlinesched_feed_register_option_hooks() {
-	foreach (onlinesched_feed_option_section_map() as $option => $sections) {
-		$handler = static function () use ($sections) {
-			onlinesched_touch_feed($sections, 'settings');
-		};
+	foreach (array_keys(onlinesched_feed_option_section_map()) as $option) {
+		$handler = onlinesched_feed_option_handler($option);
 		add_action('update_option_' . $option, $handler);
 		add_action('add_option_' . $option, $handler);
 		add_action('delete_option_' . $option, $handler);
 	}
+}
+
+/**
+ * Memoized touch handler for one tracked option. Returning the same closure
+ * per option makes the hook removable with remove_action, so batch tools can
+ * suspend the feed's own reaction without touching other listeners.
+ *
+ * @param string $option Tracked option name.
+ * @return callable
+ */
+function onlinesched_feed_option_handler($option) {
+	static $handlers = array();
+	if (!isset($handlers[$option])) {
+		$sections = onlinesched_feed_option_section_map()[$option] ?? array();
+		$handlers[$option] = static function () use ($sections) {
+			onlinesched_touch_feed($sections, 'settings');
+		};
+	}
+	return $handlers[$option];
 }
 
 // ---------------------------------------------------------------------------
