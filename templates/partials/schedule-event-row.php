@@ -95,5 +95,10 @@ if (!$eventCancelled) {
     echo '<div class="schedule-description">' . wp_kses_post($eventDescription) . '</div>';
 }
 
+$popupExtra = onlinesched_event_popup_extra_html(get_the_ID());
+if ('' !== $popupExtra) {
+    echo '<template class="os-event-popup-extra">' . $popupExtra . '</template>';
+}
+
 echo '</div>';
 do_action('os_after_schedule_item', get_the_ID());

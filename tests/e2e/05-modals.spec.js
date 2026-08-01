@@ -125,6 +125,9 @@ test.describe('05 — Modals', () => {
       const tagsField = page.locator('#modal-schedule-tags');
       const tagsText = await tagsField.textContent();
       expect(tagsText?.trim().length).toBeGreaterThan(0);
+      await expect(tagsField).toHaveClass(/schedule-filter-link/);
+      await tagsField.locator('.os-term-item').first().hover();
+      await expect(tagsField.locator('.os-term-item').first()).toHaveCSS('text-decoration-line', 'underline');
     });
 
     test('modal room matches event row room', async ({ page }) => {
@@ -133,9 +136,15 @@ test.describe('05 — Modals', () => {
       const rowRoom = await firstItem.locator('.schedule-room').textContent();
       await page.locator(S.scheduleTitle).first().click();
       await page.waitForTimeout(400);
-      const modalRoom = await page.locator('#modal-schedule-room').textContent();
+      const modalRoomField = page.locator('#modal-schedule-room');
+      const modalRoom = await modalRoomField.textContent();
       if (rowRoom?.trim()) {
         expect(modalRoom?.trim()).toBe(rowRoom.trim());
+        await expect(modalRoomField).toHaveClass(/schedule-filter-link/);
+        await modalRoomField.hover();
+        await expect(modalRoomField).toHaveCSS('text-decoration-line', 'underline');
+        await modalRoomField.click();
+        await expect(page.locator(`${S.selectRooms} option:checked`)).toHaveText(rowRoom.trim());
       }
     });
 
@@ -171,4 +180,3 @@ test.describe('05 — Modals', () => {
     // Full open/close test requires Android UA override - covered by manual QA.
   });
 });
-

@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 3.4.0
+Stable tag: 3.5.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,11 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 3.5.0 =
+
+* Added a theme extension point for event-specific HTML at the bottom of the schedule popup. OnlineSched sanitizes and transports the markup while the active theme owns its content, icons, and styles.
+* Added a kiosk map-and-room route while keeping room-only links as the return to filtered Programming events.
 
 = 3.4.0 =
 * Publishes the administrator-selected Essentials label and tag slugs in the

@@ -88,6 +88,7 @@ export function new_schedule() {
             if (rawHash === 'hours' || rawHash === 'hour') return { tab: 'hours' };
             if (rawHash === 'essentials') return { tab: 'essentials' };
             if (rawHash === 'programming') return { tab: 'programming' };
+            if (rawHash === 'map') return { tab: 'map' };
         }
         const params = new URLSearchParams(rawHash);
         return Object.fromEntries(params.entries());
@@ -389,6 +390,16 @@ export function new_schedule() {
         modal_popup_fill('#modal-schedule-room', room);
         modal_popup_fill('#modal-schedule-tags', tags);
         modal_popup_fill('#modal-schedule-panelists', panelists);
+
+        const extraEl = $('#modal-schedule-extra');
+        if (extraEl) {
+            extraEl.replaceChildren();
+            const template = item.querySelector('.os-event-popup-extra');
+            if (template instanceof HTMLTemplateElement) {
+                extraEl.appendChild(template.content.cloneNode(true));
+            }
+            extraEl.hidden = !extraEl.childElementCount && !extraEl.textContent.trim();
+        }
 
         $('#modal-schedule-ical')?.setAttribute('href', ical);
         $('#modal-schedule-google')?.setAttribute('href', googleCal);
@@ -895,6 +906,11 @@ export function new_schedule() {
             $('[data-os-tab="essentials"]')?.click();
         } else if (state.tab === 'programming') {
             $('[data-os-tab="programming"]')?.click();
+        } else if (state.tab === 'map') {
+            $('#map-tab')?.click();
+            scrollTopMenu();
+        } else if (state.room) {
+            $('[data-os-tab="programming"]')?.click();
         }
 
         if (state.evt) {
@@ -988,6 +1004,7 @@ export function new_schedule() {
 
     handleHashRouting();
     window.addEventListener('popstate', handleHashRouting);
+    window.addEventListener('hashchange', handleHashRouting);
 
     function messageAtBottomForCalendar() {
         const message = $('#schedule-add-to-calendar-message');

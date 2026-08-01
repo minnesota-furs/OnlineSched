@@ -77,6 +77,7 @@ function handleInitialHash() {
         if (rawHash === 'hours' || rawHash === 'hour') targetId = 'hours';
         else if (rawHash === 'essentials') targetId = 'essentials';
         else if (rawHash === 'programming') targetId = 'programming';
+        else if (rawHash === 'map') targetId = 'map';
     } else {
         const params = new URLSearchParams(rawHash);
         targetId = params.get('tab');

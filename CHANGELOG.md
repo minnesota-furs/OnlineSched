@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.5.0
+
+- Added the `os_event_popup_extra_html` filter for event-specific popup
+  content supplied by themes or other plugins.
+- Preserved multiple callbacks in filter priority order and sanitized the final
+  fragment before rendering it with the selected event.
+- Kept extension markup and styling out of OnlineSched so each site controls
+  its own fields, icons, links, and presentation.
+- Added combined kiosk `tab=map&room=...` routing while preserving room-only
+  links as the return path to filtered Programming events.
+
 ## 3.4.0
 
 - Published the administrator-selected Essentials label and tag slugs in the

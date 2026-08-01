@@ -124,6 +124,32 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     await expect(page.locator(S.tabMap)).toHaveClass(/os-tab-pane--active/);
   });
 
+  test('event map link opens the kiosk Map tab and selects its room', async ({ page }) => {
+    const event = page.locator('.schedule-item:has(.os-event-popup-extra)').first();
+    await expect(event).toHaveCount(1);
+    await event.locator('a[data-target="#modal-schedule"]').click();
+
+    const link = page.locator('#modal-schedule-extra .fm-schedule-popup-map-link');
+    await expect(link).toHaveAttribute('href', /#tab=map&room=/);
+    await link.click();
+
+    await expect(page.locator(S.tabMap)).toHaveClass(/os-tab-pane--active/);
+    await expect(page.locator('.fm-map-list-button.is-selected')).toHaveCount(1);
+  });
+
+  test('selected map room returns to its filtered Programming events', async ({ page }) => {
+    await page.locator('#map-tab').click();
+    const room = page.locator('#map .fm-map-list-button').first();
+    await room.click();
+
+    const scheduleLink = page.locator('#map .fm-map-card-schedule');
+    await expect(scheduleLink).toHaveAttribute('href', /#room=/);
+    await scheduleLink.click();
+
+    await expect(page.locator(S.tabProgramming)).toHaveClass(/os-tab-pane--active/);
+    await expect(page.locator(S.selectRooms)).not.toHaveValue('all');
+  });
+
   test('tabs: clicking kiosk tabs snaps back to page top', async ({ page }) => {
     const mapTab = page.locator(`${S.tabList} a[href="#map"]`);
     const tabCount = await mapTab.count();

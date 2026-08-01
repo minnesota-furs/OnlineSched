@@ -666,6 +666,7 @@ The plugin fires these actions and filters so themes and other plugins can exten
 | `os_after_schedule_item` | action | After each event row, receives `$post_id` |
 | `os_event_description` | filter | Filters the event description HTML, receives `($html, $post_id)` |
 | `os_event_badge_html` | filter | Filters the badge HTML for a row, receives `($html, $post_id)` |
+| `os_event_popup_extra_html` | filter | Appends event-specific HTML to the popup, receives `($html, $post_id)` |
 | `os_render_schedule_args` | filter | Filters the full args array before rendering |
 | `os_sticky_offsets` | filter | Array of sticky pixel offsets for the tab bar; use this if your theme has a sticky header |
 | `os_ical_uid_prefix` | filter | Prefix for generated iCal event UIDs; defaults to `os-` |
@@ -692,6 +693,28 @@ add_action( 'os_before_schedule', function () {
     echo '<p class="schedule-notice">Schedule is subject to change.</p>';
 } );
 ```
+
+**Example - adding site-owned fields to an event popup:**
+
+```php
+add_filter( 'os_event_popup_extra_html', function ( $html, $post_id ) {
+    $url = get_post_meta( $post_id, 'venue_map_url', true );
+    if ( ! $url ) {
+        return $html;
+    }
+
+    return $html
+        . '<div class="site-event-links">'
+        . '<a href="' . esc_url( $url ) . '">View on map</a>'
+        . '</div>';
+}, 10, 2 );
+```
+
+Each callback receives the HTML returned by earlier callbacks, so independent
+extensions can append their own fields in filter priority order. OnlineSched
+sanitizes the final fragment with `wp_kses_post()` and places it in the selected
+event's popup. The theme or consuming plugin owns the markup, icons, wording,
+and CSS; OnlineSched intentionally supplies no presentation for this area.
 
 ---
 

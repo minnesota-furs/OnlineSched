@@ -426,6 +426,11 @@ function onlinesched_render_schedule($args = array()) {
     }
 }
 
+function onlinesched_event_popup_extra_html($event_id) {
+    $html = apply_filters('os_event_popup_extra_html', '', absint($event_id));
+    return is_string($html) ? wp_kses_post($html) : '';
+}
+
 function onlinesched_modify_wp_query_clauses($clauses, $wp_query) {
     global $wpdb;
     if (isset($wp_query->query_vars['meta_key']) && $wp_query->query_vars['meta_key'] === 'onlinesched_sorttime') {

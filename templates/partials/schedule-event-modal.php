@@ -19,16 +19,17 @@ if (!defined('ABSPATH')) {
                         <dt><i class="far fa-clock" aria-hidden="true"></i></dt>
                         <dd id="modal-schedule-time">&nbsp;</dd>
                         <dt><i class="fa fa-map-marker" aria-hidden="true"></i></dt>
-                        <dd id="modal-schedule-room">&nbsp;</dd>
+                        <dd id="modal-schedule-room" class="schedule-room schedule-filter-link">&nbsp;</dd>
                     </dl>
                 </div>
                 <div class="os-col-sm-6">
                     <dl class="schedule-meta">
                         <dt><i class="fa fa-tags" aria-hidden="true"></i></dt>
-                        <dd id="modal-schedule-tags">&nbsp;</dd>
+                        <dd id="modal-schedule-tags" class="schedule-tags schedule-filter-link">&nbsp;</dd>
                         <dt><i class="fa fa-user" aria-hidden="true"></i></dt>
                         <dd id="modal-schedule-panelists">&nbsp;</dd>
                     </dl>
+                    <div id="modal-schedule-extra" hidden></div>
                 </div>
             </div>
         </div>
