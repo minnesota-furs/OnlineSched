@@ -265,6 +265,10 @@ configured info-page index.
     "end_at": "2026-09-13T18:00:00-05:00"
   },
   "schedule_published": true,
+  "essentials": {
+    "label": "Essentials",
+    "tags": ["essentials", "guest-of-honor", "special-guest", "vip"]
+  },
   "sections": ["schedule", "hours", "info"],
   "info_pages": [
     { "slug": "parking", "title": "Parking", "updated": "2026-07-20T15:04:00Z" }
@@ -297,6 +301,10 @@ An app can poll `meta` cheaply. A `304 Not Modified` ends the pass. On a changed
 response, `resources` gives each core section's exact revisioned URL, schema,
 enabled state, and opaque revision. Clients fetch only resources whose published
 revision differs from their last successful local commit.
+
+`essentials` contains the label and tag slugs selected by an administrator on
+the Essentials settings page. A deliberately empty `tags` array remains empty;
+clients must not replace it with a conventional default tag.
 
 Site plugins can add independently published resources through the
 `onlinesched_app_feed_meta_resources` filter. The filter must only read completed

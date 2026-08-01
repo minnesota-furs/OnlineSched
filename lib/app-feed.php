@@ -199,6 +199,23 @@ function onlinesched_ensure_event_uid_meta($post_id) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Admin-selected Essentials configuration for app surfaces.
+ *
+ * @return array{label:string, tags:string[]}
+ */
+function onlinesched_app_feed_essentials() {
+	$tags = get_option('onlinesched_essentials_tags', array());
+	$tags = is_array($tags) ? array_map('sanitize_title', array_filter(array_map('strval', $tags))) : array();
+	$tags = array_values(array_unique(array_filter($tags)));
+	sort($tags);
+	$label = trim((string) get_option('onlinesched_essentials_tab_name', ''));
+	return array(
+		'label' => '' === $label ? 'Essentials' : $label,
+		'tags'  => $tags,
+	);
+}
+
+/**
  * Meta section: the app handshake.
  *
  * @param array|null $revisions Revision snapshot for request coherence.
@@ -245,6 +262,9 @@ function onlinesched_app_feed_meta($revisions = null) {
 			'end_at'   => $dates['public_end_at'],
 		),
 		'schedule_published' => onlinesched_app_schedule_published(),
+		// The website's admin-selected Essential tags and tab label, so app
+		// surfaces agree with the schedule page instead of hardcoding a slug.
+		'essentials'         => onlinesched_app_feed_essentials(),
 		'sections'           => onlinesched_feed_sections(),
 		// Public schedule page URL, empty when none is configured. The schedule
 		// front end owns the '#evt={id}' hash clients append to it.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.0
+
+- Published the administrator-selected Essentials label and tag slugs in the
+  companion-app Meta feed so app surfaces match the website configuration.
+- Advanced the Meta fingerprint when either Essentials setting changes.
+
 ## 3.3.0
 
 - Added the site-neutral `onlinesched_meta_published` action with the exact

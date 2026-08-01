@@ -471,6 +471,8 @@ function onlinesched_feed_option_section_map() {
 		'gmt_offset'                         => array('schedule'),
 		// Meta-only handshake surfaces (internal meta revision).
 		'onlinesched_calendar_name'          => array('meta'),
+		'onlinesched_essentials_tags'        => array('meta'),
+		'onlinesched_essentials_tab_name'    => array('meta'),
 		// con_name falls back to the site title when the calendar name is blank.
 		'blogname'                           => array('meta'),
 		'onlinesched_hours_page_id'          => array('hours'),
