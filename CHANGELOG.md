@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.6.1
+
+- Added `tab=hours&hours=department-name` routes that open the Hours tab and
+  align the requested department below the configured sticky navigation.
+- Kept missing or renamed department routes on the normal Hours view.
+
 ## 3.6.0
 
 - Added the `os_hours_heading_extra_html` filter for sanitized, site-owned

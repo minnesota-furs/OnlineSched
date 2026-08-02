@@ -181,6 +181,33 @@ export function new_schedule() {
         });
     }
 
+    function scrollToHoursDepartment(route) {
+        const targetRoute = normalizeRouteKey(route);
+        if (!targetRoute) return false;
+
+        const department = $$('.os-hours__dept').find((section) => {
+            const heading = $('.os-hours__name', section);
+            return heading && normalizeRouteKey(heading.textContent) === targetRoute;
+        });
+        if (!department) return false;
+
+        const align = () => {
+            const top = Math.max(
+                0,
+                department.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset(true)
+            );
+            const roots = [document.documentElement, document.body];
+            const previous = roots.map((root) => root.style.scrollBehavior);
+            roots.forEach((root) => { root.style.scrollBehavior = 'auto'; });
+            window.scrollTo(0, top);
+            roots.forEach((root, index) => { root.style.scrollBehavior = previous[index]; });
+        };
+        align();
+        window.requestAnimationFrame(align);
+        document.fonts?.ready.then(() => window.requestAnimationFrame(align));
+        return true;
+    }
+
     window.scrollTopMenu = function () {
         const schedule = $('#schedule');
         if (!schedule) return;
@@ -289,7 +316,12 @@ export function new_schedule() {
             updateResetButtonState();
         }
 
-        window.requestAnimationFrame(() => window.scrollTopMenu?.());
+        window.requestAnimationFrame(() => {
+            const state = getHashState();
+            if (hash !== '#hours' || !state.hours || !scrollToHoursDepartment(state.hours)) {
+                window.scrollTopMenu?.();
+            }
+        });
     });
 
     function openEventModal(eventId, options = {}) {
@@ -900,7 +932,9 @@ export function new_schedule() {
 
         if (state.tab === 'hours') {
             $('#hours-tab')?.click();
-            scrollTopMenu();
+            if (!state.hours || !scrollToHoursDepartment(state.hours)) {
+                scrollTopMenu();
+            }
         } else if (state.tab === 'essentials') {
             window.setFilterEvents(false);
             $('[data-os-tab="essentials"]')?.click();

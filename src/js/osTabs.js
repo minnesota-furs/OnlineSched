@@ -90,7 +90,9 @@ function handleInitialHash() {
         // We use a small timeout to ensure all listeners are attached
         // and the DOM is fully ready to be manipulated.
         setTimeout(() => {
-            tab.click();
+            if (!tab.parentElement.classList.contains('os-tabs__item--active')) {
+                tab.click();
+            }
         }, 10);
     }
 }

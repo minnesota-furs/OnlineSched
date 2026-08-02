@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
                                 <?php if ($theming != "schedule") { ?>
                                     <li role="presentation" class="os-tabs__item"><a href="#hours" aria-controls="hours" role="tab"
                                                                 data-os-tab="hours"
-                                                                id="hours-tab" onclick="scrollTopMenu()"><?php echo esc_html($hours_tab_label); ?></a></li>
+                                                                id="hours-tab"><?php echo esc_html($hours_tab_label); ?></a></li>
                                 <?php } else { ?>
                                     <li role="presentation" class="os-tabs__item"><a href="#map" aria-controls="map" role="tab"
                                                                 data-os-tab="map"

@@ -26,6 +26,42 @@ test.describe('07 — Hash Routing', () => {
     }
   });
 
+  test('#tab=hours&hours= route opens one Hours department', async ({ page }) => {
+    await page.goto('/schedule/#tab=hours');
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+    const firstHeading = page.locator(`${S.tabHours} .os-hours__name`).first();
+    if (await firstHeading.count() === 0) test.skip(true, 'No Hours department found');
+
+    const department = (await firstHeading.textContent())?.trim() || '';
+    const route = department.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    await page.goto(`/schedule/#tab=hours&hours=${encodeURIComponent(route)}`);
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(600);
+
+    const heading = page.locator(`${S.tabHours} .os-hours__name`).filter({ hasText: department }).first();
+    await expect(heading).toBeVisible();
+    const top = await heading.evaluate((element) => element.closest('.os-hours__dept').getBoundingClientRect().top);
+    const sticky = await page.evaluate(() => {
+      const config = window.OS_SCHEDULE_CONFIG || {};
+      const breakpoint = Number.parseInt(config.stickyBreakpoint ?? 991, 10) || 991;
+      const width = document.body ? document.body.getBoundingClientRect().width : window.innerWidth;
+      const header = width <= breakpoint
+        ? Number.parseInt(config.stickyOffsetMobile ?? config.stickyOffsetDesktop ?? 0, 10) || 0
+        : Number.parseInt(config.stickyOffsetDesktop ?? 0, 10) || 0;
+      return header + (Number.parseInt(config.fixedTabsHeight ?? 40, 10) || 40);
+    });
+    expect(top).toBeGreaterThanOrEqual(sticky - 1);
+    expect(top).toBeLessThanOrEqual(sticky + 2);
+  });
+
+  test('a missing Hours department falls back to the Hours tab', async ({ page }) => {
+    await page.goto('/schedule/#tab=hours&hours=retired-department');
+    await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(600);
+    await expect(page.locator(S.tabHours)).toBeVisible();
+    await expect(page.locator(S.tabProgramming)).toBeHidden();
+  });
+
   test('#tag= hash selects matching tag in dropdown', async ({ page }) => {
     // Use the Essential tag which exists in seed data
     await page.goto('/schedule/#tag=essential');
