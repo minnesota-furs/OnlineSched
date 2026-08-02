@@ -9,6 +9,21 @@ test.describe('07 — Hash Routing', () => {
     await page.waitForTimeout(600);
     await expect(page.locator(S.tabHours)).toBeVisible();
     await expect(page.locator(S.tabProgramming)).toBeHidden();
+
+    const heading = page.locator(`${S.tabHours} .os-hours__name`).first();
+    if (await heading.count()) {
+      const top = await heading.evaluate((element) => element.getBoundingClientRect().top);
+      const sticky = await page.evaluate(() => {
+        const config = window.OS_SCHEDULE_CONFIG || {};
+        const breakpoint = Number.parseInt(config.stickyBreakpoint ?? 991, 10) || 991;
+        const width = document.body ? document.body.getBoundingClientRect().width : window.innerWidth;
+        const header = width <= breakpoint
+          ? Number.parseInt(config.stickyOffsetMobile ?? config.stickyOffsetDesktop ?? 0, 10) || 0
+          : Number.parseInt(config.stickyOffsetDesktop ?? 0, 10) || 0;
+        return header + (Number.parseInt(config.fixedTabsHeight ?? 40, 10) || 40);
+      });
+      expect(top).toBeGreaterThanOrEqual(sticky - 1);
+    }
   });
 
   test('#tag= hash selects matching tag in dropdown', async ({ page }) => {

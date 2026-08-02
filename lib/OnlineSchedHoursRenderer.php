@@ -24,6 +24,7 @@ class OnlineSchedHoursRenderer
     {
         $department = sanitize_text_field($attributes['department'] ?? '');
         $location = wp_kses_post($attributes['location'] ?? '');
+        $heading_extra = onlinesched_hours_heading_extra_html($department, wp_strip_all_tags($location));
 
         if ('' === trim($department . wp_strip_all_tags($location) . wp_strip_all_tags($content))) {
             return '';
@@ -31,7 +32,13 @@ class OnlineSchedHoursRenderer
 
         $html = '<section class="os-hours__dept">';
         if ($department !== '') {
-            $html .= '<h3 class="os-hours__name">' . esc_html($department) . '</h3>';
+            $name = '<h3 class="os-hours__name">' . esc_html($department) . '</h3>';
+            if ($heading_extra !== '') {
+                $html .= '<div class="os-hours__heading">' . $name;
+                $html .= '<div class="os-hours__actions">' . $heading_extra . '</div></div>';
+            } else {
+                $html .= $name;
+            }
         }
         if ($location !== '') {
             $html .= '<div class="os-hours__location">' . $location . '</div>';
@@ -87,4 +94,15 @@ class OnlineSchedHoursRenderer
         return '<span class="os-hours__time">' . $content . '</span>';
     }
 
+}
+
+function onlinesched_hours_heading_extra_html($department, $location)
+{
+    $html = apply_filters(
+        'os_hours_heading_extra_html',
+        '',
+        sanitize_text_field($department),
+        sanitize_text_field($location)
+    );
+    return is_string($html) ? wp_kses_post($html) : '';
 }

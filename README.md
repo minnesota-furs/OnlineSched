@@ -667,6 +667,7 @@ The plugin fires these actions and filters so themes and other plugins can exten
 | `os_event_description` | filter | Filters the event description HTML, receives `($html, $post_id)` |
 | `os_event_badge_html` | filter | Filters the badge HTML for a row, receives `($html, $post_id)` |
 | `os_event_popup_extra_html` | filter | Appends event-specific HTML to the popup, receives `($html, $post_id)` |
+| `os_hours_heading_extra_html` | filter | Appends sanitized site-owned actions beside an Hours department heading, receives `($html, $department, $location)` |
 | `os_render_schedule_args` | filter | Filters the full args array before rendering |
 | `os_sticky_offsets` | filter | Array of sticky pixel offsets for the tab bar; use this if your theme has a sticky header |
 | `os_ical_uid_prefix` | filter | Prefix for generated iCal event UIDs; defaults to `os-` |

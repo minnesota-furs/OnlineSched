@@ -186,7 +186,7 @@ export function new_schedule() {
         if (!schedule) return;
 
         const isKiosk = schedule.classList.contains('kiosk-schedule');
-        let offset = schedule.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset();
+        let offset = schedule.getBoundingClientRect().top + window.pageYOffset - currentStickyOffset(true);
         if (isKiosk) {
             // In kiosk mode, there's no site header, so scrolling to 0 keeps the title's natural top spacing visible
             offset = 0;

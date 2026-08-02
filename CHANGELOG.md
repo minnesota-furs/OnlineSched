@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.6.0
+
+- Added the `os_hours_heading_extra_html` filter for sanitized, site-owned
+  actions beside an Hours department heading.
+- Passed the authored department name and plain-text location to consumers.
+- Preserved the original Hours heading markup when no action is supplied.
+- Kept hash-routed schedule content below the fixed tab bar and configured
+  sticky site header.
+
 ## 3.5.0
 
 - Added the `os_event_popup_extra_html` filter for event-specific popup
