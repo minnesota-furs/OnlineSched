@@ -510,11 +510,13 @@ add_action('admin_init', function() {
 function OnlineSched_taxonomy_dropdown($id, $taxonomy)
 {
 	$assigned = wp_get_post_terms($id, $taxonomy);
+	// A new event has no term yet; nothing should preselect.
+	$assigned_id = (!is_wp_error($assigned) && !empty($assigned)) ? $assigned[0]->term_id : 0;
 	$types = get_terms($taxonomy, array('orderby' => 'name', 'hide_empty' => 0));
 	if ($types) {
 		echo '<select name="' . $taxonomy . '">';
 		foreach ($types as $type) {
-			echo '<option value="' . $type->name . '" ' . selected($assigned[0]->term_id, $type->term_id) . '>';
+			echo '<option value="' . $type->name . '" ' . selected($assigned_id, $type->term_id) . '>';
 			echo esc_html($type->name);
 			echo '</option>';
 		}
