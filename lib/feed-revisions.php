@@ -476,7 +476,6 @@ function onlinesched_feed_option_section_map() {
 		// con_name falls back to the site title when the calendar name is blank.
 		'blogname'                           => array('meta'),
 		'onlinesched_hours_page_id'          => array('hours'),
-		'onlinesched_app_info_page_ids'      => array('info'),
 	);
 }
 

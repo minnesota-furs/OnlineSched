@@ -38,16 +38,9 @@ function onlinesched_app_schedule_published() {
  * @return int[]
  */
 function onlinesched_app_info_page_ids() {
-	$raw = get_option('onlinesched_app_info_page_ids', '');
-	$ids = array();
-	foreach (explode(',', (string) $raw) as $piece) {
-		$id = absint(trim($piece));
-		if ($id > 0 && !in_array($id, $ids, true)) {
-			$ids[] = $id;
-		}
-	}
-
-	$ids = apply_filters('os_app_info_page_ids', $ids);
+	// The seam: a theme supplies the ordered ids, so the choosing UI can
+	// live wherever the site keeps its own admin. No selection, no section.
+	$ids = apply_filters('os_app_info_page_ids', array());
 	return is_array($ids) ? array_values(array_map('absint', $ids)) : array();
 }
 

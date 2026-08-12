@@ -40,21 +40,6 @@ $hidden_input_value = static function ( $html, $name ) {
 
 // Matched by CSS class rather than aria-label text, since the label embeds the
 // page title and varies per row.
-$find_row_button = static function ( $li_html, $class ) {
-	if ( 1 !== preg_match( '/<button[^>]*class="[^"]*' . preg_quote( $class, '/' ) . '[^"]*"[^>]*>/', $li_html, $m ) ) {
-		throw new RuntimeException( "No button with class \"$class\" found in row markup." );
-	}
-	$tag = $m[0];
-	$aria_label = null;
-	if ( 1 === preg_match( '/aria-label="([^"]*)"/', $tag, $lm ) ) {
-		$aria_label = $lm[1];
-	}
-	return array(
-		'disabled' => false !== strpos( $tag, "disabled='disabled'" ) || false !== strpos( $tag, 'disabled="disabled"' ),
-		'aria_label' => $aria_label,
-	);
-};
-
 $missing = '__onlinesched_settings_page_test_missing__';
 
 // The allowed_options whitelist only fills once admin_init has run, so call the
@@ -270,16 +255,6 @@ try {
 		'A same-day public start after the public end must be rejected.'
 	);
 
-	// -----------------------------------------------------------------
-	// App Info Pages: end-row controls disabled, aria-labels naming the page,
-	// and the hidden CSV field pre-populated from the option.
-	// -----------------------------------------------------------------
-
-	$pages = get_pages( array( 'number' => 3 ) );
-	$assert( count( $pages ) >= 2, 'The Vanilla fixture must have at least two pages to exercise the reorder controls.' );
-	$ids = array_slice( array_map( static function ( $page ) { return $page->ID; }, $pages ), 0, min( 3, count( $pages ) ) );
-	update_option( 'onlinesched_app_info_page_ids', implode( ',', $ids ) );
-
 	ob_start();
 	onlinesched_app_feed_settings_rows();
 	$app_feed_html = ob_get_clean();
@@ -287,58 +262,11 @@ try {
 		false !== strpos( $app_feed_html, 'type="datetime-local"' ),
 		'Public start/end controls must accept a WordPress-local date and time.'
 	);
-
 	$assert(
-		implode( ',', $ids ) === $hidden_input_value( $app_feed_html, 'onlinesched_app_info_page_ids' ),
-		'The App Info Pages hidden CSV field must pre-populate from the saved option.'
+		false === strpos( $app_feed_html, 'onlinesched_app_info_page_ids' ),
+		'Con Info selection belongs to the site theme; the plugin must render no picker.'
 	);
 
-	$row_count = preg_match_all( '/<li data-page-id="\d+">.*?<\/li>/s', $app_feed_html, $row_matches );
-	$assert( $row_count === count( $ids ), 'The App Info Pages list must render exactly one row per configured page id.' );
-	$rows = $row_matches[0];
-
-	$up_first = $find_row_button( $rows[0], 'onlinesched-app-info-page-up' );
-	$down_first = $find_row_button( $rows[0], 'onlinesched-app-info-page-down' );
-	$assert( $up_first['disabled'], 'The first App Info Pages row must have its Move Up control disabled.' );
-	$assert( ! $down_first['disabled'], 'The first App Info Pages row must NOT have its Move Down control disabled.' );
-
-	$last_row = $rows[ count( $rows ) - 1 ];
-	$up_last = $find_row_button( $last_row, 'onlinesched-app-info-page-up' );
-	$down_last = $find_row_button( $last_row, 'onlinesched-app-info-page-down' );
-	$assert( ! $up_last['disabled'], 'The last App Info Pages row must NOT have its Move Up control disabled.' );
-	$assert( $down_last['disabled'], 'The last App Info Pages row must have its Move Down control disabled.' );
-
-	if ( count( $rows ) > 2 ) {
-		$up_mid = $find_row_button( $rows[1], 'onlinesched-app-info-page-up' );
-		$down_mid = $find_row_button( $rows[1], 'onlinesched-app-info-page-down' );
-		$assert( ! $up_mid['disabled'], 'A middle App Info Pages row must NOT have its Move Up control disabled.' );
-		$assert( ! $down_mid['disabled'], 'A middle App Info Pages row must NOT have its Move Down control disabled.' );
-	}
-
-	// Each control's aria-label must name its row's page, or a screen reader
-	// announces "Move up" with no clue which row it belongs to.
-	foreach ( $ids as $row_index => $page_id ) {
-		$expected_title = get_the_title( $page_id );
-		$assert( '' !== trim( (string) $expected_title ), 'Test fixture sanity: every configured page id must resolve to a non-empty title.' );
-
-		$app_info_row_html = $rows[ $row_index ];
-		$up = $find_row_button( $app_info_row_html, 'onlinesched-app-info-page-up' );
-		$down = $find_row_button( $app_info_row_html, 'onlinesched-app-info-page-down' );
-		$remove = $find_row_button( $app_info_row_html, 'onlinesched-app-info-page-remove' );
-
-		$assert(
-			"Move {$expected_title} up" === $up['aria_label'],
-			"Row {$row_index} Move Up aria-label must read \"Move {$expected_title} up\", got \"{$up['aria_label']}\"."
-		);
-		$assert(
-			"Move {$expected_title} down" === $down['aria_label'],
-			"Row {$row_index} Move Down aria-label must read \"Move {$expected_title} down\", got \"{$down['aria_label']}\"."
-		);
-		$assert(
-			"Remove {$expected_title}" === $remove['aria_label'],
-			"Row {$row_index} Remove aria-label must read \"Remove {$expected_title}\", got \"{$remove['aria_label']}\"."
-		);
-	}
 
 	// -----------------------------------------------------------------
 	// Tabs: the active tab (and which panel is visible) resolves from
