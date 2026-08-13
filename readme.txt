@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 3.6.1
+Stable tag: 3.7.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,17 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 3.7.0 =
+
+* Added a structured Hours status so departments can publish open, closed, and break windows that clients read directly.
+* Added a one-shot command that converts existing Hours content into that structured form.
+* Fixed CSV uploads failing on files the spreadsheet application shaped: a byte order mark no longer breaks the header check, and lone carriage returns no longer collapse the file into a single line.
+* Fixed a fatal error importing text containing an em dash or en dash.
+* Fixed encoded ampersands appearing literally in published Hours text.
+* Fixed a backfill run overwriting a page while holding another page's backup.
+* Fixed the taxonomy dropdown when events have no assigned term.
+* Removed the App Info Pages settings row; the ordered list is supplied through the `os_app_info_page_ids` filter.
 
 = 3.6.1 =
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.7.0
+
+- Added a structured Hours status so a department can publish open, closed, and
+  break windows that clients read directly rather than parsing free text.
+- Added a one-shot command that converts existing Hours content into that form.
+- Fixed CSV uploads failing on the shape a spreadsheet application chooses. A
+  byte order mark made the first header read as `\u{FEFF}ID` and fail the header
+  check, and lone carriage returns made the whole file parse as one line.
+  Neither is visible to the person uploading.
+- Fixed a fatal error importing text containing an em dash or en dash.
+  Substitution ran on raw bytes before the encoding was normalized, so a
+  Windows-1252 rule matched the dash's own tail byte and split the character.
+- Fixed encoded ampersands appearing literally in published Hours text.
+- Fixed a backfill run overwriting one page while holding another page's backup.
+- Fixed the taxonomy dropdown when events carry no assigned term.
+- Removed the App Info Pages settings row. The ordered list now arrives through
+  the `os_app_info_page_ids` filter, so the choosing UI can live with the site's
+  own admin.
+
 ## 3.6.1
 
 - Added `tab=hours&hours=department-name` routes that open the Hours tab and
