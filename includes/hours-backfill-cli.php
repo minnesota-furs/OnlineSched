@@ -128,6 +128,16 @@ class OnlineSched_Hours_Backfill_CLI
 		// only copy of the pre-migration page.
 		$existing = get_option(self::BACKUP_OPTION, false);
 		$kept_backup = is_array($existing) && isset($existing['content']);
+		// One backup, one page. Writing a second page while holding the first
+		// page's backup would leave the second with no way back.
+		if ($kept_backup && (int) ($existing['page'] ?? 0) !== $page_id) {
+			WP_CLI::error(sprintf(
+				'Nothing written: the stored backup belongs to page %d, not %d. Run "wp onlinesched hours restore" or clear option %s first.',
+				(int) ($existing['page'] ?? 0),
+				$page_id,
+				self::BACKUP_OPTION
+			));
+		}
 		if (!$kept_backup) {
 			update_option(self::BACKUP_OPTION, array(
 				'page'    => $page_id,
