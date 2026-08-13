@@ -104,6 +104,10 @@ class OnlineSchedEventViewModel {
 		$term_count = count( $terms );
 		foreach ( $terms as $index => $term ) {
 			$attrs = ' data-os-term-label="' . esc_attr( $term->name ) . '"';
+			if ( 'os_room' === $term->taxonomy ) {
+				// The stored slug is the only room identity the schedule uses.
+				$attrs .= ' data-os-term-slug="' . esc_attr( $term->slug ) . '"';
+			}
 			if ( 'os_tag' === $term->taxonomy ) {
 				$attrs .= ' data-os-tag-route="' . esc_attr( preg_replace( '/[^a-z0-9]/', '', strtolower( remove_accents( $term->name ) ) ) ) . '"';
 			}

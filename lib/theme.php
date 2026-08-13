@@ -30,7 +30,8 @@ function onlinesched_get_template_part($slug, $args = array())
 
 function OnlineSched_terms_list($term, &$masterList = null): string
 {
-	$fields = ($masterList === null) ? 'names' : 'all';
+	// Rooms always need whole term objects: the stored slug is their identity.
+	$fields = ($masterList === null && 'os_room' !== $term) ? 'names' : 'all';
 	$tags_arr = wp_get_post_terms(get_the_ID(), $term, ['fields' => $fields]);
 
 	if (empty($tags_arr)) {
@@ -40,9 +41,12 @@ function OnlineSched_terms_list($term, &$masterList = null): string
 	$tag_names = [];
 	$tag_count = count($tags_arr);
 	foreach ($tags_arr as $index => $tag) {
-		$name = ($masterList === null) ? $tag : $tag->name ;
+		$name = is_object($tag) ? $tag->name : $tag;
 		$classes = ['os-term-item'];
 		$attrs = ' data-os-term-label="' . esc_attr($name) . '"';
+		if ('os_room' === $term && is_object($tag)) {
+			$attrs .= ' data-os-term-slug="' . esc_attr($tag->slug) . '"';
+		}
 		if ('os_tag' === $term) {
 			$classes[] = 'os-schedule-tag';
 			$route = preg_replace('/[^a-z0-9]/', '', strtolower(remove_accents($name)));
@@ -51,7 +55,7 @@ function OnlineSched_terms_list($term, &$masterList = null): string
 		$separator = ($index < $tag_count - 1) ? '<span class="os-term-separator" aria-hidden="true">,</span>' : '';
 		$tag_names[] = '<span class="' . esc_attr(implode(' ', $classes)) . '"' . $attrs . '>' . esc_html($name) . $separator . '</span>';
 
-		if ($masterList !== null) {
+		if ($masterList !== null && is_object($tag)) {
 			$masterList[$tag->name] = $tag->slug;
 		}
 	}

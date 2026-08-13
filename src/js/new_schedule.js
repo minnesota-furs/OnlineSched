@@ -34,10 +34,6 @@ function stripTags(value) {
     return holder.textContent || holder.innerText || '';
 }
 
-function roomSlug(room) {
-    return room.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-}
-
 function dispatchChange(el) {
     if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
 }
@@ -517,18 +513,16 @@ export function new_schedule() {
         }
     }
 
+    // Slug to label, read from the server's term markup. Deriving a second slug
+    // here is what put one room in the filter twice.
     window.eventschedule_scheduleRooms = {};
-    $$('.schedule-room').forEach((roomEl) => {
-        const rooms = roomEl.innerHTML.split(',').map((room) => stripTags(room).trim()).filter(Boolean);
-        const parentItem = roomEl.closest('.schedule-item');
-
-        rooms.forEach((room) => {
-            const slug = roomSlug(room);
-            if (!Object.prototype.hasOwnProperty.call(window.eventschedule_scheduleRooms, slug)) {
-                window.eventschedule_scheduleRooms[slug] = room;
-            }
-            parentItem?.setAttribute(`data-schedule-room-${slug}`, slug);
-        });
+    $$('.schedule-room .os-term-item[data-os-term-slug]').forEach((termItem) => {
+        const slug = (termItem.dataset.osTermSlug || '').trim();
+        const label = (termItem.dataset.osTermLabel || termItem.textContent.replace(/,\s*$/, '')).trim();
+        if (!slug || !label) return;
+        if (!Object.prototype.hasOwnProperty.call(window.eventschedule_scheduleRooms, slug)) {
+            window.eventschedule_scheduleRooms[slug] = label;
+        }
     });
 
     function updateResetButtonState() {
@@ -979,17 +973,27 @@ export function new_schedule() {
         document.dispatchEvent(new CustomEvent('os:hash-routing:complete', { detail: { hash: window.location.hash } }));
     }
 
+    // The popup carries the same filter links as a row, so filtering from inside
+    // it has to dismiss it first; closing also clears the event out of the hash.
+    function dismissModalForFilter(target) {
+        const modal = target.closest('#modal-schedule');
+        if (modal && modal.hasAttribute('open')) modal.close();
+    }
+
     document.addEventListener('click', function (e) {
         const room = e.target.closest('.schedule-room.schedule-filter-link');
         if (!room) return;
 
         e.preventDefault();
-        const text = room.textContent.trim();
-        if (!text) return;
+        // The clicked term wins on a multi-room row; otherwise the row's first.
+        const termItem = e.target.closest('.os-term-item[data-os-term-slug]')
+            || room.querySelector('.os-term-item[data-os-term-slug]');
+        const slug = (termItem?.dataset.osTermSlug || '').trim();
+        if (!slug) return;
 
-        const slug = roomSlug(text);
         const select = $('#schedule-select-rooms');
         if (select && Array.from(select.options).some((option) => option.value === slug)) {
+            dismissModalForFilter(e.target);
             select.value = slug;
             dispatchChange(select);
             scrollTopMenu();
@@ -1024,6 +1028,7 @@ export function new_schedule() {
         }
 
         if (matched) {
+            dismissModalForFilter(e.target);
             scrollTopMenu();
         }
     });
