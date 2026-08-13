@@ -66,6 +66,7 @@ require_once('OnlineSchedSocialLogin.php');
 
 if (defined('WP_CLI') && WP_CLI) {
 	require_once('includes/wp-cli.php');
+	require_once('includes/hours-backfill-cli.php');
 }
 
 // Define Actions
