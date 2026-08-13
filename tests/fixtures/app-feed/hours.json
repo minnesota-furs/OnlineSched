@@ -6,17 +6,17 @@
       "name": "Dealers Den",
       "location": "Exhibit Hall B",
       "days": [
-        { "day": "Friday", "entries": [{ "hours_text": "Noon – 6 PM", "note": "" }] },
-        { "day": "Saturday", "entries": [{ "hours_text": "10 AM – 6 PM", "note": "18+ after 8 PM" }] },
-        { "day": "Sunday", "entries": [{ "hours_text": "10 AM – 3 PM", "note": "" }] }
+        { "day": "Friday", "entries": [{ "hours_text": "Noon - 6 PM", "note": "", "start": "12:00", "end": "18:00", "all_day": false, "closed": false }] },
+        { "day": "Saturday", "entries": [{ "hours_text": "10 AM - 6 PM", "note": "18+ after 8 PM", "start": "10:00", "end": "18:00", "all_day": false, "closed": false }] },
+        { "day": "Sunday", "entries": [{ "hours_text": "10 AM - 3 PM", "note": "", "start": "10:00", "end": "15:00", "all_day": false, "closed": false }] }
       ]
     },
     {
       "name": "Registration",
       "location": "",
       "days": [
-        { "day": "Thursday", "entries": [{ "hours_text": "4 PM – 8 PM", "note": "Pre-reg only" }] },
-        { "day": "Friday", "entries": [{ "hours_text": "9 AM – 9 PM", "note": "" }] }
+        { "day": "Thursday", "entries": [{ "hours_text": "4 PM - 8 PM", "note": "Pre-reg only", "start": "16:00", "end": "20:00", "all_day": false, "closed": false }] },
+        { "day": "Friday", "entries": [{ "hours_text": "9 AM - 9 PM", "note": "", "start": "09:00", "end": "21:00", "all_day": false, "closed": false }] }
       ]
     }
   ]

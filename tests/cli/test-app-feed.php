@@ -276,7 +276,6 @@ $option_names = array(
 	'onlinesched_con_end',
 	'onlinesched_public_date_start',
 	'onlinesched_public_date_end',
-	'onlinesched_app_info_page_ids',
 	'onlinesched_hours_page_id',
 	'onlinesched_calendar_name',
 	'onlinesched_json_room_groups',
@@ -320,8 +319,14 @@ $seed_feed_revisions = static function (array $entries) {
 $created_post_ids = array();
 $created_term_ids = array(); // taxonomy => [term_id, ...]
 $created_files = array();
+$selected_info_page_ids = array();
+$onlinesched_aft_info_ids_filter = static function ($ids) use (&$selected_info_page_ids) {
+	return $selected_info_page_ids;
+};
+add_filter('os_app_info_page_ids', $onlinesched_aft_info_ids_filter);
 
-$restore = static function () use (&$original_options, $missing, &$created_post_ids, &$created_term_ids, &$created_files) {
+$restore = static function () use (&$original_options, $missing, &$created_post_ids, &$created_term_ids, &$created_files, $onlinesched_aft_info_ids_filter) {
+	remove_filter('os_app_info_page_ids', $onlinesched_aft_info_ids_filter);
 	foreach ($created_post_ids as $post_id) {
 		if ($post_id && get_post($post_id)) {
 			wp_delete_post($post_id, true);
@@ -989,7 +994,6 @@ try {
 		'onlinesched_app_schedule_published' => array('schedule', '0'),
 		'onlinesched_con_start'              => array('schedule', '2031-01-01'),
 		'onlinesched_json_room_groups'       => array('schedule', $distinct_room_groups_value),
-		'onlinesched_app_info_page_ids'      => array('info', '999999'),
 		'onlinesched_hours_page_id'          => array('hours', '999999'),
 	);
 	foreach ($option_bump_cases as $option_name => $case) {
@@ -1109,7 +1113,7 @@ try {
 	), true);
 	$assert(!is_wp_error($info_page_id_for_matrix), 'Info-page fixture must be created.');
 	$created_post_ids[] = $info_page_id_for_matrix;
-	update_option('onlinesched_app_info_page_ids', (string) $info_page_id_for_matrix);
+	$selected_info_page_ids = array($info_page_id_for_matrix);
 
 	$rev = onlinesched_app_feed_test_rev('info');
 	wp_update_post(array('ID' => $info_page_id_for_matrix, 'post_content' => '<p>updated content</p>'));
@@ -1147,7 +1151,7 @@ try {
 	), true);
 	$assert(!is_wp_error($trash_info_page_id), 'Trash-info-page fixture must be created.');
 	$created_post_ids[] = $trash_info_page_id;
-	update_option('onlinesched_app_info_page_ids', (string) $trash_info_page_id);
+	$selected_info_page_ids = array($trash_info_page_id);
 
 	$rev = onlinesched_app_feed_test_rev('info');
 	wp_trash_post($trash_info_page_id);
@@ -1758,7 +1762,7 @@ try {
 	), true);
 	$assert(!is_wp_error($shapes_info_page_id), 'Shapes info page must be created.');
 	$created_post_ids[] = $shapes_info_page_id;
-	update_option('onlinesched_app_info_page_ids', (string) $shapes_info_page_id);
+	$selected_info_page_ids = array($shapes_info_page_id);
 	$shapes_info_slug = get_post($shapes_info_page_id)->post_name;
 
 	// --- E: builder shapes vs. contract fixtures (fixtures are back to 3-part) ---
@@ -1787,6 +1791,64 @@ try {
 	$check_shape('onlinesched_app_feed_hours() shape matches the contract fixture', static function () use ($assert_shape, $hours, $load_fixture) {
 		$assert_shape($hours, $load_fixture('hours.json'), 'hours');
 	});
+
+	// Rich-text attributes arrive entity-encoded; plain fields arrive literal.
+	// Both must emit one ampersand.
+	$entity_dept_attrs = wp_json_encode(array(
+		'department' => 'AFT Dealers &amp; Artists ' . $run_id,
+		'location'   => 'Hall A &amp; B',
+	));
+	$entity_day_attrs = wp_json_encode(array('day' => 'Friday &amp; Saturday'));
+	$entity_time_attrs = wp_json_encode(array(
+		'hours'     => '10 AM &amp; 6 PM',
+		'smallText' => '(sponsor &amp; super sponsor access)',
+	));
+	$entity_hours_markup = '<!-- wp:onlinesched/hours-department ' . $entity_dept_attrs . " -->\n"
+		. '<!-- wp:onlinesched/hours-day ' . $entity_day_attrs . " -->\n"
+		. '<!-- wp:onlinesched/hours-time ' . $entity_time_attrs . " /-->\n"
+		. "<!-- /wp:onlinesched/hours-day -->\n"
+		. '<!-- /wp:onlinesched/hours-department -->';
+
+	$entity_hours_page_id = wp_insert_post(array(
+		'post_type'    => 'page',
+		'post_status'  => 'publish',
+		'post_title'   => 'AFT Entity Hours Page ' . $run_id,
+		'post_content' => $entity_hours_markup,
+	), true);
+	$assert(!is_wp_error($entity_hours_page_id), 'Entity hours page must be created.');
+	$created_post_ids[] = $entity_hours_page_id;
+
+	$previous_hours_page_id = get_option('onlinesched_hours_page_id');
+	update_option('onlinesched_hours_page_id', $entity_hours_page_id);
+
+	$entity_hours = onlinesched_app_feed_hours();
+	$entity_dept = null;
+	foreach ($entity_hours['departments'] as $candidate) {
+		if (0 === strpos($candidate['name'], 'AFT Dealers')) {
+			$entity_dept = $candidate;
+			break;
+		}
+	}
+	$assert(null !== $entity_dept, 'Entity hours department must be exported.');
+	$entity_entry = $entity_dept['days'][0]['entries'][0];
+
+	$assert(
+		'AFT Dealers & Artists ' . $run_id === $entity_dept['name'],
+		'Department name must decode an encoded ampersand.'
+	);
+	$assert('Hall A & B' === $entity_dept['location'], 'Location must decode an encoded ampersand.');
+	$assert('Friday & Saturday' === $entity_dept['days'][0]['day'], 'Day must decode an encoded ampersand.');
+	$assert('10 AM & 6 PM' === $entity_entry['hours_text'], 'Hours text must decode an encoded ampersand.');
+	$assert(
+		'(sponsor & super sponsor access)' === $entity_entry['note'],
+		'Note must decode an encoded ampersand.'
+	);
+	$assert(
+		false === strpos(wp_json_encode($entity_hours), '&amp;'),
+		'No hours field may emit a raw HTML entity.'
+	);
+
+	update_option('onlinesched_hours_page_id', $previous_hours_page_id);
 
 	$info_index = onlinesched_app_feed_info('');
 	$check_shape('onlinesched_app_feed_info(\'\') shape matches the contract fixture', static function () use ($assert_shape, $info_index, $load_fixture) {

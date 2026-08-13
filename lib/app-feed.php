@@ -565,6 +565,21 @@ function onlinesched_hours_clock($value) {
 }
 
 /**
+ * Normalize authored hours text for the app feed.
+ *
+ * @param mixed $value Authored attribute.
+ * @return string
+ */
+function onlinesched_hours_text($value) {
+	if (!is_string($value)) {
+		return '';
+	}
+	return sanitize_text_field(
+		html_entity_decode($value, ENT_QUOTES | ENT_HTML5, get_option('blog_charset'))
+	);
+}
+
+/**
  * Hours section: lossless export of the configured Hours page blocks.
  *
  * Free-form values are preserved and never parsed. Open/close status uses only
@@ -613,8 +628,8 @@ function onlinesched_app_feed_collect_hours_departments(array $blocks) {
 		if ('onlinesched/hours-department' === ($block['blockName'] ?? '')) {
 			$attrs = is_array($block['attrs'] ?? null) ? $block['attrs'] : array();
 			$department = array(
-				'name'     => sanitize_text_field($attrs['department'] ?? ''),
-				'location' => sanitize_text_field($attrs['location'] ?? ''),
+				'name'     => onlinesched_hours_text($attrs['department'] ?? ''),
+				'location' => onlinesched_hours_text($attrs['location'] ?? ''),
 				'days'     => array(),
 			);
 
@@ -624,7 +639,7 @@ function onlinesched_app_feed_collect_hours_departments(array $blocks) {
 				}
 				$day_attrs = is_array($day_block['attrs'] ?? null) ? $day_block['attrs'] : array();
 				$day = array(
-					'day'     => sanitize_text_field($day_attrs['day'] ?? 'Friday'),
+					'day'     => onlinesched_hours_text($day_attrs['day'] ?? 'Friday'),
 					'entries' => array(),
 				);
 
@@ -633,8 +648,8 @@ function onlinesched_app_feed_collect_hours_departments(array $blocks) {
 						continue;
 					}
 					$time_attrs = is_array($time_block['attrs'] ?? null) ? $time_block['attrs'] : array();
-					$hours_text = sanitize_text_field($time_attrs['hours'] ?? '');
-					$note = sanitize_text_field($time_attrs['smallText'] ?? '');
+					$hours_text = onlinesched_hours_text($time_attrs['hours'] ?? '');
+					$note = onlinesched_hours_text($time_attrs['smallText'] ?? '');
 					$start = onlinesched_hours_clock($time_attrs['start'] ?? '');
 					$end   = onlinesched_hours_clock($time_attrs['end'] ?? '');
 					$all_day   = ! empty($time_attrs['allDay']);
