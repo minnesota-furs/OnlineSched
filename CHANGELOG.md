@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.7.1
+
+- Fixed rooms whose names contain punctuation appearing twice in the schedule
+  filter, once under a slug the browser invented. The stored term slug is now
+  the only room identity the schedule and its links use.
+- Fixed the event popup staying open when a room or tag inside it was clicked.
+  The filter applied underneath, leaving the result hidden behind the popup.
+
 ## 3.7.0
 
 - Added a structured Hours status so a department can publish open, closed, and
