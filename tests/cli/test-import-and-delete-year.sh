@@ -93,6 +93,7 @@ expect_failure_with_output() {
 }
 
 php "$PLUGIN_DIR/tests/fixtures/test-generate-furry-test-data.php"
+"${WP[@]}" eval-file "$CONTAINER_PLUGIN/tests/cli/test-import-encoding.php"
 php "$PLUGIN_DIR/tests/fixtures/generate-furry-test-data.php" \
 	--start-date=2027-06-30 --days=4 --output="$FIXTURE" >/dev/null
 php "$PLUGIN_DIR/tests/cli/build-import-fixtures.php" "$FIXTURE" "$VARIANT_DIR"

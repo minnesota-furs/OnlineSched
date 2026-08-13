@@ -202,6 +202,33 @@ function onlinesched_import_csv(string $file_path, array $options = array()): ar
 }
 
 /**
+ * Open a CSV with normalized leading bytes and line endings.
+ *
+ * @param string $file_path Uploaded file.
+ * @return resource|false
+ */
+function onlinesched_import_open_normalized($file_path) {
+	$raw = file_get_contents($file_path);
+	if ($raw === false) {
+		return false;
+	}
+	if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
+		$raw = substr($raw, 3);
+	}
+	$raw = preg_replace('/\r\n?/', "\n", $raw);
+	if (!is_string($raw)) {
+		return false;
+	}
+	$handle = fopen('php://temp', 'r+');
+	if ($handle === false) {
+		return false;
+	}
+	fwrite($handle, $raw);
+	rewind($handle);
+	return $handle;
+}
+
+/**
  * Parse and validate the complete CSV without writes.
  *
  * @param string $file_path CSV path.
@@ -215,7 +242,7 @@ function onlinesched_import_preflight($file_path, $year, $result)
 	$rows = array();
 	$seen_ids = array();
 	$fatal = false;
-	$handle = fopen($file_path, 'r');
+	$handle = onlinesched_import_open_normalized($file_path);
 	if ($handle === false) {
 		onlinesched_import_add_error($result, 0, '', 'Failed to open the CSV file.', true);
 		return array('rows' => array(), 'result' => $result, 'fatal' => true);

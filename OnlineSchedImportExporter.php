@@ -349,61 +349,32 @@ function schedule_convert_to_utf8_and_santize($input) {
 }
 
 function schedule_convert_to_utf8($input) {
-
-	$replace = array(
-
-		// Smart quotes (UTF-8 and Windows-1252 encoding) to HTML entities
-		"\xE2\x80\x98" => '&lsquo;', // ‘ (left single quotation mark)
-		"\xE2\x80\x99" => '&rsquo;', // ’ (right single quotation mark)
-		"\xE2\x80\x9C" => '&ldquo;', // “ (left double quotation mark)
-		"\xE2\x80\x9D" => '&rdquo;', // ” (right double quotation mark)
-		chr(145) => '&lsquo;',       // ‘ (left single quotation mark, Windows-1252)
-		chr(146) => '&rsquo;',       // ’ (right single quotation mark, Windows-1252)
-		chr(147) => '&ldquo;',       // “ (left double quotation mark, Windows-1252)
-		chr(148) => '&rdquo;',       // ” (right double quotation mark, Windows-1252)
-		// En dash and em dash to HTML entities
-		"\xE2\x80\x93" => '&ndash;', // – (en dash)
-		"\xE2\x80\x94" => '&mdash;', // — (em dash)
-		chr(150) => '&ndash;',       // – (en dash, Windows-1252)
-		chr(151) => '&mdash;',       // — (em dash, Windows-1252)
-		// Ellipsis to HTML entity
-		"\xE2\x80\xA6" => '&hellip;', // … (ellipsis)
-		chr(133) => '&hellip;',      // … (ellipsis, Windows-1252)
-		// Dagger to HTML entity
-		chr(134) => '&dagger;',      // † (dagger symbol, Windows-1252)
-		// Double dagger to HTML entity
-		chr(135) => '&Dagger;',      // ‡ (double dagger symbol, Windows-1252)
-		// Non-breaking space to HTML entity
-		"\xC2\xA0" => '&nbsp;',       //   (non-breaking space, UTF-8)
-		chr(160) => '&nbsp;',         //   (non-breaking space, Windows-1252)
-		// Trademark to HTML entity
-		chr(153) => '&trade;',       // ™ (trademark, Windows-1252)
-		// Euro sign to HTML entity
-		chr(128) => '&euro;',        // € (euro sign, Windows-1252)
-		// Bullet to HTML entity
-		chr(149) => '&bull;',        // • (bullet, Windows-1252)
-	);
-
-	$input =  str_replace(array_keys($replace), array_values($replace), $input);
-
-
-	// Detect the character encoding
-	$encoding = mb_detect_encoding($input, mb_detect_order(), true);
-
-    if ($encoding == 'ASCII' || !$encoding) {
-        // assume windows
-	    $input = mb_convert_encoding($input, 'UTF-8', 'Windows-1252');
-    }
-	// If it's not UTF-8, convert it
-	if ($encoding !== 'UTF-8') {
-		 $input = mb_convert_encoding($input, 'UTF-8', $encoding);
+	if (!is_string($input) || '' === $input) {
+		return is_string($input) ? $input : '';
 	}
 
-	// Replace any invalid UTF-8 characters with HTML entities
-	// $input = mb_convert_encoding($input, 'HTML-ENTITIES', 'UTF-8');
+	// Normalize before replacing punctuation so UTF-8 bytes remain intact.
+	if (!mb_check_encoding($input, 'UTF-8')) {
+		$input = mb_convert_encoding($input, 'UTF-8', 'Windows-1252');
+	}
 
-	// Now return string so it can get santized the last bits.
-	return $input;
+	$replace = array(
+		"\u{2018}" => '&lsquo;',
+		"\u{2019}" => '&rsquo;',
+		"\u{201C}" => '&ldquo;',
+		"\u{201D}" => '&rdquo;',
+		"\u{2013}" => '&ndash;',
+		"\u{2014}" => '&mdash;',
+		"\u{2026}" => '&hellip;',
+		"\u{2020}" => '&dagger;',
+		"\u{2021}" => '&Dagger;',
+		"\u{00A0}" => '&nbsp;',
+		"\u{2122}" => '&trade;',
+		"\u{20AC}" => '&euro;',
+		"\u{2022}" => '&bull;',
+	);
+
+	return strtr($input, $replace);
 }
 
 function scan_for_non_ascii_characters($text) {
