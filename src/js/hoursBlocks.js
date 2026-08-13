@@ -14,6 +14,29 @@ const dayChoices = (window.OnlineSchedHoursBlocks?.dayChoices || [
 
 // Default block templates so new blocks open with one example row each.
 const timeTemplate = [['onlinesched/hours-time', { hours: '10am - 6pm' }]];
+
+// Keep the editor preview aligned with the PHP renderer.
+const clockParts = (value) => {
+    const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(typeof value === 'string' ? value.trim() : '');
+    return match ? { hour: Number(match[1]), minute: Number(match[2]) } : null;
+};
+
+const formatClock = ({ hour, minute }) => {
+    if (minute === 0 && hour === 12) return __('Noon', 'onlinesched');
+    if (minute === 0 && hour === 0) return __('Midnight', 'onlinesched');
+    const suffix = hour < 12 ? 'am' : 'pm';
+    const display = hour % 12 === 0 ? 12 : hour % 12;
+    return display + (minute === 0 ? '' : ':' + String(minute).padStart(2, '0')) + suffix;
+};
+
+const formatRange = (start, end, allDay) => {
+    if (allDay) return __('24 hours', 'onlinesched');
+    const from = clockParts(start);
+    const to = clockParts(end);
+    if (!from || !to) return '';
+    if (start.trim() === end.trim()) return __('24 hours', 'onlinesched');
+    return formatClock(from) + ' - ' + formatClock(to);
+};
 const dayTemplate = [['onlinesched/hours-day', { day: 'Friday' }, timeTemplate]];
 
 // Purely structural. Its only job in the editor is to hold departments in a
@@ -108,7 +131,7 @@ registerBlockType('onlinesched/hours-day', {
     },
     edit: ({ attributes, setAttributes }) =>
         el('div', useBlockProps({ className: 'os-hours__day-row' }),
-            el('dt', { className: 'os-hours__day-label' },
+            el('dt', { className: 'os-hours__day-label os-hours__day-label--editing' },
                 // SelectControl inline so the day is always visible and editable
                 // without opening any panel.
                 el(SelectControl, {
@@ -143,9 +166,14 @@ registerBlockType('onlinesched/hours-time', {
         smallText: { type: 'string',  default: '' },
         addBreak:  { type: 'boolean', default: false },
         italics:   { type: 'array',   default: [] },
+        start:     { type: 'string',  default: '' },
+        end:       { type: 'string',  default: '' },
+        allDay:    { type: 'boolean', default: false },
+        closed:    { type: 'boolean', default: false },
     },
     edit: ({ attributes, setAttributes, isSelected }) => {
         const italics = Array.isArray(attributes.italics) ? attributes.italics : [];
+        const generated = formatRange(attributes.start, attributes.end, attributes.allDay);
         const toggleItalic = (value, enabled) => {
             const next = enabled
                 ? [...new Set(italics.concat(value))]
@@ -166,7 +194,11 @@ registerBlockType('onlinesched/hours-time', {
                 el(PanelBody, { title: __('Formatting', 'onlinesched'), initialOpen: true },
                     el(TextControl, {
                         label: __('Hours', 'onlinesched'),
-                        value: attributes.hours,
+                        value: generated || attributes.hours,
+                        disabled: !!generated,
+                        help: generated
+                            ? __('Built from Opens and Closes below. Clear those to type the line yourself.', 'onlinesched')
+                            : undefined,
                         onChange: (hours) => setAttributes({ hours }),
                     }),
                     el(TextControl, {
@@ -189,18 +221,51 @@ registerBlockType('onlinesched/hours-time', {
                         checked:  italics.includes('Small'),
                         onChange: (checked) => toggleItalic('Small', checked),
                     })
+                ),
+                el(PanelBody, { title: __('Open now', 'onlinesched'), initialOpen: true },
+                    el('p', { className: 'os-hours__help' },
+                        __('Fill these in so the app can show an Open now badge. Leave them empty and the line still displays, it just never counts as open.', 'onlinesched')),
+                    el(CheckboxControl, {
+                        label:    __('Open 24 hours', 'onlinesched'),
+                        checked:  !!attributes.allDay,
+                        onChange: (allDay) => setAttributes({ allDay }),
+                    }),
+                    !attributes.allDay && el(TextControl, {
+                        label: __('Opens', 'onlinesched'),
+                        type: 'time',
+                        value: attributes.start,
+                        onChange: (start) => setAttributes({ start }),
+                    }),
+                    !attributes.allDay && el(TextControl, {
+                        label: __('Closes', 'onlinesched'),
+                        type: 'time',
+                        value: attributes.end,
+                        onChange: (end) => setAttributes({ end }),
+                    }),
+                    el(CheckboxControl, {
+                        label:    __('This is a closed period', 'onlinesched'),
+                        help:     __('For lines like a lunch break. The times still show, but Open now treats the space as shut.', 'onlinesched'),
+                        checked:  attributes.closed,
+                        onChange: (closed) => setAttributes({ closed }),
+                    })
                 )
             ),
             // Inline hours field - click to edit directly like any text block.
-            el(RichText, {
-                tagName:        'span',
-                className:      'os-hours__time-val' + (italics.includes('Hours') ? ' os-hours__time-val--italic' : ''),
-                value:          attributes.hours,
-                onChange:       (hours) => setAttributes({ hours }),
-                placeholder:    __('5pm - 9pm', 'onlinesched'),
-                allowedFormats: [],
-                keepPlaceholderOnFocus: true,
-            }),
+            generated
+                ? el('span', {
+                    className: 'os-hours__time-val os-hours__time-val--generated'
+                        + (italics.includes('Hours') ? ' os-hours__time-val--italic' : ''),
+                    title: __('Set under Open now in the sidebar.', 'onlinesched'),
+                }, generated)
+                : el(RichText, {
+                    tagName:        'span',
+                    className:      'os-hours__time-val' + (italics.includes('Hours') ? ' os-hours__time-val--italic' : ''),
+                    value:          attributes.hours,
+                    onChange:       (hours) => setAttributes({ hours }),
+                    placeholder:    __('5pm - 9pm', 'onlinesched'),
+                    allowedFormats: [],
+                    keepPlaceholderOnFocus: true,
+                }),
             // Optional note appears when selected or when it has content, keeping the
             // normal editing view close to the frontend output.
             el(RichText, {

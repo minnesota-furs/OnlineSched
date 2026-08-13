@@ -111,6 +111,17 @@ function onlinesched_enqueue_hours_assets_if_needed()
     if (function_exists('onlinesched_add_color_inline_style')) {
         onlinesched_add_color_inline_style('online-schedule-css');
     }
+
+    $open_now = ONLINESCHED_PLUGIN_DIR . 'build/hours-open-now.bundle.js';
+    if (file_exists($open_now)) {
+        wp_enqueue_script(
+            'onlinesched-hours-open-now',
+            ONLINESCHED_PLUGIN_URL . 'build/hours-open-now.bundle.js',
+            array(),
+            filemtime($open_now),
+            true
+        );
+    }
 }
 
 function onlinesched_hours_shortcode($atts = array())

@@ -9,6 +9,7 @@ module.exports = {
         main: './src/index.js',
         'admin-badge-types': './src/scss/admin-badge-types.scss',
         'hours-blocks': './src/js/hoursBlocks.js',
+        'hours-open-now': './src/js/hoursOpenNow.js',
         'calendar-helpers': './src/js/calendarHelpers.js',
         'solo-event-block': './src/js/soloEventBlock.js',
         'solo-event-view': './src/js/soloEventView.js',

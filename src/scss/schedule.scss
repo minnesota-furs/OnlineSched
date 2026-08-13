@@ -852,21 +852,43 @@ dl.schedule-meta:after {
   display: flow-root;
 }
 
-.os-hours--editor .os-hours__day-label::after {
-  content: "";
+// The colon comes from the frontend dt rule. The control wrapper is a block,
+// so without this it lands on its own line instead of after the day.
+.os-hours--editor .os-hours__day-label {
+  align-items: baseline;
+  display: flex;
 }
 
 .os-hours--editor .os-hours__day-select {
+  display: inline-block;
   max-width: 190px;
+  vertical-align: baseline;
 }
 
 .os-hours--editor .os-hours__day-select .components-base-control__field {
   margin: 0;
 }
 
+// The day has to stay a picker, but it reads as the frontend's bold label
+// until you reach for it. Chrome on hover and focus keeps it discoverable.
 .os-hours--editor .os-hours__day-select select {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
   font-weight: var(--os-weight-bold, bold);
-  min-height: 36px;
+  min-height: 0;
+  height: auto;
+  padding: 0 18px 0 0;
+}
+
+.os-hours--editor .os-hours__day-select select:hover,
+.os-hours--editor .os-hours__day-select select:focus {
+  background: var(--os-surface-muted, #f2f2f2);
+  border-color: var(--os-border-light, #d4d4d4);
+  padding-left: 6px;
 }
 
 .os-hours--editor .os-hours__day-times > .block-editor-inner-blocks > .block-editor-block-list__layout {
@@ -943,4 +965,29 @@ dl.schedule-meta:after {
 // Reset some common theme padding on the wrapper for kiosk
 #body:has(.os-container--kiosk) {
   padding-top: 0 !important;
+}
+
+// Shown only when open: a wall of "closed" at 3am is noise.
+.os-hours__open {
+  align-items: center;
+  background: var(--os-open-now-bg, #e6f4ea);
+  border-radius: 999px;
+  color: var(--os-open-now, #0a6c33);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: var(--os-weight-bold, bold);
+  gap: 7px;
+  letter-spacing: 0.02em;
+  margin: 0 0 10px;
+  padding: 4px 11px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.os-hours__open[hidden] {
+  display: none;
+}
+
+.os-hours__open .fa-circle {
+  font-size: 8px;
 }

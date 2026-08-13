@@ -17,7 +17,11 @@ class OnlineSchedHoursRenderer
 {
     public static function render_wrapper($attributes, $content, $block = null)
     {
-        return '<div class="os-hours"><div class="os-hours__row">' . $content . '</div></div>';
+        $timezone = wp_timezone_string();
+        if ('' === $timezone) {
+            $timezone = 'UTC';
+        }
+        return '<div class="os-hours" data-timezone="' . esc_attr($timezone) . '"><div class="os-hours__row">' . $content . '</div></div>';
     }
 
     public static function render_department($attributes, $content, $block = null)
@@ -62,7 +66,15 @@ class OnlineSchedHoursRenderer
 
     public static function render_time($attributes, $content = '', $block = null)
     {
-        $hours = sanitize_text_field($attributes['hours'] ?? '');
+        // Structured times replace the free-form display when configured.
+        $formatted = onlinesched_hours_format_range(
+            $attributes['start'] ?? '',
+            $attributes['end'] ?? '',
+            !empty($attributes['allDay'])
+        );
+        $hours = '' !== $formatted
+            ? $formatted
+            : sanitize_text_field($attributes['hours'] ?? '');
         $small_text = sanitize_text_field($attributes['smallText'] ?? '');
         $add_break = !empty($attributes['addBreak']);
         $italics = array_map('sanitize_text_field', (array) ($attributes['italics'] ?? array()));
@@ -91,7 +103,19 @@ class OnlineSchedHoursRenderer
             $content .= $add_break ? $small_html : ' ' . $small_html;
         }
 
-        return '<span class="os-hours__time">' . $content . '</span>';
+        $data = '';
+        $start = onlinesched_hours_clock($attributes['start'] ?? '');
+        $end   = onlinesched_hours_clock($attributes['end'] ?? '');
+        if (!empty($attributes['allDay'])) {
+            $data .= ' data-all-day="1"';
+        } elseif ($start !== '' && $end !== '') {
+            $data .= ' data-start="' . esc_attr($start) . '" data-end="' . esc_attr($end) . '"';
+        }
+        if (!empty($attributes['closed'])) {
+            $data .= ' data-closed="1"';
+        }
+
+        return '<span class="os-hours__time"' . $data . '>' . $content . '</span>';
     }
 
 }

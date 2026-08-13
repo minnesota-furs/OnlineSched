@@ -505,10 +505,70 @@ function onlinesched_app_feed_event_terms($post_id, $taxonomy) {
 }
 
 /**
+ * One clock time in house style: bare hours lose ":00", noon and midnight are
+ * named.
+ *
+ * @param string $clock HH:MM.
+ * @return string
+ */
+function onlinesched_hours_format_clock($clock) {
+	$clock = onlinesched_hours_clock($clock);
+	if ('' === $clock) {
+		return '';
+	}
+	list($hour, $minute) = array_map('intval', explode(':', $clock));
+	if (0 === $minute && 12 === $hour) {
+		return 'Noon';
+	}
+	if (0 === $minute && 0 === $hour) {
+		return 'Midnight';
+	}
+	$suffix  = $hour < 12 ? 'am' : 'pm';
+	$display = $hour % 12;
+	$display = 0 === $display ? 12 : $display;
+	return $display . (0 === $minute ? '' : sprintf(':%02d', $minute)) . $suffix;
+}
+
+/**
+ * The displayed hours line for a structured entry, or '' when it has none.
+ *
+ * @param string $start   HH:MM.
+ * @param string $end     HH:MM.
+ * @param bool   $all_day Open around the clock.
+ * @return string
+ */
+function onlinesched_hours_format_range($start, $end, $all_day = false) {
+	if ($all_day) {
+		return '24 hours';
+	}
+	$start = onlinesched_hours_clock($start);
+	$end   = onlinesched_hours_clock($end);
+	if ('' === $start || '' === $end) {
+		return '';
+	}
+	// Same instant both ends is a full day, not a zero-length one.
+	if ($start === $end) {
+		return '24 hours';
+	}
+	return onlinesched_hours_format_clock($start) . ' - ' . onlinesched_hours_format_clock($end);
+}
+
+/**
+ * A 24-hour clock string, or '' for anything that is not one.
+ *
+ * @param mixed $value Authored attribute.
+ * @return string HH:MM or ''.
+ */
+function onlinesched_hours_clock($value) {
+	$value = is_string($value) ? trim($value) : '';
+	return preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $value) ? $value : '';
+}
+
+/**
  * Hours section: lossless export of the configured Hours page blocks.
  *
- * Free-form hours/smallText strings are preserved exactly as authored -
- * no open/close parsing (structured intervals arrive in milestone 1.5).
+ * Free-form values are preserved and never parsed. Open/close status uses only
+ * the structured fields.
  *
  * @return array
  */
@@ -575,12 +635,20 @@ function onlinesched_app_feed_collect_hours_departments(array $blocks) {
 					$time_attrs = is_array($time_block['attrs'] ?? null) ? $time_block['attrs'] : array();
 					$hours_text = sanitize_text_field($time_attrs['hours'] ?? '');
 					$note = sanitize_text_field($time_attrs['smallText'] ?? '');
-					if ('' === $hours_text && '' === $note) {
+					$start = onlinesched_hours_clock($time_attrs['start'] ?? '');
+					$end   = onlinesched_hours_clock($time_attrs['end'] ?? '');
+					$all_day   = ! empty($time_attrs['allDay']);
+					$formatted = onlinesched_hours_format_range($start, $end, $all_day);
+					if ('' === $formatted && '' === $hours_text && '' === $note) {
 						continue;
 					}
 					$day['entries'][] = array(
-						'hours_text' => $hours_text,
+						'hours_text' => '' !== $formatted ? $formatted : $hours_text,
 						'note'       => $note,
+						'start'      => $all_day ? '00:00' : $start,
+						'end'        => $all_day ? '24:00' : $end,
+						'all_day'    => $all_day,
+						'closed'     => ! empty($time_attrs['closed']),
 					);
 				}
 
