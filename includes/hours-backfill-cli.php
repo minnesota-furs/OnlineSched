@@ -10,6 +10,8 @@ if (!defined('WP_CLI') || !WP_CLI) {
  */
 class OnlineSched_Hours_Backfill_CLI
 {
+	const BACKUP_OPTION = 'onlinesched_hours_backfill_backup';
+
 	/**
 	 * Read each hours line and fill start, end, all-day and closed from it.
 	 *
@@ -76,7 +78,7 @@ class OnlineSched_Hours_Backfill_CLI
 				$attrs = array_merge($attrs, $parsed);
 				// A range that means shut must never publish as open hours.
 				$note = (string) ($attrs['smallText'] ?? '');
-				if ('' !== $note && preg_match('/\bclosed\b/i', $note)) {
+				if (onlinesched_hours_note_means_closed($note)) {
 					$attrs['closed'] = true;
 				}
 				$filled[] = array(
@@ -122,15 +124,28 @@ class OnlineSched_Hours_Backfill_CLI
 			return;
 		}
 
-		update_option('onlinesched_hours_backfill_backup', array(
-			'page'    => $page_id,
-			'content' => $post->post_content,
-			'time'    => time(),
-		), false);
-		wp_update_post(array('ID' => $page_id, 'post_content' => $content));
+		// First run owns the restore point. A second pass must not bury the
+		// only copy of the pre-migration page.
+		$existing = get_option(self::BACKUP_OPTION, false);
+		$kept_backup = is_array($existing) && isset($existing['content']);
+		if (!$kept_backup) {
+			update_option(self::BACKUP_OPTION, array(
+				'page'    => $page_id,
+				'content' => $post->post_content,
+				'time'    => time(),
+			), false);
+		}
+
+		$saved = wp_update_post(array('ID' => $page_id, 'post_content' => $content), true);
+		if (is_wp_error($saved)) {
+			WP_CLI::error('Nothing written: ' . $saved->get_error_message());
+		}
 		WP_CLI::success(sprintf(
-			'%d rows filled. Previous content saved to option onlinesched_hours_backfill_backup.',
-			count($filled)
+			'%d rows filled. %s',
+			count($filled),
+			$kept_backup
+				? 'Kept the existing pre-migration backup.'
+				: 'Previous content saved to option ' . self::BACKUP_OPTION . '.'
 		));
 	}
 
@@ -145,20 +160,37 @@ class OnlineSched_Hours_Backfill_CLI
 	 */
 	public function restore($args, $assoc_args)
 	{
-		$backup = get_option('onlinesched_hours_backfill_backup', false);
+		$backup = get_option(self::BACKUP_OPTION, false);
 		if (!is_array($backup) || empty($backup['page']) || !isset($backup['content'])) {
 			WP_CLI::error('No backfill backup found.');
 		}
-		wp_update_post(array(
+		$saved = wp_update_post(array(
 			'ID'           => (int) $backup['page'],
 			'post_content' => $backup['content'],
-		));
+		), true);
+		if (is_wp_error($saved)) {
+			WP_CLI::error('Nothing restored: ' . $saved->get_error_message());
+		}
 		WP_CLI::success(sprintf(
 			'Restored Hours page %d from the backup taken %s.',
 			(int) $backup['page'],
 			gmdate('Y-m-d H:i:s', (int) $backup['time']) . ' UTC'
 		));
 	}
+}
+
+/**
+ * Whether a note declares the row closed.
+ *
+ * Leading word only: "Not closed for lunch" describes an open desk, and a
+ * substring match would flip its meaning.
+ *
+ * @param string $note Authored note.
+ * @return bool
+ */
+function onlinesched_hours_note_means_closed($note)
+{
+	return (bool) preg_match('/^\s*closed\b/i', (string) $note);
 }
 
 /**
