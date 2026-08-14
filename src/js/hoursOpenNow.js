@@ -32,6 +32,9 @@ function wallTime(now, timezone) {
         const parts = new Intl.DateTimeFormat('en-US', {
             timeZone: timezone,
             weekday: 'long',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
             hour: '2-digit',
             minute: '2-digit',
             hourCycle: 'h23',
@@ -39,11 +42,20 @@ function wallTime(now, timezone) {
         const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
         return {
             day: values.weekday.toLowerCase(),
+            date: `${values.year}-${values.month}-${values.day}`,
             minute: Number(values.hour) * 60 + Number(values.minute),
         };
     } catch (_) {
         return null;
     }
+}
+
+function isOperationalDate(hours, date) {
+    const start = hours?.getAttribute('data-operational-start') || '';
+    const end = hours?.getAttribute('data-operational-end') || '';
+    const isDate = /^\d{4}-\d{2}-\d{2}$/;
+    if (!isDate.test(start) || !isDate.test(end) || start > end) return false;
+    return date >= start && date <= end;
 }
 
 // Pair each day label with the adjacent time entries.
@@ -68,9 +80,10 @@ function entriesByDay(dept) {
 
 function statusFor(dept, now) {
     const byDay = entriesByDay(dept);
-    const timezone = dept.closest('.os-hours')?.getAttribute('data-timezone') || '';
+    const hours = dept.closest('.os-hours');
+    const timezone = hours?.getAttribute('data-timezone') || '';
     const at = wallTime(now, timezone);
-    if (!at || !DAYS.includes(at.day)) return 'unknown';
+    if (!at || !DAYS.includes(at.day) || !isOperationalDate(hours, at.date)) return 'unknown';
     const today = DAYS.indexOf(at.day);
     let judged = false;
     let open = false;

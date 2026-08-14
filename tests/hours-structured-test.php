@@ -26,10 +26,22 @@ $check = function ($label, $expected, $actual) use (&$failures) {
 $timezone = function () {
 	return 'America/Chicago';
 };
+$con_start = function () {
+	return '2026-09-10';
+};
+$con_end = function () {
+	return '2026-09-14';
+};
 add_filter('pre_option_timezone_string', $timezone);
+add_filter('pre_option_onlinesched_con_start', $con_start);
+add_filter('pre_option_onlinesched_con_end', $con_end);
 $wrapper = OnlineSchedHoursRenderer::render_wrapper(array(), '<section>Hours</section>');
 $check('wrapper publishes the convention timezone', 1, substr_count($wrapper, 'data-timezone="America/Chicago"'));
+$check('wrapper publishes the operational start date', 1, substr_count($wrapper, 'data-operational-start="2026-09-10"'));
+$check('wrapper publishes the operational end date', 1, substr_count($wrapper, 'data-operational-end="2026-09-14"'));
 remove_filter('pre_option_timezone_string', $timezone);
+remove_filter('pre_option_onlinesched_con_start', $con_start);
+remove_filter('pre_option_onlinesched_con_end', $con_end);
 
 $time = OnlineSchedHoursRenderer::render_time(
 	array(

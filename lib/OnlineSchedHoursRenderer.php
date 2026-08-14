@@ -21,7 +21,12 @@ class OnlineSchedHoursRenderer
         if ('' === $timezone) {
             $timezone = 'UTC';
         }
-        return '<div class="os-hours" data-timezone="' . esc_attr($timezone) . '"><div class="os-hours__row">' . $content . '</div></div>';
+        $dates = onlinesched_app_con_dates();
+        $data = ' data-timezone="' . esc_attr($timezone) . '"';
+        $data .= ' data-operational-start="' . esc_attr($dates['con_start']) . '"';
+        $data .= ' data-operational-end="' . esc_attr($dates['con_end']) . '"';
+
+        return '<div class="os-hours"' . $data . '><div class="os-hours__row">' . $content . '</div></div>';
     }
 
     public static function render_department($attributes, $content, $block = null)

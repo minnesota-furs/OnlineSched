@@ -1,6 +1,37 @@
 // @author kurst@mnfurs.org Kurst Hyperyote for Furry Migration
 const { test, expect } = require('@playwright/test');
+const path = require('path');
 const S = require('../helpers/selectors');
+
+const hoursOpenNowScript = path.resolve(__dirname, '../../src/js/hoursOpenNow.js');
+
+async function renderOpenNow(page, now, start, end) {
+  await page.goto('about:blank');
+  await page.setContent(`
+    <div class="os-hours" data-timezone="America/Chicago"
+      data-operational-start="${start}" data-operational-end="${end}">
+      <section class="os-hours__dept">
+        <dl class="os-hours__days">
+          <dt>Thursday</dt>
+          <dd><span class="os-hours__time" data-start="09:00" data-end="17:00">9am - 5pm</span></dd>
+        </dl>
+      </section>
+    </div>
+  `);
+  await page.evaluate((timestamp) => {
+    const NativeDate = Date;
+    window.Date = class extends NativeDate {
+      constructor(...args) {
+        super(...(args.length ? args : [timestamp]));
+      }
+
+      static now() {
+        return timestamp;
+      }
+    };
+  }, new Date(now).getTime());
+  await page.addScriptTag({ path: hoursOpenNowScript });
+}
 
 async function openHoursTab(page) {
   await page.goto('/schedule/#tab=hours');
@@ -39,5 +70,25 @@ test.describe('13 — Hours block', () => {
     });
 
     expect(columnCount).toBe(1);
+  });
+});
+
+test.describe('Hours open-now operational window', () => {
+  test('does not highlight a matching weekday before the convention', async ({ page }) => {
+    await renderOpenNow(page, '2026-08-13T17:00:00Z', '2026-09-10', '2026-09-14');
+
+    await expect(page.locator('.os-hours__open')).toHaveCount(0);
+  });
+
+  test('highlights a matching weekday during the convention', async ({ page }) => {
+    await renderOpenNow(page, '2026-09-10T17:00:00Z', '2026-09-10', '2026-09-14');
+
+    await expect(page.locator('.os-hours__open')).toBeVisible();
+  });
+
+  test('does not highlight when the operational dates are missing', async ({ page }) => {
+    await renderOpenNow(page, '2026-09-10T17:00:00Z', '', '');
+
+    await expect(page.locator('.os-hours__open')).toHaveCount(0);
   });
 });
