@@ -39,7 +39,10 @@ class OnlineSchedHoursRenderer
             return '';
         }
 
-        $html = '<section class="os-hours__dept">';
+        $class = '' === $location
+            ? 'os-hours__dept os-hours__dept--without-location'
+            : 'os-hours__dept';
+        $html = '<section class="' . $class . '">';
         if ($department !== '') {
             $name = '<h3 class="os-hours__name">' . esc_html($department) . '</h3>';
             if ($heading_extra !== '') {

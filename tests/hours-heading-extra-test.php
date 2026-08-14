@@ -39,6 +39,7 @@ if (false !== $site_callback) {
 $html = $render();
 $check('no consumer preserves the original heading', 1, substr_count($html, '<h3 class="os-hours__name">Operations</h3>'));
 $check('no consumer emits no heading wrapper', false, str_contains($html, 'os-hours__heading'));
+$check('a department with a location keeps the normal class', true, str_contains($html, '<section class="os-hours__dept">'));
 if (false !== $site_callback) {
     add_filter('os_hours_heading_extra_html', 'furry_migration_con_maps_hours_heading_extra', $site_callback, 3);
 }
@@ -57,6 +58,16 @@ $check('department and plain location reach the consumer', 1, substr_count($html
 $check('consumer content creates one heading wrapper', 1, substr_count($html, 'class="os-hours__heading"'));
 remove_filter('os_hours_heading_extra_html', $first, 20);
 remove_filter('os_hours_heading_extra_html', $second, 30);
+
+$without_location = OnlineSchedHoursRenderer::render_department(
+    array('department' => 'Furry Logic', 'location' => ''),
+    '<dt>Friday</dt><dd>1 PM - 10 PM</dd>'
+);
+$check(
+    'a department without a location exposes its layout state',
+    true,
+    str_contains($without_location, '<section class="os-hours__dept os-hours__dept--without-location">')
+);
 
 $unsafe = function () {
     return '<script>alert(1)</script><a href="javascript:alert(2)" onclick="alert(3)">Bad</a>'
