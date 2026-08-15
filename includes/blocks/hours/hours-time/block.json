@@ -46,6 +46,10 @@
     "allDay": {
       "type": "boolean",
       "default": false
+    },
+    "access": {
+      "type": "string",
+      "default": "public"
     }
   }
 }

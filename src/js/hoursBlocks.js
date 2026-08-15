@@ -170,6 +170,7 @@ registerBlockType('onlinesched/hours-time', {
         end:       { type: 'string',  default: '' },
         allDay:    { type: 'boolean', default: false },
         closed:    { type: 'boolean', default: false },
+        access:    { type: 'string',  default: 'public' },
     },
     edit: ({ attributes, setAttributes, isSelected }) => {
         const italics = Array.isArray(attributes.italics) ? attributes.italics : [];
@@ -241,6 +242,16 @@ registerBlockType('onlinesched/hours-time', {
                         type: 'time',
                         value: attributes.end,
                         onChange: (end) => setAttributes({ end }),
+                    }),
+                    el(SelectControl, {
+                        label: __('Who can enter', 'onlinesched'),
+                        value: attributes.access || 'public',
+                        options: [
+                            { label: __('All attendees', 'onlinesched'), value: 'public' },
+                            { label: __('Sponsors and Super Sponsors', 'onlinesched'), value: 'sponsor_and_super_sponsor' },
+                            { label: __('Super Sponsors only', 'onlinesched'), value: 'super_sponsor' },
+                        ],
+                        onChange: (access) => setAttributes({ access }),
                     }),
                     el(CheckboxControl, {
                         label:    __('This is a closed period', 'onlinesched'),

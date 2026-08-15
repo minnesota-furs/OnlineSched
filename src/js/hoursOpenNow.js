@@ -15,6 +15,8 @@ function minutes(value) {
 // An end at or before the start runs into the next day, which is how a desk
 // that closes at 2am is authored.
 function windowFor(el, dayOffset) {
+    // Restricted early access never opens the room to the public badge.
+    if (el.hasAttribute('data-access')) return null;
     if (el.hasAttribute('data-all-day')) {
         return { from: dayOffset, to: dayOffset + 24 * 60 };
     }

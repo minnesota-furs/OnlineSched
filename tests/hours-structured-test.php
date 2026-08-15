@@ -66,6 +66,14 @@ $blocks = array(
 						'blockName' => 'onlinesched/hours-time',
 						'attrs'     => array('start' => '09:00', 'end' => '17:30'),
 					),
+					array(
+						'blockName' => 'onlinesched/hours-time',
+						'attrs'     => array(
+							'start'  => '08:00',
+							'end'    => '09:00',
+							'access' => 'sponsor_and_super_sponsor',
+						),
+					),
 				),
 			),
 		),
@@ -76,6 +84,28 @@ $entry = $departments[0]['days'][0]['entries'][0] ?? array();
 $check('structured-only entry remains in the app feed', '9am - 5:30pm', $entry['hours_text'] ?? null);
 $check('app feed publishes the opening time', '09:00', $entry['start'] ?? null);
 $check('app feed publishes the closing time', '17:30', $entry['end'] ?? null);
+$check('public entries omit the access field', false, array_key_exists('access', $entry));
+$early_entry = $departments[0]['days'][0]['entries'][1] ?? array();
+$check(
+	'app feed publishes restricted access',
+	'sponsor_and_super_sponsor',
+	$early_entry['access'] ?? null
+);
+
+// The website badge reads these data attributes; a restricted window must
+// carry data-access so the public badge never counts it.
+foreach (array('sponsor_and_super_sponsor', 'super_sponsor') as $tier) {
+	$html = OnlineSchedHoursRenderer::render_time(array(
+		'hours' => '', 'smallText' => '', 'start' => '08:00', 'end' => '09:00',
+		'access' => $tier,
+	));
+	$check("renderer marks $tier for the badge", true,
+		false !== strpos($html, 'data-access="' . $tier . '"'));
+}
+$html = OnlineSchedHoursRenderer::render_time(array(
+	'hours' => '', 'smallText' => '', 'start' => '09:00', 'end' => '17:00',
+));
+$check('a public row carries no access mark', false, strpos($html, 'data-access'));
 
 if ($failures > 0) {
 	WP_CLI::error("structured hours: $failures failure(s).");

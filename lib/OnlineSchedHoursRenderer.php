@@ -122,6 +122,12 @@ class OnlineSchedHoursRenderer
         if (!empty($attributes['closed'])) {
             $data .= ' data-closed="1"';
         }
+        // Same value list as the app feed; a restricted window must never
+        // count toward the public Open now badge.
+        $access = (string) ($attributes['access'] ?? 'public');
+        if (in_array($access, array('sponsor_and_super_sponsor', 'super_sponsor'), true)) {
+            $data .= ' data-access="' . esc_attr($access) . '"';
+        }
 
         return '<span class="os-hours__time"' . $data . '>' . $content . '</span>';
     }

@@ -653,11 +653,15 @@ function onlinesched_app_feed_collect_hours_departments(array $blocks) {
 					$start = onlinesched_hours_clock($time_attrs['start'] ?? '');
 					$end   = onlinesched_hours_clock($time_attrs['end'] ?? '');
 					$all_day   = ! empty($time_attrs['allDay']);
+					$access    = onlinesched_hours_text($time_attrs['access'] ?? 'public');
+					if (!in_array($access, array('public', 'sponsor_and_super_sponsor', 'super_sponsor'), true)) {
+						$access = 'public';
+					}
 					$formatted = onlinesched_hours_format_range($start, $end, $all_day);
 					if ('' === $formatted && '' === $hours_text && '' === $note) {
 						continue;
 					}
-					$day['entries'][] = array(
+					$entry = array(
 						'hours_text' => '' !== $formatted ? $formatted : $hours_text,
 						'note'       => $note,
 						'start'      => $all_day ? '00:00' : $start,
@@ -665,6 +669,10 @@ function onlinesched_app_feed_collect_hours_departments(array $blocks) {
 						'all_day'    => $all_day,
 						'closed'     => ! empty($time_attrs['closed']),
 					);
+					if ('public' !== $access) {
+						$entry['access'] = $access;
+					}
+					$day['entries'][] = $entry;
 				}
 
 				if (!empty($day['entries'])) {
