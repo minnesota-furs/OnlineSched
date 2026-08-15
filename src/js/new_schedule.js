@@ -14,6 +14,12 @@ function hideElement(el) {
     if (el) el.style.display = 'none';
 }
 
+// Declared ahead of everything that runs at init: scheduleSort fills these
+// and is called before the later definitions execute.
+let dayAvailability = new Set();
+let tagAvailability = new Set();
+let roomAvailability = new Set();
+
 function isVisible(el) {
     if (!el) return false;
 
@@ -494,13 +500,16 @@ export function new_schedule() {
 
     $$('.schedule-tags').forEach((tagsEl) => {
         const item = tagsEl.closest('.schedule-item');
+        // Popup and template markup carry tag terms too; a label with no
+        // owning event must not mint a menu entry.
+        if (!item) return;
 
         getScheduleTagItems(tagsEl).forEach((tag) => {
             if (!Object.prototype.hasOwnProperty.call(window.eventschedule_scheduleTags, tag.label)) {
                 window.eventschedule_scheduleTags[tag.label] = window.eventschedule_count++;
             }
 
-            item?.setAttribute(
+            item.setAttribute(
                 `data-schedule-tag${window.eventschedule_scheduleTags[tag.label]}`,
                 window.eventschedule_scheduleTags[tag.label]
             );
@@ -524,6 +533,26 @@ export function new_schedule() {
             window.eventschedule_scheduleRooms[slug] = label;
         }
     });
+
+    // Membership from events, not the slug map: the map also reads popup
+    // markup, and a room no event carries must be absent, not disabled.
+    (function populateRoomOptions() {
+        const select = $('#schedule-select-rooms');
+        if (!select) return;
+        const seen = new Set(Array.from(select.options, (o) => o.value));
+        $$('.schedule-item').forEach((item) => {
+            if (item.dataset.osFallback === 'true') return;
+            for (const attr of item.attributes) {
+                if (attr.name.startsWith('data-schedule-room-') && attr.value && !seen.has(attr.value)) {
+                    seen.add(attr.value);
+                    select.append(new Option(
+                        window.eventschedule_scheduleRooms[attr.value] || attr.value, attr.value));
+                }
+            }
+        });
+        sort_rooms_options_by_id('#schedule-select-rooms');
+        sort_options_by_id('#schedule-select-tags');
+    })();
 
     function updateResetButtonState() {
         const isDefault = (
@@ -663,16 +692,24 @@ export function new_schedule() {
 
         const currentDateUTC = selectedDay === 'Current' ? currentDateTimeTimestampUTC() : null;
 
+        dayAvailability = new Set();
+        tagAvailability = new Set();
+        roomAvailability = new Set();
         $$('.schedule-item').forEach((item) => {
             if (item.dataset.osFallback === 'true') {
                 showElement(item);
                 return;
             }
             let show = true;
+            let baseOk = true;
+            let dayOk = true;
+            let tagOk = true;
+            let roomOk = true;
 
             const day = item.closest('.schedule-day');
             if (selectedDay !== 'Current' && !isVisible(day)) {
                 show = false;
+                dayOk = false;
             }
 
             if (essentialsFilterActive) {
@@ -685,21 +722,25 @@ export function new_schedule() {
                 }
                 if (!hasEssentialsTag) {
                     show = false;
+                    baseOk = false;
                 }
             }
 
             if (selectedTag !== 'all' && !hasMatchingAttribute(item, 'data-schedule-tag', selectedTag)) {
                 show = false;
+                tagOk = false;
             }
 
             if (selectedRoom !== 'all' && !hasMatchingAttribute(item, 'data-schedule-room-', selectedRoom)) {
                 show = false;
+                roomOk = false;
             }
 
             if (selectedDay === 'Current') {
                 const itemDate = Number(item.dataset.endTime);
                 if (!itemDate || itemDate <= currentDateUTC) {
                     show = false;
+                    dayOk = false;
                 }
             }
 
@@ -708,11 +749,30 @@ export function new_schedule() {
                     .some((el) => el.textContent.toLowerCase().indexOf(searchText) !== -1);
                 if (!found) {
                     show = false;
+                    baseOk = false;
                 }
             }
 
             if (favoritesFilterActive && item.getAttribute('data-favorite') !== 'true') {
                 show = false;
+                baseOk = false;
+            }
+
+            // Counterfactual per facet: availability is judged with that
+            // facet's own filter removed, so picking A never greys B.
+            if (baseOk) {
+                if (tagOk && roomOk && day) {
+                    const dayName = day.getAttribute('data-schedule-day');
+                    if (dayName) dayAvailability.add(dayName);
+                }
+                for (const attr of item.attributes) {
+                    if (dayOk && roomOk && attr.name.startsWith('data-schedule-tag') && attr.value !== '') {
+                        tagAvailability.add(String(attr.value));
+                    }
+                    if (dayOk && tagOk && attr.name.startsWith('data-schedule-room-') && attr.value) {
+                        roomAvailability.add(attr.value);
+                    }
+                }
             }
 
             if (show) {
@@ -721,6 +781,10 @@ export function new_schedule() {
                 hideElement(item);
             }
         });
+
+        resetSelectDays();
+        resetSelectTags();
+        resetSelectRooms();
 
         const isDefault = (
             searchText.trim() === '' &&
@@ -793,74 +857,28 @@ export function new_schedule() {
         setOddEven();
     }
 
-    function resetSelectTags() {
-        const scheduleReset = {};
-        $$('.schedule-item').filter(isVisible).forEach((item) => {
-            $$('.schedule-tags', item).forEach((tagsEl) => {
-                getScheduleTagItems(tagsEl).forEach((tag) => {
-                    if (!Object.prototype.hasOwnProperty.call(scheduleReset, tag.label)) {
-                        scheduleReset[tag.label] = tag.label;
-                    }
-                });
-            });
-        });
-
-        const select = $('#schedule-select-tags');
+    // Availability greys options; membership never changes here. all and
+    // Current stay live, and the selection never disables under the user.
+    function refreshSelectAvailability(select, available) {
         if (!select) return;
-
-        const selectedTagValue = select.value;
         Array.from(select.options).forEach((option) => {
-            if (option.value !== 'all') {
-                option.remove();
-            }
+            if (option.value === 'all' || option.value === 'Current') return;
+            const isSelected = String(select.value) === String(option.value);
+            option.disabled = !available.has(String(option.value)) && !isSelected;
         });
-
-        for (const key in scheduleReset) {
-            select.append(new Option(key, window.eventschedule_scheduleTags[key]));
-        }
-
-        if (selectedTagValue !== 'all') {
-            select.value = selectedTagValue;
-        }
-
-        sort_options_by_id('#schedule-select-tags');
         setOddEven();
     }
 
+    function resetSelectDays() {
+        refreshSelectAvailability($('#schedule-select-days'), dayAvailability);
+    }
+
+    function resetSelectTags() {
+        refreshSelectAvailability($('#schedule-select-tags'), tagAvailability);
+    }
+
     function resetSelectRooms() {
-        const scheduleRooms = {};
-        $$('.schedule-item').filter(isVisible).forEach((item) => {
-            for (const attr of item.attributes) {
-                if (attr.name.startsWith('data-schedule-room-')) {
-                    const slug = attr.value;
-                    const name = window.eventschedule_scheduleRooms?.[slug] || slug;
-                    if (slug && !Object.prototype.hasOwnProperty.call(scheduleRooms, slug)) {
-                        scheduleRooms[slug] = name;
-                    }
-                }
-            }
-        });
-
-        const select = $('#schedule-select-rooms');
-        if (!select) return;
-
-        const selectedRoomValue = select.value;
-        Array.from(select.options).forEach((option) => {
-            if (option.value !== 'all') {
-                option.remove();
-            }
-        });
-
-        for (const slug in scheduleRooms) {
-            select.append(new Option(scheduleRooms[slug], slug));
-        }
-
-        if (selectedRoomValue !== 'all') {
-            select.value = selectedRoomValue;
-        }
-
-        sort_rooms_options_by_id('#schedule-select-rooms');
-        setOddEven();
+        refreshSelectAvailability($('#schedule-select-rooms'), roomAvailability);
     }
 
     function sort_options_by_id(id) {

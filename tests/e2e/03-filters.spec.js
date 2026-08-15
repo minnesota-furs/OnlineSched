@@ -106,8 +106,9 @@ test.describe('03 — Filters', () => {
     await page.waitForTimeout(300);
     const afterTag = await page.locator(`${S.scheduleItem}:visible`).count();
 
-    // Now also select a specific room - should narrow results further or keep same
-    const roomOption = await page.locator(`${S.selectRooms} option:not([value="all"])`).first().getAttribute('value');
+    // Now also select a specific room - should narrow results further or keep
+    // same. An enabled one: zero-match options stay listed but greyed now.
+    const roomOption = await page.locator(`${S.selectRooms} option:not([value="all"]):not([disabled])`).first().getAttribute('value');
     if (!roomOption) return test.skip();
     await page.selectOption(S.selectRooms, roomOption);
     await page.waitForTimeout(400);
@@ -222,5 +223,123 @@ test.describe('03 — Filters', () => {
 
     const filterLinks = await page.locator(S.filterLink).count();
     expect(filterLinks).toBe(0);
+  });
+
+  // Filtered-out options grey out; they never vanish, reorder, or change label.
+  test('a narrowing filter disables room options instead of removing them', async ({ page }) => {
+    const labelsBefore = await page.locator(`${S.selectRooms} option`).allTextContents();
+    await page.fill(S.searchInput, 'Opening Howl');
+    await page.waitForTimeout(400);
+    const labelsAfter = await page.locator(`${S.selectRooms} option`).allTextContents();
+    expect(labelsAfter).toEqual(labelsBefore);
+    expect(await page.locator(`${S.selectRooms} option[disabled]`).count()).toBeGreaterThan(0);
+  });
+
+  test('clearing the filter re-enables every option', async ({ page }) => {
+    await page.fill(S.searchInput, 'Opening Howl');
+    await page.waitForTimeout(300);
+    await page.fill(S.searchInput, '');
+    await page.waitForTimeout(400);
+    expect(await page.locator(`${S.selectRooms} option[disabled]`).count()).toBe(0);
+    expect(await page.locator(`${S.selectTags} option[disabled]`).count()).toBe(0);
+  });
+
+  test('option order is identical before and after a filter cycle', async ({ page }) => {
+    const values = (sel) => page.locator(`${sel} option`).evaluateAll(
+      (opts) => opts.map((o) => o.value));
+    const roomsBefore = await values(S.selectRooms);
+    const tagsBefore = await values(S.selectTags);
+    await page.fill(S.searchInput, 'Opening Howl');
+    await page.waitForTimeout(400);
+    expect(await values(S.selectRooms)).toEqual(roomsBefore);
+    expect(await values(S.selectTags)).toEqual(tagsBefore);
+    await page.fill(S.searchInput, '');
+    await page.waitForTimeout(400);
+    expect(await values(S.selectRooms)).toEqual(roomsBefore);
+    expect(await values(S.selectTags)).toEqual(tagsBefore);
+  });
+
+  // Days grey out too: a tag or room pick must not leave selectable days
+  // that lead to an empty schedule.
+  test('a narrowing filter disables empty days without touching All or Current', async ({ page }) => {
+    await page.fill(S.searchInput, 'Opening Howl');
+    await page.waitForTimeout(400);
+    expect(await page.locator(`${S.selectDays} option[disabled]`).count()).toBeGreaterThan(0);
+    // Data-independent contract: an enabled day must actually deliver events.
+    const firstEnabled = await page.locator(
+      `${S.selectDays} option:not([disabled]):not([value="all"]):not([value="Current"])`).first().getAttribute('value');
+    expect(firstEnabled).toBeTruthy();
+    await page.selectOption(S.selectDays, firstEnabled);
+    await page.waitForTimeout(400);
+    expect(await page.locator(`${S.scheduleItem}:visible`).count()).toBeGreaterThan(0);
+    await page.selectOption(S.selectDays, 'Current');
+    await page.waitForTimeout(300);
+    for (const keep of ['all', 'Current']) {
+      const opt = page.locator(`${S.selectDays} option[value="${keep}"]`);
+      expect(await opt.getAttribute('disabled')).toBeNull();
+    }
+    await page.fill(S.searchInput, '');
+    await page.waitForTimeout(400);
+    expect(await page.locator(`${S.selectDays} option[disabled]`).count()).toBe(0);
+  });
+
+  // Same-facet counterfactual: picking tag A must not grey tag B, because B's
+  // availability is judged as if the tag filter were not set.
+  test('selecting a tag leaves its own menu availability unchanged', async ({ page }) => {
+    const availability = (sel) => page.locator(`${sel} option`).evaluateAll(
+      (opts) => opts.map((o) => [o.value, o.disabled]));
+    const tagsBefore = await availability(S.selectTags);
+    const tagOption = await page.locator(`${S.selectTags} option:not([value="all"]):not([disabled])`).first().getAttribute('value');
+    if (!tagOption) return test.skip();
+    await page.selectOption(S.selectTags, tagOption);
+    await page.waitForTimeout(400);
+    expect(await availability(S.selectTags)).toEqual(tagsBefore);
+    await page.selectOption(S.selectTags, 'all');
+    await page.waitForTimeout(300);
+    const roomsBefore = await availability(S.selectRooms);
+    const roomOption = await page.locator(`${S.selectRooms} option:not([value="all"]):not([disabled])`).first().getAttribute('value');
+    if (!roomOption) return test.skip();
+    await page.selectOption(S.selectRooms, roomOption);
+    await page.waitForTimeout(400);
+    expect(await availability(S.selectRooms)).toEqual(roomsBefore);
+  });
+
+  // Globally unused values are absent; only event-owned values may appear.
+  test('every menu option is owned by at least one event', async ({ page }) => {
+    const orphans = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.schedule-item'))
+        .filter((i) => i.dataset.osFallback !== 'true');
+      const owned = { rooms: new Set(), tags: new Set() };
+      for (const item of items) {
+        for (const attr of item.attributes) {
+          if (attr.name.startsWith('data-schedule-room-')) owned.rooms.add(attr.value);
+          else if (attr.name.startsWith('data-schedule-tag')) owned.tags.add(String(attr.value));
+        }
+      }
+      const orphanIn = (sel, set) => Array.from(
+        document.querySelectorAll(`${sel} option`))
+        .filter((o) => o.value !== 'all' && o.value !== 'Current' && !set.has(String(o.value)))
+        .map((o) => o.textContent);
+      return {
+        rooms: orphanIn('#schedule-select-rooms', owned.rooms),
+        tags: orphanIn('#schedule-select-tags', owned.tags),
+      };
+    });
+    expect(orphans.rooms).toEqual([]);
+    expect(orphans.tags).toEqual([]);
+  });
+
+  // The selection must not disable out from under the user.
+  test('a selected room stays enabled when a search empties it', async ({ page }) => {
+    const roomOption = await page.locator(`${S.selectRooms} option:not([value="all"])`).last().getAttribute('value');
+    if (!roomOption) return test.skip();
+    await page.selectOption(S.selectRooms, roomOption);
+    await page.waitForTimeout(300);
+    await page.fill(S.searchInput, 'Opening Howl');
+    await page.waitForTimeout(400);
+    await expect(page.locator(S.selectRooms)).toHaveValue(roomOption);
+    const selectedDisabled = await page.locator(
+      `${S.selectRooms} option[value="${roomOption}"]`).getAttribute('disabled');
+    expect(selectedDisabled).toBeNull();
   });
 });
