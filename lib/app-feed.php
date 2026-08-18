@@ -267,6 +267,9 @@ function onlinesched_app_feed_meta($revisions = null) {
 		// Endpoint map that themes and plugins extend through the filter. Cast to
 		// an object so an empty map serializes as {} rather than [].
 		'links'              => (object) apply_filters('onlinesched_app_feed_meta_links', array()),
+		// Social profile map, same filter contract as links. The app owns the
+		// key vocabulary and drops entries it does not recognize.
+		'social_links'       => (object) apply_filters('onlinesched_app_feed_meta_social_links', array()),
 	);
 }
 
