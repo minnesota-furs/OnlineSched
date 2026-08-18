@@ -662,13 +662,14 @@ function OnlineSched_add_timeslot_fields($os_event_id, $os_event)
 		update_post_meta($os_event_id, 'onlinesched_year', get_option('onlinesched_year'));
 
 		$sorttime = 0;
-        $posted_day = isset($_POST['os_day']) ? sanitize_text_field(wp_unslash($_POST['os_day'])) : '';
         $posted_hour = isset($_POST['os_event_time_hr']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_hr'])) : '';
         $posted_min = isset($_POST['os_event_time_min']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_min'])) : '';
-		$types = get_terms('os_day', array('search' => $posted_day));
-		if (count($types) == 1) {
+		// The assigned term is authoritative; a name search matches several
+		// same-weekday terms and silently zeroed the time.
+		$days = wp_get_post_terms($os_event_id, 'os_day');
+		if (!is_wp_error($days) && !empty($days)) {
 			$date_time = onlinesched_parse_local_datetime(
-				$types[0]->description,
+				$days[0]->description,
 				$posted_hour . ':' . $posted_min
 			);
 			$sorttime = $date_time ? $date_time->getTimestamp() : 0;
