@@ -585,7 +585,7 @@ function OnlineSched_timeslot_metabox($os_event)
             </td>
             <td>
 				<?php
-				echo OnlineSched_select_num('os_event_time_hr', $time_hr, 1, 24) .
+				echo OnlineSched_select_num('os_event_time_hr', $time_hr, 0, 24) .
 					":" .
 					OnlineSched_select_num('os_event_time_min', $time_min, 0, 59, OnlineSched_minute_step($time_min));
 				?>
