@@ -86,7 +86,8 @@ if (
 }
 
 $startTime = get_post_meta($id, 'onlinesched_sorttime', true);
-if (!is_numeric($startTime)) {
+## Zero means dateless, not the epoch.
+if (!is_numeric($startTime) || intval($startTime) <= 0) {
 	onlinesched_ical_send_response(onlinesched_ical_empty_calendar(), $filename);
 }
 $startTime = intval($startTime);

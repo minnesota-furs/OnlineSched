@@ -185,8 +185,10 @@ foreach ($postsArr as $item) {
 	}
 
 	## Figure out Times
+	## Zero means dateless, not the epoch: publishing it puts a 1970 event in
+	## every subscribed calendar.
 	$startTimeRaw = get_post_meta($postId, 'onlinesched_sorttime', true);
-	if (!is_numeric($startTimeRaw)) {
+	if (!is_numeric($startTimeRaw) || intval($startTimeRaw) <= 0) {
 		continue;
 	}
 
