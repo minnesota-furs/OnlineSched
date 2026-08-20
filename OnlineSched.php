@@ -60,6 +60,7 @@ require_once('includes/rest-api.php');
 require_once('includes/favorites.php');
 require_once('includes/privacy.php');
 require_once('includes/admin-event-safety.php');
+require_once('includes/admin-timeslot-notice.php');
 require_once("OnlineSchedBadgeTypes.php");
 require_once('OnlineSchedEssentials.php');
 require_once('OnlineSchedSocialLogin.php');
@@ -652,29 +653,42 @@ function OnlineSched_add_timeslot_fields($os_event_id, $os_event)
             return;
         }
 
-		OnlineSched_update_post_meta($os_event_id, 'os_event_day', 'onlinesched_day');
 		OnlineSched_update_post_meta($os_event_id, 'os_event_panelists', 'onlinesched_panelists');
 		OnlineSched_update_post_terms($os_event_id, 'os_room', 'os_room');
 		OnlineSched_update_post_terms($os_event_id, 'os_day', 'os_day');
+		update_post_meta($os_event_id, 'onlinesched_year', get_option('onlinesched_year'));
+
+        $posted_hour = isset($_POST['os_event_time_hr']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_hr'])) : '';
+        $posted_min = isset($_POST['os_event_time_min']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_min'])) : '';
+		// Day names are not unique, so use the event's assigned term.
+		$days = wp_get_post_terms($os_event_id, 'os_day');
+		$has_day = !is_wp_error($days) && !empty($days);
+		$date_time = $has_day
+			? onlinesched_parse_local_datetime(
+				$days[0]->description,
+				$posted_hour . ':' . $posted_min
+			)
+			: false;
+
+		// Keep the previous time when the submitted value is invalid.
+		if ($has_day && !$date_time) {
+			onlinesched_flag_timeslot_refusal(
+				$os_event_id,
+				sprintf(
+					'The time was not saved: "%s" on %s is not a time this schedule can use. The previous time is still in place.',
+					$posted_hour . ':' . $posted_min,
+					$days[0]->name
+				)
+			);
+			do_action('onlinesched_event_updated', $os_event_id);
+			return;
+		}
+
+		OnlineSched_update_post_meta($os_event_id, 'os_event_day', 'onlinesched_day');
 		OnlineSched_update_post_meta($os_event_id, 'os_event_time_hr', 'onlinesched_time_hr');
 		OnlineSched_update_post_meta($os_event_id, 'os_event_time_min', 'onlinesched_time_min');
 		OnlineSched_update_post_meta($os_event_id, 'os_event_timelen', 'onlinesched_timelen');
-		update_post_meta($os_event_id, 'onlinesched_year', get_option('onlinesched_year'));
-
-		$sorttime = 0;
-        $posted_hour = isset($_POST['os_event_time_hr']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_hr'])) : '';
-        $posted_min = isset($_POST['os_event_time_min']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_min'])) : '';
-		// The assigned term is authoritative; a name search matches several
-		// same-weekday terms and silently zeroed the time.
-		$days = wp_get_post_terms($os_event_id, 'os_day');
-		if (!is_wp_error($days) && !empty($days)) {
-			$date_time = onlinesched_parse_local_datetime(
-				$days[0]->description,
-				$posted_hour . ':' . $posted_min
-			);
-			$sorttime = $date_time ? $date_time->getTimestamp() : 0;
-		}
-		update_post_meta($os_event_id, 'onlinesched_sorttime', $sorttime);
+		update_post_meta($os_event_id, 'onlinesched_sorttime', $date_time ? $date_time->getTimestamp() : 0);
 
 		/**
 		 * Hook for cache purging and other post-save actions.
