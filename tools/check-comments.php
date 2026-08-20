@@ -45,6 +45,19 @@ const PERSONAL_PATTERNS = [
     'review-note'  => '/\b(review|feedback|finding)\s*#?\d+/i',
 ];
 
+// Wording that reads like a machine wrote it. Each pattern names a habit that
+// costs a reader time: padding, narration of the diff, or a verdict on the code.
+const SLOP_PATTERNS = [
+    // "underscores" and "showcases" only count as padding in their verb form;
+    // the plain nouns name a real character and a real UI.
+    'padded-word'  => '/(\b(leverages?|utili[sz]es?|robust|seamless(ly)?|gracefully|elegantly|facilitates?|delves?|crucial|pivotal|comprehensive|holistic|myriad|plethora|tapestry|testament)\b|\b(underscor|showcas)(es|ing)\s+(the|this|that|how|why|its)\b)/i',
+    'filler'       => '/(\bin order to\b|\bdue to the fact\b|\bit is important to note\b|\bplease note\b|\bas you can see\b|\bneedless to say\b|\bfirst and foremost\b)/i',
+    'hedge'        => '/\b(basically|essentially|obviously|clearly|simply put|of course)\b/i',
+    'narration'    => '/(\blet\x27s\b|\bwe (need|want|then|now|also|first|just|simply)\b|\bhere we\b|\bthis (line|block|function|method) (does|is|will)\b)/i',
+    'diff-caption' => '/,\s*(ensuring|allowing|preventing|enabling|making sure|thus|thereby)\b/i',
+    'verdict'      => '/\b(correctly|properly|appropriately|as expected|as intended)\b/i',
+];
+
 // Package metadata WordPress and the docblock tooling actually read. Authorship
 // and versions belong in these; the rules above do not apply to them.
 const METADATA_LINE = '~^\s*[*#/\s]*(?:@(?:author|copyright|license|since|version|package|link|see|deprecated)\b'
@@ -352,7 +365,7 @@ function check_file(string $path, string $source): array
             if (preg_match(METADATA_LINE, $text)) {
                 continue;
             }
-            foreach (PERSONAL_PATTERNS as $rule => $pattern) {
+            foreach (PERSONAL_PATTERNS + SLOP_PATTERNS as $rule => $pattern) {
                 if (preg_match($pattern, $text, $m)) {
                     $violations[] = new Violation($path, $at, $rule, trim($m[0]));
                 }

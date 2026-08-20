@@ -14,7 +14,8 @@
     window.isAndroidDevice = isAndroidDevice;
 
     /**
-     * Rewrite Google Calendar URL for Android to handle webcal correctly.
+     * Android's Google Calendar cannot open webcal links, so the URL
+     * swaps to the https render endpoint.
      */
     function rewriteGoogleCalendarUrlForAndroid(url) {
         if (!isAndroidDevice()) return url;

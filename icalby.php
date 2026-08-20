@@ -184,7 +184,6 @@ foreach ($postsArr as $item) {
 		continue;
 	}
 
-	## Figure out Times
 	## Zero means dateless, not the epoch: publishing it puts a 1970 event in
 	## every subscribed calendar.
 	$startTimeRaw = get_post_meta($postId, 'onlinesched_sorttime', true);
@@ -197,7 +196,7 @@ foreach ($postsArr as $item) {
 	$duration = (is_numeric($durationRaw) && intval($durationRaw) >= 0) ? intval($durationRaw) : 0;
 	$endTime = $startTime + ($duration * 60);
 
-	## If the limiting, skip any events clearly in the past
+	## A limited feed only counts events that have not ended yet.
 	if ($limit > 0 && $endTime < $now) {
 		continue;
 	}
