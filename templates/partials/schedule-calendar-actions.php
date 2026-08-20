@@ -11,8 +11,8 @@ if (!defined('ABSPATH')) {
                                             <?php if (onlinesched_calendar_subscriptions_enabled()) : ?>
                                             <div class="os-row" id="schedule-add-to-calendar-div">
                                                 <div class="os-col-xs-12 os-col-md-7 schedule-add-to-calendar-blurb d-flex align-items-center">
-                                                    Do you like what you see?<br/><span
-                                                            id="schedule-add-to-calendar-message">Add this filtered list to your calendar!</span>
+                                                    <span
+                                                            id="schedule-add-to-calendar-message">Add this filtered list to your calendar.</span>
                                                 </div>
                                                 <div class="os-col-xs-12 os-col-md-5 schedule-add-to-calendar-buttons">
                                                     <button onclick="open_calendar_google()"
@@ -23,12 +23,12 @@ if (!defined('ABSPATH')) {
                                                     <button onclick="open_calendar_apple()"
                                                             aria-label="Add subscription"><i class="fab fa-apple"
                                                                                              aria-hidden="true"></i><br/>
-                                                        Add To Apple<br/>(WebCal)
+                                                        Add to Apple<br/>(WebCal)
                                                     </button>
                                                     <button onclick="open_calendar_outlook()"
                                                             aria-label="Add subscription"><i class="fas fa-calendar-alt"
                                                                                              aria-hidden="true"></i><br/>
-                                                        Add To Outlook
+                                                        Add to Outlook
                                                     </button>
                                                 </div>
                                             </div>
