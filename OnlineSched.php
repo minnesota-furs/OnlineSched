@@ -653,37 +653,42 @@ function OnlineSched_add_timeslot_fields($os_event_id, $os_event)
             return;
         }
 
-		OnlineSched_update_post_meta($os_event_id, 'os_event_panelists', 'onlinesched_panelists');
-		OnlineSched_update_post_terms($os_event_id, 'os_room', 'os_room');
-		OnlineSched_update_post_terms($os_event_id, 'os_day', 'os_day');
-		update_post_meta($os_event_id, 'onlinesched_year', get_option('onlinesched_year'));
-
         $posted_hour = isset($_POST['os_event_time_hr']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_hr'])) : '';
         $posted_min = isset($_POST['os_event_time_min']) ? sanitize_text_field(wp_unslash($_POST['os_event_time_min'])) : '';
-		// Day names are not unique, so use the event's assigned term.
-		$days = wp_get_post_terms($os_event_id, 'os_day');
-		$has_day = !is_wp_error($days) && !empty($days);
-		$date_time = $has_day
+		$posted_day = isset($_POST['os_day']) ? sanitize_text_field(wp_unslash($_POST['os_day'])) : '';
+
+		// Resolve the posted day before changing the schedule.
+		$target_day = null;
+		if ('' !== $posted_day) {
+			$named = get_term_by('name', $posted_day, 'os_day');
+			$target_day = ($named && !is_wp_error($named)) ? $named : null;
+		} else {
+			$days = wp_get_post_terms($os_event_id, 'os_day');
+			$target_day = (!is_wp_error($days) && !empty($days)) ? $days[0] : null;
+		}
+		$date_time = $target_day
 			? onlinesched_parse_local_datetime(
-				$days[0]->description,
+				$target_day->description,
 				$posted_hour . ':' . $posted_min
 			)
 			: false;
 
-		// Keep the previous time when the submitted value is invalid.
-		if ($has_day && !$date_time) {
+		// Refuse the schedule box when its day or time is invalid.
+		if (('' !== $posted_day && !$target_day) || ($target_day && !$date_time)) {
 			onlinesched_flag_timeslot_refusal(
 				$os_event_id,
-				sprintf(
-					'The time was not saved: "%s" on %s is not a time this schedule can use. The previous time is still in place.',
-					$posted_hour . ':' . $posted_min,
-					$days[0]->name
-				)
+				$target_day
+					? 'Schedule fields were not saved. Check the selected day and start time, then save again.'
+					: 'Schedule fields were not saved. Select a valid day, then save again.'
 			);
 			do_action('onlinesched_event_updated', $os_event_id);
 			return;
 		}
 
+		OnlineSched_update_post_meta($os_event_id, 'os_event_panelists', 'onlinesched_panelists');
+		OnlineSched_update_post_terms($os_event_id, 'os_room', 'os_room');
+		OnlineSched_update_post_terms($os_event_id, 'os_day', 'os_day');
+		update_post_meta($os_event_id, 'onlinesched_year', get_option('onlinesched_year'));
 		OnlineSched_update_post_meta($os_event_id, 'os_event_day', 'onlinesched_day');
 		OnlineSched_update_post_meta($os_event_id, 'os_event_time_hr', 'onlinesched_time_hr');
 		OnlineSched_update_post_meta($os_event_id, 'os_event_time_min', 'onlinesched_time_min');

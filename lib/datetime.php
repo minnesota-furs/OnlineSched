@@ -28,8 +28,7 @@ function onlinesched_parse_local_datetime($date, $time)
 		return false;
 	}
 
-	// Staff write midnight at the end of a day as 24:00, and the admin hour
-	// picker offers 24; PHP rejects it, so parse as next-day 00:00.
+	// Hour 24 is midnight on the following day.
 	$next_day = false;
 	if (preg_match('/^24:([0-5]\d)(:[0-5]\d)?$/', $time, $m)) {
 		$time = '00:' . $m[1] . (isset($m[2]) ? $m[2] : '');

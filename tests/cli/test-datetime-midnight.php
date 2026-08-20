@@ -51,8 +51,12 @@ $assert(
 );
 
 // Similar names ensure the save uses the assigned term.
-$decoy = wp_insert_term('Friday (2025 archive)', 'os_day', array('description' => '2025-09-05'));
-$real = wp_insert_term('Friday (save handler fixture)', 'os_day', array('description' => '2026-09-11'));
+$fixture_id = wp_generate_uuid4();
+$decoy_name = 'Friday archive ' . $fixture_id;
+$real_name = 'Friday save fixture ' . $fixture_id;
+$unknown_name = 'Nonesuchday ' . $fixture_id;
+$decoy = wp_insert_term($decoy_name, 'os_day', array('description' => '2025-09-05'));
+$real = wp_insert_term($real_name, 'os_day', array('description' => '2026-09-11'));
 $event_id = 0;
 
 try {
@@ -80,17 +84,23 @@ try {
 	$user_id = get_users(array('role' => 'administrator', 'number' => 1, 'fields' => 'ID'));
 	wp_set_current_user($user_id ? (int) $user_id[0] : 1);
 
-	$save = static function ($hour, $minute) use ($event_id) {
+	$save = static function ($hour, $minute, $day_name = null) use ($event_id) {
 		$_POST = array(
 			'onlinesched_timeslot_nonce' => wp_create_nonce('onlinesched_save_timeslot'),
 			'os_event_time_hr' => $hour,
 			'os_event_time_min' => $minute,
-			'onlinesched_time_hr' => $hour,
-			'onlinesched_time_min' => $minute,
 		);
+		if (null !== $day_name) {
+			$_POST['os_day'] = $day_name;
+		}
 		OnlineSched_add_timeslot_fields($event_id, get_post($event_id));
 		$_POST = array();
 		return (int) get_post_meta($event_id, 'onlinesched_sorttime', true);
+	};
+
+	$assigned_day = static function () use ($event_id) {
+		$terms = wp_get_post_terms($event_id, 'os_day');
+		return (!is_wp_error($terms) && !empty($terms)) ? $terms[0]->name : '';
 	};
 
 	$expected = onlinesched_parse_local_datetime('2026-09-11', '14:30');
@@ -99,11 +109,36 @@ try {
 
 	$good = $save('14', '30');
 	$check('a malformed hour cannot zero a stored sort time', $good, $save('99', '30'));
-		$check('and the stored hour is left alone', '14',
+	$check('and the stored hour is left alone', '14',
 		(string) get_post_meta($event_id, 'onlinesched_time_hr', true));
 	$check('a malformed minute cannot zero it either', $good, $save('14', 'xx'));
 	$check('the editor is told the time was refused', true,
 		false !== get_transient('onlinesched_timeslot_refusal_' . get_current_user_id() . '_' . $event_id));
+
+	// A day change carrying an unusable time must move neither.
+	$good = $save('14', '30', $real_name);
+	$check('a new day with an invalid time changes nothing', $good,
+		$save('99', '30', $decoy_name));
+	$check('and the day is still the one that parsed', $real_name,
+		$assigned_day());
+	$check('and the stored hour is still the one that parsed', '14',
+		(string) get_post_meta($event_id, 'onlinesched_time_hr', true));
+
+	// An unknown name would otherwise be created as a term with no date.
+	$check('a day that is not on the schedule is refused', $good,
+		$save('14', '30', $unknown_name));
+	$check('and leaves the assigned day alone', $real_name,
+		$assigned_day());
+	$check('and does not become a new term', false,
+		(bool) get_term_by('name', $unknown_name, 'os_day'));
+
+	// A valid day change still goes through.
+	$archive = onlinesched_parse_local_datetime('2025-09-05', '14:30');
+	$check('a valid day change is saved',
+		$archive ? $archive->getTimestamp() : -1,
+		$save('14', '30', $decoy_name));
+	$check('and moves the assigned day', $decoy_name, $assigned_day());
+	$save('14', '30', $real_name);
 
 	// Verify midnight through the save handler.
 	$midnight_save = onlinesched_parse_local_datetime('2026-09-11', '24:00');
