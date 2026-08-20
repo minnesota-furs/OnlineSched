@@ -4,6 +4,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+function onlinesched_schedule_intro_html($post, $use_content = true) {
+    if (!$post instanceof WP_Post) {
+        return '';
+    }
+
+    $intro = '';
+    if ($use_content && trim($post->post_content) !== '') {
+        $intro = wp_kses_post(apply_filters('the_content', $post->post_content));
+    } elseif (has_excerpt($post)) {
+        $allowed_html = wp_kses_allowed_html('post');
+        $allowed_html['style'] = array();
+        $intro = wp_kses(get_the_excerpt($post), $allowed_html);
+    }
+
+    return trim($intro) === '' ? '' : '<div class="os-lead">' . $intro . '</div>';
+}
+
 function onlinesched_render_schedule($args = array()) {
     static $depth = 0;
     if ($depth > 0) {
@@ -84,11 +101,7 @@ function onlinesched_render_schedule($args = array()) {
         $current_post = get_post();
         if ($current_post instanceof WP_Post && is_page() && !has_shortcode($current_post->post_content, 'onlinesched_schedule')) {
             echo '<h1>' . esc_html(get_the_title()) . '</h1>';
-            if (has_excerpt($current_post)) {
-                $allowed_intro_html = wp_kses_allowed_html('post');
-                $allowed_intro_html['style'] = array();
-                echo '<div class="os-lead">' . wp_kses(get_the_excerpt($current_post), $allowed_intro_html) . '</div>';
-            }
+            echo onlinesched_schedule_intro_html($current_post, !$liveStreaming);
             edit_post_link(__('Edit', 'onlinesched'), '<div class="edit-link">', '</div>');
         }
 
