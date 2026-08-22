@@ -14,7 +14,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-$plugin_url = plugins_url( 'includes/login.php', dirname(__FILE__, 1) );
+$plugin_url = onlinesched_social_login_callback_url();
 $schedule_url = function_exists('onlinesched_get_schedule_page_url') ? onlinesched_get_schedule_page_url() : home_url('/schedule/');
 
 // Load shared social providers config

@@ -267,6 +267,40 @@ try {
 		'Con Info selection belongs to the site theme; the plugin must render no picker.'
 	);
 
+	$social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
+	$assert(
+		'email' === $social_config['providers']['Google']['scope'],
+		'Google must retain its email scope when Telegram uses OIDC scopes.'
+	);
+	$assert(
+		'openid profile' === $social_config['providers']['Telegram']['scope'],
+		'Telegram must request the OIDC profile scope instead of the unsupported email scope.'
+	);
+	$assert(
+		'http://localhost:8081/wp-content/plugins/OnlineSched/includes/login.php' === onlinesched_social_login_callback_url(),
+		'The social login callback must use the current WordPress plugin URL.'
+	);
+	$assert(
+		'Telegram Web Login Client ID' === onlinesched_social_provider_key_label( 'Telegram', 'id' ),
+		'The Telegram ID field must identify the Web Login Client ID it accepts.'
+	);
+	$assert(
+		'Telegram Web Login Client Secret' === onlinesched_social_provider_key_label( 'Telegram', 'secret' ),
+		'The Telegram secret field must identify the Web Login Client Secret it accepts.'
+	);
+
+	ob_start();
+	OnlineSched_social_login_page();
+	$social_login_html = ob_get_clean();
+	$assert(
+		false !== strpos( $social_login_html, 'BotFather\'s Web Login settings' ),
+		'The Telegram settings must name where its current credentials come from.'
+	);
+	$assert(
+		false !== strpos( $social_login_html, esc_html( onlinesched_social_login_callback_url() ) ),
+		'The Telegram settings must display the callback URL that administrators register.'
+	);
+
 
 	// -----------------------------------------------------------------
 	// Tabs: the active tab (and which panel is visible) resolves from

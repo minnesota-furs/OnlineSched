@@ -21,7 +21,7 @@ return [
                 'id' => '',
                 'secret' => '',
             ],
-            'scope' => 'email',
+            'scope' => 'openid profile',
             'use-favicon' => [
                 'enabled' => true,
                 'favicon' => 'fa-telegram',

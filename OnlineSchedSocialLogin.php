@@ -37,6 +37,27 @@ function onlinesched_social_provider_key_constant($provider, $key)
     return 'ONLINESCHED_' . $provider . '_' . $key;
 }
 
+function onlinesched_social_provider_key_label($provider, $key)
+{
+    if ('telegram' === strtolower($provider)) {
+        $labels = array(
+            'id' => 'Telegram Web Login Client ID',
+            'secret' => 'Telegram Web Login Client Secret',
+        );
+        $normalized_key = strtolower($key);
+        if (isset($labels[$normalized_key])) {
+            return $labels[$normalized_key];
+        }
+    }
+
+    return $provider . ' ' . ucfirst($key);
+}
+
+function onlinesched_social_login_callback_url()
+{
+    return plugins_url('includes/login.php', ONLINESCHED_PLUGIN_FILE);
+}
+
 function onlinesched_social_provider_key_is_code_managed($provider, $key)
 {
     return defined(onlinesched_social_provider_key_constant($provider, $key));
@@ -104,6 +125,7 @@ function OnlineSched_register_social_login_page()
 function OnlineSched_social_login_page()
 {
     $social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
+    $callback_url = onlinesched_social_login_callback_url();
     ?>
     <div class="wrap">
         <h1>Social Login Providers</h1>
@@ -130,6 +152,15 @@ function OnlineSched_social_login_page()
                         </p>
                     </td>
                 </tr>
+                <?php if ('telegram' === strtolower($provider)) : ?>
+                    <tr>
+                        <th scope="row">Telegram setup</th>
+                        <td>
+                            <p>Use the Client ID and Client Secret from BotFather's Web Login settings.</p>
+                            <p>Register this callback URL: <code><?php echo esc_html($callback_url); ?></code></p>
+                        </td>
+                    </tr>
+                <?php endif; ?>
                 <?php if (!empty($providerData['no_keys'])) : ?>
                     <tr>
                         <td colspan="2"><p class="description">No credentials are needed for this provider.</p></td>
@@ -144,7 +175,7 @@ function OnlineSched_social_login_page()
                         $is_secret = strtolower($key) === 'secret';
                         ?>
                         <tr>
-                            <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html($provider . ' ' . ucfirst($key)); ?></label></th>
+                            <th scope="row"><label for="<?php echo esc_attr($option_name); ?>"><?php echo esc_html(onlinesched_social_provider_key_label($provider, $key)); ?></label></th>
                             <td>
                                 <?php if ($managed_in_code) : ?>
                                     <input type="text" id="<?php echo esc_attr($option_name); ?>" class="regular-text" value="Managed in code" disabled />
