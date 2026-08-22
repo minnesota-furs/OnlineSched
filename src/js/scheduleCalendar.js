@@ -208,9 +208,33 @@ export function scheduleCalendar() {
     }
 
     function refreshCalendarFeedScope() {
-        const scope = getCalendarScope();
+        const select = document.getElementById('schedule-calendar-scope');
+        const scopeControl = select?.closest('.schedule-calendar-scope');
+        const currentViewOption = select?.querySelector('option[value="shown-favorites"]');
         const help = document.getElementById('schedule-calendar-scope-help');
         const buttons = document.querySelectorAll('.schedule-add-to-calendar-buttons button');
+        const allFavorites = getFavoriteEventIds('all-favorites');
+        const currentViewFavorites = getFavoriteEventIds('shown-favorites');
+        const hasVisibleFavorites = currentViewFavorites.total > 0;
+        const hasDifferentCurrentView = hasVisibleFavorites && currentViewFavorites.total < allFavorites.total;
+
+        if (scopeControl) {
+            scopeControl.hidden = !hasVisibleFavorites;
+        }
+        if (help) {
+            help.hidden = !hasVisibleFavorites;
+        }
+        if (currentViewOption) {
+            currentViewOption.hidden = !hasDifferentCurrentView;
+        }
+
+        if (!hasVisibleFavorites && select) {
+            select.value = 'current';
+        } else if (!hasDifferentCurrentView && select?.value === 'shown-favorites') {
+            select.value = 'all-favorites';
+        }
+
+        const scope = getCalendarScope();
 
         if (scope === 'current') {
             buttons.forEach((button) => {
@@ -233,12 +257,12 @@ export function scheduleCalendar() {
 
         if (result.total === 0) {
             help.textContent = scope === 'shown-favorites'
-                ? 'No shown favorites to add.'
+                ? 'No favorites in the current view to add.'
                 : 'No favorites to add.';
         } else if (result.total > maxFavoriteEvents) {
             help.textContent = `The first ${maxFavoriteEvents} favorites are included. Event details continue to update.`;
         } else {
-            const label = scope === 'shown-favorites' ? 'shown favorite' : 'favorite';
+            const label = scope === 'shown-favorites' ? 'favorite in the current view' : 'favorite';
             const plural = result.total === 1 ? '' : 's';
             help.textContent = `Snapshot ${result.total} ${label}${plural}. Event details continue to update.`;
         }

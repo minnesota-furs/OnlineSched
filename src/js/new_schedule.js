@@ -388,6 +388,7 @@ export function new_schedule() {
 
             updateModalFavoriteStar(isFavorite);
             window.updateFavoritesCookie?.();
+            window.refreshCalendarFeedScope?.();
         });
 
         const descriptionEl = $('#modal-schedule-description');
@@ -785,7 +786,7 @@ export function new_schedule() {
             $('#schedule-reset').disabled = isDefault;
         }
 
-        const visibleItems = $$('.schedule-item').filter(isVisible);
+        const visibleItems = $$('.schedule-item').filter(isElementVisible);
         const scheduleEl = $('#schedule');
 
         let emptyState = $('.os-empty-state', scheduleEl);
@@ -819,7 +820,7 @@ export function new_schedule() {
     function resetHoursDays() {
         $$('.schedule-hour').forEach((hour) => {
             showElement(hour);
-            const visibleLength = Array.from(hour.children).filter(isVisible).length;
+            const visibleLength = Array.from(hour.children).filter(isElementVisible).length;
             if (visibleLength < 2) {
                 hideElement(hour);
             }
@@ -827,7 +828,7 @@ export function new_schedule() {
 
         $$('.schedule-day').forEach((day) => {
             showElement(day);
-            const visibleLength = Array.from(day.children).filter(isVisible).length;
+            const visibleLength = Array.from(day.children).filter(isElementVisible).length;
             if (visibleLength < 2) {
                 hideElement(day);
             }

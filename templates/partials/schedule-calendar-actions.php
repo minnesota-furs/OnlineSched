@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
                                                         <span>Events to include</span>
                                                         <select id="schedule-calendar-scope">
                                                             <option value="current">Current calendar feed</option>
-                                                            <option value="shown-favorites">Shown favorites</option>
+                                                            <option value="shown-favorites">Favorites in current view</option>
                                                             <option value="all-favorites">All favorites</option>
                                                         </select>
                                                     </label>

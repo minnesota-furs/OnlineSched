@@ -19,6 +19,19 @@ test.describe('03 — Filters', () => {
     expect(totalAfter).toBeLessThan(totalBefore);
   });
 
+  test('search hides hour headings with no matching events', async ({ page }) => {
+    const firstTitle = (await page.locator(`${S.scheduleItem}:visible ${S.scheduleTitle}`).first().textContent())?.trim();
+    expect(firstTitle).toBeTruthy();
+
+    await page.fill(S.searchInput, firstTitle);
+    await page.waitForTimeout(400);
+
+    const emptyVisibleHours = await page.locator(`${S.scheduleHour}:visible`).evaluateAll((hours) => (
+      hours.filter((hour) => !Array.from(hour.querySelectorAll('.schedule-item')).some((item) => item.style.display !== 'none')).length
+    ));
+    expect(emptyVisibleHours).toBe(0);
+  });
+
   test('clearing search restores all items', async ({ page }) => {
     const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
     await page.fill(S.searchInput, 'Coyote');

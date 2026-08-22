@@ -211,7 +211,7 @@ test.describe('06 — Calendar', () => {
       expect(count).toBe(1);
     });
 
-    test('favorite snapshots distinguish shown favorites from all favorites', async ({ page }) => {
+    test('favorite snapshots distinguish the current view from all favorites', async ({ page }) => {
       const items = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) });
       const first = items.nth(0);
       const second = items.nth(1);
@@ -225,9 +225,13 @@ test.describe('06 — Calendar', () => {
 
       await first.locator(S.favoriteBtn).click();
       await second.locator(S.favoriteBtn).click();
+      await expect(page.locator(`${S.calendarScope} option[value="shown-favorites"]`)).toHaveAttribute('hidden', '');
       await page.fill(S.searchInput, firstTitle);
       await expect(first).toBeVisible();
       await expect(second).toBeHidden();
+      await expect(page.locator(S.calendarScope)).toBeVisible();
+      await expect(page.locator(`${S.calendarScope} option[value="shown-favorites"]`)).toHaveText('Favorites in current view');
+      await expect(page.locator(`${S.calendarScope} option[value="shown-favorites"]`)).not.toHaveAttribute('hidden', '');
 
       await page.evaluate(() => {
         window.__calendarTestUrls = [];
@@ -237,7 +241,7 @@ test.describe('06 — Calendar', () => {
       });
 
       await page.selectOption(S.calendarScope, 'shown-favorites');
-      await expect(page.locator(S.calendarScopeHelp)).toHaveText('Snapshot 1 shown favorite. Event details continue to update.');
+      await expect(page.locator(S.calendarScopeHelp)).toHaveText('Snapshot 1 favorite in the current view. Event details continue to update.');
       await page.locator(S.calendarApple).click();
 
       const shownUrl = await page.evaluate(() => window.__calendarTestUrls.at(-1));
@@ -254,13 +258,21 @@ test.describe('06 — Calendar', () => {
       expect(allUrl).toContain(secondId);
     });
 
-    test('favorite snapshot actions stay disabled until the selection has events', async ({ page }) => {
-      await page.selectOption(S.calendarScope, 'shown-favorites');
+    test('favorite scope stays hidden when the current view has no favorites', async ({ page }) => {
+      await expect(page.locator(S.calendarScope)).toBeHidden();
 
-      await expect(page.locator(S.calendarScopeHelp)).toHaveText('No shown favorites to add.');
-      await expect(page.locator(S.calendarApple)).toBeDisabled();
-      await expect(page.locator(S.calendarGoogle)).toBeDisabled();
-      await expect(page.locator(S.calendarOutlook)).toBeDisabled();
+      const items = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) });
+      const favorite = items.nth(0);
+      const other = items.nth(1);
+      const otherTitle = (await other.locator(S.scheduleTitle).textContent())?.trim();
+
+      expect(otherTitle).toBeTruthy();
+      await favorite.locator(S.favoriteBtn).click();
+      await expect(page.locator(S.calendarScope)).toBeVisible();
+      await page.fill(S.searchInput, otherTitle);
+      await expect(other).toBeVisible();
+      await expect(favorite).toBeHidden();
+      await expect(page.locator(S.calendarScope)).toBeHidden();
     });
   });
 
