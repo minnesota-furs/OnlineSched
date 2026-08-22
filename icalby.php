@@ -3,9 +3,23 @@ require_once('../../../wp-load.php');
 
 require_once('lib/ical.php');
 
+$feed_requested = isset($_REQUEST['feed']);
+$feed_row = null;
+if ($feed_requested && !is_array($_REQUEST['feed'])) {
+	$feed_row = onlinesched_get_feed_row_by_token(sanitize_text_field(wp_unslash($_REQUEST['feed'])));
+}
+
+## A dead key 404s; a publishing pause keeps the valid URL alive below.
+if ($feed_requested && !$feed_row) {
+	status_header(404);
+	nocache_headers();
+	exit;
+}
+
 if (!onlinesched_calendar_subscriptions_enabled()) {
 	$filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
-	onlinesched_ical_send_unpublished_schedule($filename_prefix . '-all.ics');
+	$unpublished_name = $feed_row ? '-favorites.ics' : '-all.ics';
+	onlinesched_ical_send_unpublished_schedule($filename_prefix . $unpublished_name);
 	exit;
 }
 
@@ -31,6 +45,7 @@ if (!onlinesched_calendar_subscriptions_enabled()) {
  * room=<names>              One or more room names, comma separated; `all` for every room.
  * tag=<tags>                One or more tag slugs, comma separated; `all` for every tag.
  * events=<ids>              Up to 100 event post IDs, comma separated.
+ * feed=<key>                Personal live favorites key; wins over events. Unknown keys 404.
  * limit=<number>            Return only the newest N events.
  * textlen=<number>          Truncate the description (default 250); 0 or less for the full text.
  * cancelled_title_prefix=<bool>  Prefix cancelled titles, for clients that ignore STATUS:CANCELLED.
@@ -146,16 +161,34 @@ $args = array(
 	'nopaging' => true
 );
 
-$event_filter_requested = isset($_REQUEST['events']);
-$event_ids = onlinesched_get_request_event_ids('events');
-if ($event_filter_requested && empty($event_ids)) {
+function onlinesched_icalby_send_feed_body($filename, $body) {
+	$validator = onlinesched_feed_body_validator($body);
+	$if_none_match = isset($_SERVER['HTTP_IF_NONE_MATCH']) ? trim(wp_unslash($_SERVER['HTTP_IF_NONE_MATCH'])) : '';
+	onlinesched_ical_send_feed_headers($filename, $validator);
+	if ('' !== $if_none_match && false !== strpos($if_none_match, $validator)) {
+		status_header(304);
+		exit;
+	}
+
+	echo $body;
+	exit;
+}
+
+$event_filter_requested = !$feed_row && isset($_REQUEST['events']);
+$event_ids = $feed_row
+	? array_slice(array_map('intval', onlinesched_sanitize_favorites($feed_row->favorites)), 0, 100)
+	: onlinesched_get_request_event_ids('events');
+if (($event_filter_requested || $feed_row) && empty($event_ids)) {
 	$filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
+	if ($feed_row) {
+		onlinesched_icalby_send_feed_body($filename_prefix . '-favorites.ics', onlinesched_ical_empty_calendar());
+	}
 	onlinesched_ical_send_headers($filename_prefix . '-favorites.ics');
 	echo onlinesched_ical_empty_calendar();
 	exit;
 }
 
-if ($event_filter_requested) {
+if ($event_filter_requested || $feed_row) {
 	$args['post__in'] = $event_ids;
 	$filename = '-favorites';
 }
@@ -288,5 +321,8 @@ foreach ($postsArr as $item) {
 }
 
 $filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
+if ($feed_row) {
+	onlinesched_icalby_send_feed_body($filename_prefix . $filename . '.ics', $iCal->display());
+}
 onlinesched_ical_send_headers($filename_prefix . $filename . '.ics');
 echo $iCal->display();

@@ -205,6 +205,15 @@ function onlinesched_ical_send_headers($filename)
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 }
 
+function onlinesched_ical_send_feed_headers($filename, $validator)
+{
+    header('Content-Type: text/calendar; charset=UTF-8; method=PUBLISH');
+    header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+    ## Private no-cache preserves the validator but keeps shared caches out.
+    header('Cache-Control: private, no-cache, must-revalidate');
+    header('ETag: ' . $validator);
+}
+
 function onlinesched_ical_send_unpublished_schedule($filename)
 {
     onlinesched_ical_send_headers($filename);

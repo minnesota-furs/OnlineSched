@@ -314,11 +314,24 @@ function onlinesched_create_favorites_table() {
         favorites longtext NULL,
         last_updated datetime DEFAULT NULL,
         last_logged_in datetime DEFAULT NULL,
+        feed_token varchar(64) DEFAULT NULL,
         PRIMARY KEY  (id),
-        KEY provider_identifier (provider, identifier)
+        KEY provider_identifier (provider, identifier),
+        UNIQUE KEY feed_token (feed_token)
     ) $charset_collate;";
     dbDelta($sql);
 }
+
+## Existing installations need the column before a public feed request runs.
+function onlinesched_upgrade_favorites_table() {
+    if (get_option('onlinesched_favorites_schema') === '2') {
+        return;
+    }
+
+    onlinesched_create_favorites_table();
+    update_option('onlinesched_favorites_schema', '2');
+}
+add_action('init', 'onlinesched_upgrade_favorites_table');
 
 function OnlineSched_columns_head($defaults)
 {

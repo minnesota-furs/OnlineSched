@@ -23,6 +23,16 @@ if (!defined('ABSPATH')) {
                                                     <span class="schedule-calendar-scope-help" id="schedule-calendar-scope-help">
                                                         Choose a favorites option to snapshot your favorites.
                                                     </span>
+                                                    <button type="button" class="schedule-feed-reset-link" id="schedule-feed-reset-link" hidden>Reset calendar link</button>
+                                                    <div class="schedule-feed-reset-confirm" id="schedule-feed-reset-confirm" hidden>
+                                                        <span class="schedule-feed-reset-confirm-title">Reset your calendar link?</span>
+                                                        <span>Calendars you added before will stop updating. Use the buttons to add your calendar again afterward.</span>
+                                                        <span class="schedule-feed-reset-confirm-actions">
+                                                            <button type="button" id="schedule-feed-reset-yes">Reset link</button>
+                                                            <button type="button" id="schedule-feed-reset-no">Keep current link</button>
+                                                        </span>
+                                                    </div>
+                                                    <div class="schedule-feed-reset-done" id="schedule-feed-reset-done" hidden>Link reset. Old calendars stopped updating. Use the buttons to add your calendar again.</div>
                                                 </div>
                                                 <div class="os-col-xs-12 os-col-md-5 schedule-add-to-calendar-buttons">
                                                     <button id="schedule-calendar-google" onclick="open_calendar_google()"

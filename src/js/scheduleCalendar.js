@@ -24,6 +24,150 @@ export function rewriteGoogleCalendarUrlForAndroid(url) {
 
 export function scheduleCalendar() {
     const maxFavoriteEvents = 100;
+    const endpoints = window.OnlineSchedPublic || {};
+    const feedUrlEndpoint = endpoints.feedUrlUrl || '/wp-admin/admin-ajax.php?action=onlinesched_feed_url';
+    const resetFeedEndpoint = endpoints.resetFeedUrl || '/wp-admin/admin-ajax.php?action=onlinesched_reset_feed';
+    let feedUrlPromise = null;
+
+    function liveFeedUser() {
+        const user = window.ONLINESCHED_USER || {};
+        return (user.loggedIn && user.favoritesToken) ? user : null;
+    }
+
+    function isLiveScope() {
+        return getCalendarScope() === 'all-favorites' && !!liveFeedUser();
+    }
+
+    function toWebcalUrl(url) {
+        return url.replace(/^https?:\/\//i, 'webcal://');
+    }
+
+    function postFeedEndpoint(url) {
+        const user = liveFeedUser();
+        if (!user) {
+            return Promise.reject(new Error('Not logged in.'));
+        }
+
+        return fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: new URLSearchParams({ favorites_token: user.favoritesToken })
+        }).then((response) => response.json());
+    }
+
+    // Cache the request so double-clicks mint only one link.
+    function fetchLiveFeedUrl() {
+        if (feedUrlPromise) {
+            return feedUrlPromise;
+        }
+
+        feedUrlPromise = postFeedEndpoint(feedUrlEndpoint).then((data) => {
+            const feedUrl = data && data.success && data.data ? data.data.feedUrl : null;
+            if (!feedUrl) {
+                throw new Error('Could not create the calendar link.');
+            }
+
+            const user = liveFeedUser();
+            if (user) {
+                user.hasFeedKey = true;
+            }
+            refreshFeedResetControls();
+            return feedUrl;
+        }).catch((error) => {
+            feedUrlPromise = null;
+            throw error;
+        });
+
+        return feedUrlPromise;
+    }
+
+    function showFeedNotice(message, isError) {
+        const done = document.getElementById('schedule-feed-reset-done');
+        if (!done) {
+            return;
+        }
+
+        done.classList.toggle('is-error', !!isError);
+        done.textContent = message;
+        done.hidden = false;
+    }
+
+    function showFeedFetchError() {
+        showFeedNotice('Could not reach your calendar link. Check your connection and try again.', true);
+    }
+
+    function refreshFeedResetControls() {
+        const resetLink = document.getElementById('schedule-feed-reset-link');
+        const confirm = document.getElementById('schedule-feed-reset-confirm');
+        const done = document.getElementById('schedule-feed-reset-done');
+        if (!resetLink || !confirm || !done) {
+            return;
+        }
+
+        const user = liveFeedUser();
+        const available = !!(user && user.hasFeedKey && isLiveScope());
+        if (!available) {
+            resetLink.hidden = true;
+            confirm.hidden = true;
+            done.hidden = true;
+            return;
+        }
+
+        if (confirm.hidden && done.hidden) {
+            resetLink.hidden = false;
+        }
+    }
+
+    function wireFeedResetControls() {
+        const resetLink = document.getElementById('schedule-feed-reset-link');
+        const confirm = document.getElementById('schedule-feed-reset-confirm');
+        const done = document.getElementById('schedule-feed-reset-done');
+        const yes = document.getElementById('schedule-feed-reset-yes');
+        const no = document.getElementById('schedule-feed-reset-no');
+        if (!resetLink || !confirm || !done || !yes || !no) {
+            return;
+        }
+
+        resetLink.addEventListener('click', () => {
+            resetLink.hidden = true;
+            done.hidden = true;
+            confirm.hidden = false;
+        });
+
+        no.addEventListener('click', () => {
+            confirm.hidden = true;
+            resetLink.hidden = false;
+        });
+
+        yes.addEventListener('click', () => {
+            yes.disabled = true;
+            postFeedEndpoint(resetFeedEndpoint).then((data) => {
+                if (!data || !data.success) {
+                    throw new Error('Reset failed.');
+                }
+
+                feedUrlPromise = null;
+                confirm.hidden = true;
+                done.classList.remove('is-error');
+                done.textContent = 'Link reset. Old calendars stopped updating. Use the buttons to add your calendar again.';
+                done.hidden = false;
+                resetLink.hidden = false;
+                window.gtag_event && window.gtag_event('click', 'engagement', 'reset-live-calendar-feed');
+            }).catch(() => {
+                confirm.hidden = true;
+                done.classList.add('is-error');
+                done.textContent = 'Could not reset the link. Try again.';
+                done.hidden = false;
+                resetLink.hidden = false;
+            }).finally(() => {
+                yes.disabled = false;
+            });
+        });
+    }
 
     function isAndroidDevice() {
         return /android/i.test(navigator.userAgent);
@@ -215,6 +359,10 @@ export function scheduleCalendar() {
         const buttons = document.querySelectorAll('.schedule-add-to-calendar-buttons button');
         const allFavorites = getFavoriteEventIds('all-favorites');
         const currentViewFavorites = getFavoriteEventIds('shown-favorites');
+        const allFavoritesOption = select?.querySelector('option[value="all-favorites"]');
+        if (allFavoritesOption) {
+            allFavoritesOption.textContent = liveFeedUser() ? 'My favorites - stays updated' : 'All favorites';
+        }
         const hasVisibleFavorites = currentViewFavorites.total > 0;
         const hasDifferentCurrentView = hasVisibleFavorites && currentViewFavorites.total < allFavorites.total;
 
@@ -249,6 +397,7 @@ export function scheduleCalendar() {
             if (help) {
                 help.textContent = 'Choose a favorites option to snapshot your favorites.';
             }
+            refreshFeedResetControls();
             return;
         }
 
@@ -256,6 +405,7 @@ export function scheduleCalendar() {
         buttons.forEach((button) => {
             button.disabled = result.total === 0;
         });
+        refreshFeedResetControls();
 
         if (!help) {
             return;
@@ -265,6 +415,8 @@ export function scheduleCalendar() {
             help.textContent = scope === 'shown-favorites'
                 ? 'No favorites in the current view to add.'
                 : 'No favorites to add.';
+        } else if (isLiveScope()) {
+            help.textContent = 'Your calendar follows your favorites. Star or unstar events anytime.';
         } else if (result.total > maxFavoriteEvents) {
             help.textContent = `The first ${maxFavoriteEvents} favorites are included. Event details continue to update.`;
         } else {
@@ -310,6 +462,24 @@ export function scheduleCalendar() {
     }
 
     window.open_calendar_apple = function () {
+        if (isLiveScope()) {
+            window.gtag_event && window.gtag_event('click', 'engagement', 'subscribe-apple-calendar-live');
+            // Open during the click so popup blockers allow the redirect.
+            const popup = window.open('', '_blank');
+            fetchLiveFeedUrl().then((url) => {
+                const webcalUrl = toWebcalUrl(url);
+                if (popup) {
+                    popup.location = webcalUrl;
+                } else {
+                    window.location.href = webcalUrl;
+                }
+            }).catch(() => {
+                popup && popup.close();
+                showFeedFetchError();
+            });
+            return false;
+        }
+
         let url = generate_ical_url();
         if (!url) return false;
         window.open(url);
@@ -317,6 +487,28 @@ export function scheduleCalendar() {
     };
 
     window.open_calendar_google = function () {
+        if (isLiveScope()) {
+            window.gtag_event && window.gtag_event('click', 'engagement', 'subscribe-google-calendar-live');
+            // Open during the click so popup blockers allow the redirect.
+            const popup = isAndroidDevice() ? null : window.open('', '_blank');
+            fetchLiveFeedUrl().then((url) => {
+                const webcalUrl = toWebcalUrl(url);
+                let googleUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(webcalUrl);
+                googleUrl = rewriteGoogleCalendarUrlForAndroid(googleUrl);
+                if (isAndroidDevice()) {
+                    showAndroidGoogleCalendarModal(googleUrl, webcalUrl, url);
+                } else if (popup) {
+                    popup.location = googleUrl;
+                } else {
+                    window.open(googleUrl, '_blank');
+                }
+            }).catch(() => {
+                popup && popup.close();
+                showFeedFetchError();
+            });
+            return false;
+        }
+
         let url = generate_ical_url();
         if (!url) return false;
         let googleUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(url);
@@ -345,6 +537,26 @@ export function scheduleCalendar() {
         const year = date.getFullYear();
         const scheduleConfig = window.OS_SCHEDULE_CONFIG || {};
         let calendarName = scheduleConfig.calendarName || `Event Schedule ${year}`;
+
+        if (isLiveScope()) {
+            window.gtag_event && window.gtag_event('click', 'engagement', 'subscribe-outlook-calendar-live');
+            const popup = window.open('', '_blank');
+            fetchLiveFeedUrl().then((url) => {
+                let outlookUrl = 'https://outlook.office.com/owa/?path=/calendar/action/compose&rru=addsubscription';
+                outlookUrl += '&url=' + encodeURIComponent(toWebcalUrl(url));
+                outlookUrl += '&name=' + encodeURIComponent(calendarName);
+                if (popup) {
+                    popup.location = outlookUrl;
+                } else {
+                    window.open(outlookUrl, '_blank');
+                }
+            }).catch(() => {
+                popup && popup.close();
+                showFeedFetchError();
+            });
+            return false;
+        }
+
         let webcalUrl = generate_ical_url();
         if (!webcalUrl) return false;
         let outlookUrl = 'https://outlook.office.com/owa/?path=/calendar/action/compose&rru=addsubscription';
@@ -390,5 +602,6 @@ export function scheduleCalendar() {
         return 'webcal://' + window.location.host + '/wp-content/plugins/OnlineSched/icalby.php' + url;
     }
 
+    wireFeedResetControls();
     refreshCalendarFeedScope();
 }

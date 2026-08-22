@@ -280,7 +280,188 @@ test.describe('06 — Calendar', () => {
     });
   });
 
+  test.describe('Live favorites feed (signed in)', () => {
+    const FEED_KEY = 'a'.repeat(32);
+    const FEED_URL_SUFFIX = `/wp-content/plugins/OnlineSched/icalby.php?feed=${FEED_KEY}`;
+
+    async function signIn(page, { hasFeedKey, feedUrlFails = false }) {
+      const counts = { feedUrl: 0, resetFeed: 0 };
+
+      await page.route('**/includes/login_state.php*', (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          loggedIn: true,
+          provider: 'telegram',
+          favorites: [],
+          favoritesToken: 'e2e-favorites-token',
+          hasFeedKey,
+        }),
+      }));
+
+      await page.route('**/admin-ajax.php*', (route) => {
+        const url = route.request().url();
+        if (url.includes('action=onlinesched_feed_url')) {
+          counts.feedUrl += 1;
+          if (feedUrlFails) {
+            return route.fulfill({
+              status: 500,
+              contentType: 'application/json',
+              body: JSON.stringify({ success: false, data: { message: 'Could not create the calendar link.' } }),
+            });
+          }
+          return route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: { feedUrl: `https://example.test${FEED_URL_SUFFIX}` } }),
+          });
+        }
+        if (url.includes('action=onlinesched_reset_feed')) {
+          counts.resetFeed += 1;
+          return route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: { reset: true } }),
+          });
+        }
+        return route.continue();
+      });
+
+      await page.goto('/schedule/');
+      await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
+      await page.selectOption(S.selectDays, 'all');
+      await page.waitForTimeout(300);
+
+      return counts;
+    }
+
+    async function stubWindowOpen(page) {
+      await page.evaluate(() => {
+        window.__popups = [];
+        window.open = () => {
+          const popup = { location: null, closed: false, close() { this.closed = true; } };
+          window.__popups.push(popup);
+          return popup;
+        };
+      });
+    }
+
+    async function starFirstEventAndPickLiveScope(page) {
+      const item = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) }).first();
+      await item.locator(S.favoriteBtn).click();
+      await page.selectOption(S.calendarScope, 'all-favorites');
+    }
+
+    test('the all-favorites scope becomes the live feed with live wording', async ({ page }) => {
+      await signIn(page, { hasFeedKey: false });
+      await starFirstEventAndPickLiveScope(page);
+
+      await expect(page.locator(`${S.calendarScope} option[value="all-favorites"]`)).toHaveText('My favorites - stays updated');
+      await expect(page.locator(S.calendarScopeHelp)).toHaveText('Your calendar follows your favorites. Star or unstar events anytime.');
+      await expect(page.locator('#schedule-feed-reset-link')).toBeHidden();
+
+      await stubWindowOpen(page);
+
+      await page.locator('#schedule-calendar-google').click();
+      await page.waitForFunction(() => window.__popups.length > 0 && window.__popups.at(-1).location);
+      const googleUrl = await page.evaluate(() => String(window.__popups.at(-1).location));
+      expect(googleUrl).toContain('calendar.google.com');
+      expect(googleUrl).toContain(encodeURIComponent(`webcal://example.test${FEED_URL_SUFFIX}`));
+
+      await expect(page.locator('#schedule-feed-reset-link')).toBeVisible();
+    });
+
+    test('Apple handoff hands the webcal feed to the click popup', async ({ page }) => {
+      await signIn(page, { hasFeedKey: true });
+      await starFirstEventAndPickLiveScope(page);
+      await stubWindowOpen(page);
+
+      await page.locator('#schedule-calendar-apple').click();
+      await page.waitForFunction(() => window.__popups.length > 0 && window.__popups.at(-1).location);
+      const webcalUrl = await page.evaluate(() => String(window.__popups.at(-1).location));
+      expect(webcalUrl).toMatch(/^webcal:\/\//);
+      expect(webcalUrl).toContain(`feed=${FEED_KEY}`);
+    });
+
+    test('double-clicks coalesce into one mint request', async ({ page }) => {
+      const counts = await signIn(page, { hasFeedKey: false });
+      await starFirstEventAndPickLiveScope(page);
+      await stubWindowOpen(page);
+
+      await page.locator('#schedule-calendar-apple').click();
+      await page.locator('#schedule-calendar-apple').click();
+      await page.waitForFunction(() => window.__popups.length === 2 && window.__popups.every((p) => p.location));
+      expect(counts.feedUrl).toBe(1);
+    });
+
+    test('a failed mint shows an actionable inline error', async ({ page }) => {
+      await signIn(page, { hasFeedKey: false, feedUrlFails: true });
+      await starFirstEventAndPickLiveScope(page);
+      await stubWindowOpen(page);
+
+      await page.locator('#schedule-calendar-google').click();
+      const done = page.locator('#schedule-feed-reset-done');
+      await expect(done).toBeVisible();
+      await expect(done).toHaveClass(/is-error/);
+      await expect(done).toContainText('Could not reach your calendar link.');
+      const popupClosed = await page.evaluate(() => window.__popups.at(-1).closed);
+      expect(popupClosed).toBe(true);
+    });
+
+    test('reset confirms, names the consequence, and reports the outcome', async ({ page }) => {
+      await signIn(page, { hasFeedKey: true });
+      await starFirstEventAndPickLiveScope(page);
+
+      const resetLink = page.locator('#schedule-feed-reset-link');
+      const confirm = page.locator('#schedule-feed-reset-confirm');
+      const done = page.locator('#schedule-feed-reset-done');
+
+      await expect(resetLink).toBeVisible();
+      await expect(confirm).toBeHidden();
+
+      await resetLink.click();
+      await expect(confirm).toBeVisible();
+      await expect(confirm).toContainText('Reset your calendar link?');
+      await expect(confirm).toContainText('Calendars you added before will stop updating.');
+      await expect(resetLink).toBeHidden();
+
+      await page.locator('#schedule-feed-reset-no').click();
+      await expect(confirm).toBeHidden();
+      await expect(resetLink).toBeVisible();
+      await expect(done).toBeHidden();
+
+      await resetLink.click();
+      await page.locator('#schedule-feed-reset-yes').click();
+      await expect(done).toBeVisible();
+      await expect(done).toContainText('Link reset. Old calendars stopped updating.');
+      await expect(confirm).toBeHidden();
+      await expect(resetLink).toBeVisible();
+    });
+
+    test('signed out keeps the snapshot scope and no reset control', async ({ page }) => {
+      const item = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) }).first();
+      await item.locator(S.favoriteBtn).click();
+      await page.selectOption(S.calendarScope, 'all-favorites');
+
+      await expect(page.locator(`${S.calendarScope} option[value="all-favorites"]`)).toHaveText('All favorites');
+      await expect(page.locator(S.calendarScopeHelp)).toContainText('Snapshot');
+      await expect(page.locator('#schedule-feed-reset-link')).toBeHidden();
+    });
+  });
+
   test.describe('ICS endpoints', () => {
+    test('icalby.php unknown, malformed, and mixed feed keys return 404', async ({ page }) => {
+      const unknown = await page.request.get(`/wp-content/plugins/OnlineSched/icalby.php?feed=${'0'.repeat(32)}`);
+      expect(unknown.status()).toBe(404);
+
+      const malformed = await page.request.get('/wp-content/plugins/OnlineSched/icalby.php?feed=not-a-key');
+      expect(malformed.status()).toBe(404);
+
+      const item = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) }).first();
+      const eventId = (await item.getAttribute('id'))?.replace('onlineevt-', '');
+      expect(eventId).toMatch(/^\d+$/);
+
+      const mixed = await page.request.get(`/wp-content/plugins/OnlineSched/icalby.php?feed=${'0'.repeat(32)}&events=${eventId}`);
+      expect(mixed.status()).toBe(404);
+    });
+
     test('ical.php returns one valid event feed without PHP errors', async ({ page }) => {
       const firstItem = page.locator(S.scheduleItem).first();
       const itemId = await firstItem.getAttribute('id');

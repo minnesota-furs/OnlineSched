@@ -221,6 +221,225 @@ function onlinesched_save_favorites_for_identity($provider, $identifier, $favori
     );
 }
 
+function onlinesched_fallback_feed_token()
+{
+    ## The sanitizer accepts hexadecimal tokens only.
+    return md5(wp_generate_password(64, true, true) . uniqid('', true));
+}
+
+function onlinesched_new_feed_token()
+{
+    try {
+        return bin2hex(random_bytes(16));
+    } catch (Exception $e) {
+        return onlinesched_fallback_feed_token();
+    }
+}
+
+function onlinesched_sanitize_feed_token($value)
+{
+    if (!is_string($value)) {
+        return '';
+    }
+
+    $value = strtolower(trim($value));
+
+    return preg_match('/^[a-f0-9]{16,64}$/', $value) ? $value : '';
+}
+
+function onlinesched_get_feed_row_by_token($token)
+{
+    $token = onlinesched_sanitize_feed_token($token);
+    if ('' === $token) {
+        return null;
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'onlinesched_favorites';
+
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$table_name} WHERE feed_token = %s",
+        $token
+    ));
+
+    return $row ? $row : null;
+}
+
+function onlinesched_get_feed_token_for_identity($provider, $identifier)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'onlinesched_favorites';
+
+    $value = $wpdb->get_var($wpdb->prepare(
+        "SELECT feed_token FROM {$table_name} WHERE provider = %s AND identifier = %s",
+        strtolower($provider),
+        $identifier
+    ));
+
+    return onlinesched_sanitize_feed_token((string) $value);
+}
+
+function onlinesched_get_or_mint_feed_token($provider, $identifier)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'onlinesched_favorites';
+    $provider = strtolower(sanitize_key($provider));
+    $identifier = sanitize_text_field($identifier);
+
+    $existing = onlinesched_get_feed_token_for_identity($provider, $identifier);
+    if ('' !== $existing) {
+        return $existing;
+    }
+
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT id FROM {$table_name} WHERE provider = %s AND identifier = %s",
+        $provider,
+        $identifier
+    ));
+
+    if (!$row) {
+        onlinesched_save_favorites_for_identity($provider, $identifier, array());
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM {$table_name} WHERE provider = %s AND identifier = %s",
+            $provider,
+            $identifier
+        ));
+    }
+
+    if (!$row) {
+        return '';
+    }
+
+    ## Two attempts: the second covers a unique-key collision on the first.
+    for ($attempt = 0; $attempt < 2; $attempt++) {
+        $stored = onlinesched_claim_feed_token($row->id);
+        if ('' !== $stored) {
+            return $stored;
+        }
+    }
+
+    return '';
+}
+
+function onlinesched_claim_feed_token($row_id)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'onlinesched_favorites';
+
+    ## A NULL-only claim makes parallel minters return the same stored token.
+    $wpdb->query($wpdb->prepare(
+        "UPDATE {$table_name} SET feed_token = %s WHERE id = %d AND feed_token IS NULL",
+        onlinesched_new_feed_token(),
+        absint($row_id)
+    ));
+
+    $stored = $wpdb->get_var($wpdb->prepare(
+        "SELECT feed_token FROM {$table_name} WHERE id = %d",
+        absint($row_id)
+    ));
+
+    return onlinesched_sanitize_feed_token((string) $stored);
+}
+
+function onlinesched_rotate_feed_token($provider, $identifier)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'onlinesched_favorites';
+    $provider = strtolower(sanitize_key($provider));
+    $identifier = sanitize_text_field($identifier);
+
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT id FROM {$table_name} WHERE provider = %s AND identifier = %s",
+        $provider,
+        $identifier
+    ));
+
+    if (!$row) {
+        return '';
+    }
+
+    $token = onlinesched_new_feed_token();
+    $updated = $wpdb->update(
+        $table_name,
+        array('feed_token' => $token),
+        array('id' => absint($row->id)),
+        array('%s'),
+        array('%d')
+    );
+
+    return (false === $updated) ? '' : $token;
+}
+
+function onlinesched_feed_url($token)
+{
+    $base = defined('ONLINESCHED_PLUGIN_URL')
+        ? ONLINESCHED_PLUGIN_URL . 'icalby.php'
+        : plugins_url('icalby.php', dirname(__DIR__) . '/OnlineSched.php');
+
+    return $base . '?feed=' . rawurlencode($token);
+}
+
+function onlinesched_feed_body_validator($body)
+{
+    ## DTSTAMP changes every render but does not change the feed state.
+    return '"' . md5(preg_replace('/^DTSTAMP:[^\r\n]*\r?\n/m', '', (string) $body)) . '"';
+}
+
+function onlinesched_ajax_feed_url()
+{
+    if ('POST' !== $_SERVER['REQUEST_METHOD']) {
+        wp_send_json_error(array('message' => 'Method not allowed.'), 405);
+    }
+
+    onlinesched_send_private_no_store_headers();
+
+    $identity = onlinesched_get_favorites_identity();
+    if (is_wp_error($identity)) {
+        wp_send_json_error(array('message' => 'Not logged in.'), 403);
+    }
+
+    if (!onlinesched_verify_favorites_session_token()) {
+        wp_send_json_error(array('message' => 'Invalid favorites token.'), 403);
+    }
+
+    $token = onlinesched_get_or_mint_feed_token($identity['provider'], $identity['identifier']);
+    if ('' === $token) {
+        wp_send_json_error(array('message' => 'Could not create the calendar link.'), 500);
+    }
+
+    wp_send_json_success(array('feedUrl' => onlinesched_feed_url($token)));
+}
+
+function onlinesched_ajax_reset_feed()
+{
+    if ('POST' !== $_SERVER['REQUEST_METHOD']) {
+        wp_send_json_error(array('message' => 'Method not allowed.'), 405);
+    }
+
+    onlinesched_send_private_no_store_headers();
+
+    $identity = onlinesched_get_favorites_identity();
+    if (is_wp_error($identity)) {
+        wp_send_json_error(array('message' => 'Not logged in.'), 403);
+    }
+
+    if (!onlinesched_verify_favorites_session_token()) {
+        wp_send_json_error(array('message' => 'Invalid favorites token.'), 403);
+    }
+
+    $token = onlinesched_rotate_feed_token($identity['provider'], $identity['identifier']);
+    if ('' === $token) {
+        wp_send_json_error(array('message' => 'Could not reset the calendar link.'), 500);
+    }
+
+    wp_send_json_success(array('reset' => true));
+}
+
+add_action('wp_ajax_onlinesched_feed_url', 'onlinesched_ajax_feed_url');
+add_action('wp_ajax_nopriv_onlinesched_feed_url', 'onlinesched_ajax_feed_url');
+add_action('wp_ajax_onlinesched_reset_feed', 'onlinesched_ajax_reset_feed');
+add_action('wp_ajax_nopriv_onlinesched_reset_feed', 'onlinesched_ajax_reset_feed');
+
 function onlinesched_ajax_get_favorites()
 {
     onlinesched_send_private_no_store_headers();

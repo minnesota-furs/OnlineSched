@@ -21,6 +21,7 @@ function onlinesched_add_privacy_policy_content()
 
     $content = '<p>OnlineSched can store schedule favorites in a browser cookie for visitors who are not logged in. If social login is enabled and a visitor logs in, OnlineSched may store the login provider name, provider identifier or email address, selected favorite event IDs, last favorite update time, and last login time so favorites can sync across devices.</p>';
     $content .= '<p>Social login credentials are configured by the site owner. OnlineSched does not enable social login providers by default and does not store OAuth access tokens in its favorites table.</p>';
+    $content .= '<p>A logged-in visitor who adds their favorites to a calendar app receives a private calendar feed key stored with their favorites. The key is deleted with the favorites record and can be reset by the visitor at any time.</p>';
 
     wp_add_privacy_policy_content('OnlineSched', wp_kses_post(wpautop($content)));
 }
@@ -75,6 +76,7 @@ function onlinesched_favorites_data_exporter($email_address, $page = 1)
                 array('name' => 'Favorite event IDs', 'value' => implode(', ', onlinesched_sanitize_favorites($row->favorites))),
                 array('name' => 'Last updated', 'value' => $row->last_updated),
                 array('name' => 'Last logged in', 'value' => $row->last_logged_in),
+                array('name' => 'Calendar feed key', 'value' => empty($row->feed_token) ? 'not set' : 'set'),
             ),
         );
     }

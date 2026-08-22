@@ -20,6 +20,7 @@ $response = array(
     'provider' => '',
     'favorites' => null,
     'favoritesToken' => '',
+    'hasFeedKey' => false,
 );
 
 if (!is_wp_error($identity)) {
@@ -31,6 +32,8 @@ if (!is_wp_error($identity)) {
     $response['favoritesToken'] = function_exists('onlinesched_get_favorites_session_token')
         ? onlinesched_get_favorites_session_token()
         : '';
+    $response['hasFeedKey'] = function_exists('onlinesched_get_feed_token_for_identity')
+        && '' !== onlinesched_get_feed_token_for_identity($identity['provider'], $identity['identifier']);
 }
 
 header('Content-Type: application/json; charset=' . get_option('blog_charset'));

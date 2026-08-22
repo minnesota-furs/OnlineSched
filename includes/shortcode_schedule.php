@@ -102,6 +102,8 @@ function onlinesched_enqueue_schedule_assets() {
     wp_localize_script('online-schedule-js', 'OnlineSchedPublic', array(
         'loginStateUrl'    => $plugin_url . 'includes/login_state.php',
         'saveFavoritesUrl' => admin_url('admin-ajax.php?action=onlinesched_save_favorites'),
+        'feedUrlUrl'       => admin_url('admin-ajax.php?action=onlinesched_feed_url'),
+        'resetFeedUrl'     => admin_url('admin-ajax.php?action=onlinesched_reset_feed'),
         'iconFavInactive'  => onlinesched_get_favorite_icon_classes(false),
         'iconFavActive'    => onlinesched_get_favorite_icon_classes(true),
     ));
