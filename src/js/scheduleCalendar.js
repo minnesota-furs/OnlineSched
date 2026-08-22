@@ -210,7 +210,7 @@ export function scheduleCalendar() {
     function refreshCalendarFeedScope() {
         const select = document.getElementById('schedule-calendar-scope');
         const scopeControl = select?.closest('.schedule-calendar-scope');
-        const currentViewOption = select?.querySelector('option[value="shown-favorites"]');
+        let currentViewOption = select?.querySelector('option[value="shown-favorites"]');
         const help = document.getElementById('schedule-calendar-scope-help');
         const buttons = document.querySelectorAll('.schedule-add-to-calendar-buttons button');
         const allFavorites = getFavoriteEventIds('all-favorites');
@@ -224,14 +224,20 @@ export function scheduleCalendar() {
         if (help) {
             help.hidden = !hasVisibleFavorites;
         }
-        if (currentViewOption) {
-            currentViewOption.hidden = !hasDifferentCurrentView;
+        if (hasDifferentCurrentView && select && !currentViewOption) {
+            currentViewOption = document.createElement('option');
+            currentViewOption.value = 'shown-favorites';
+            currentViewOption.textContent = 'Favorites in current view';
+            select.insertBefore(currentViewOption, select.querySelector('option[value="all-favorites"]'));
         }
 
         if (!hasVisibleFavorites && select) {
             select.value = 'current';
         } else if (!hasDifferentCurrentView && select?.value === 'shown-favorites') {
             select.value = 'all-favorites';
+        }
+        if (!hasDifferentCurrentView) {
+            currentViewOption?.remove();
         }
 
         const scope = getCalendarScope();

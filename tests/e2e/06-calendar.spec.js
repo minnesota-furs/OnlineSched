@@ -225,13 +225,12 @@ test.describe('06 — Calendar', () => {
 
       await first.locator(S.favoriteBtn).click();
       await second.locator(S.favoriteBtn).click();
-      await expect(page.locator(`${S.calendarScope} option[value="shown-favorites"]`)).toHaveAttribute('hidden', '');
+      await expect(page.locator(`${S.calendarScope} option[value="shown-favorites"]`)).toHaveCount(0);
       await page.fill(S.searchInput, firstTitle);
       await expect(first).toBeVisible();
       await expect(second).toBeHidden();
       await expect(page.locator(S.calendarScope)).toBeVisible();
       await expect(page.locator(`${S.calendarScope} option[value="shown-favorites"]`)).toHaveText('Favorites in current view');
-      await expect(page.locator(`${S.calendarScope} option[value="shown-favorites"]`)).not.toHaveAttribute('hidden', '');
 
       await page.evaluate(() => {
         window.__calendarTestUrls = [];
@@ -247,6 +246,11 @@ test.describe('06 — Calendar', () => {
       const shownUrl = await page.evaluate(() => window.__calendarTestUrls.at(-1));
       expect(shownUrl).toContain(`?events=${firstId}`);
       expect(shownUrl).not.toContain(secondId);
+
+      await page.fill(S.searchInput, '');
+      await expect(page.locator(`${S.calendarScope} option[value="shown-favorites"]`)).toHaveCount(0);
+      await expect(page.locator(S.calendarScope)).toHaveValue('all-favorites');
+      await page.fill(S.searchInput, firstTitle);
 
       await page.selectOption(S.calendarScope, 'all-favorites');
       await expect(page.locator(S.calendarScopeHelp)).toHaveText('Snapshot 2 favorites. Event details continue to update.');
