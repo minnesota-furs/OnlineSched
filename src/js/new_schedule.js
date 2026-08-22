@@ -1,5 +1,6 @@
 /* Schedule code to do filtering and the magic */
 import { rewriteGoogleCalendarUrlForAndroid } from './scheduleCalendar.js';
+import { isElementVisible } from './elementVisibility.js';
 import { openModal } from './osModal.js';
 import { updateIconClasses } from './osIcons.js';
 
@@ -19,20 +20,6 @@ function hideElement(el) {
 let dayAvailability = new Set();
 let tagAvailability = new Set();
 let roomAvailability = new Set();
-
-function isVisible(el) {
-    if (!el) return false;
-
-    let current = el;
-    while (current && current.nodeType === Node.ELEMENT_NODE) {
-        if (current.style.display === 'none') {
-            return false;
-        }
-        current = current.parentElement;
-    }
-
-    return true;
-}
 
 function stripTags(value) {
     const holder = document.createElement('div');
@@ -630,7 +617,7 @@ export function new_schedule() {
         $$('.schedule-hour').forEach((hour) => {
             let even = false;
             $$('.schedule-item', hour).forEach((item) => {
-                if (!isVisible(item)) return;
+                if (!isElementVisible(item)) return;
 
                 if (even) {
                     item.classList.add('even');
@@ -707,7 +694,7 @@ export function new_schedule() {
             let roomOk = true;
 
             const day = item.closest('.schedule-day');
-            if (selectedDay !== 'Current' && !isVisible(day)) {
+            if (selectedDay !== 'Current' && !isElementVisible(day)) {
                 show = false;
                 dayOk = false;
             }
@@ -963,7 +950,7 @@ export function new_schedule() {
         if (state.evt) {
             const eventEl = getEventItemById(state.evt);
             if (eventEl) {
-                if (!isVisible(eventEl)) {
+                if (!isElementVisible(eventEl)) {
                     if ($('#schedule-select-days')) $('#schedule-select-days').value = 'all';
                     scheduleSort();
                 }

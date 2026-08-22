@@ -1,5 +1,7 @@
 import { openModal, closeModal } from './osModal.js';
 
+import { isElementVisible } from './elementVisibility.js';
+
 export function rewriteGoogleCalendarUrlForAndroid(url) {
     var isAndroid = /android/i.test(navigator.userAgent);
     if (!isAndroid) return url;
@@ -177,24 +179,12 @@ export function scheduleCalendar() {
     }
     window.showAndroidGoogleCalendarModal = showAndroidGoogleCalendarModal;
 
-    function isScheduleItemShown(item) {
-        let current = item;
-        while (current && current.nodeType === Node.ELEMENT_NODE) {
-            if (current.hidden || current.style.display === 'none') {
-                return false;
-            }
-            current = current.parentElement;
-        }
-
-        return true;
-    }
-
     function getFavoriteEventIds(scope) {
         const ids = [];
         const seen = new Set();
 
         document.querySelectorAll('#schedule .schedule-item[data-favorite="true"]').forEach((item) => {
-            if (scope === 'shown-favorites' && !isScheduleItemShown(item)) {
+            if (scope === 'shown-favorites' && !isElementVisible(item)) {
                 return;
             }
 
