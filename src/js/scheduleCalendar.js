@@ -155,7 +155,10 @@ export function scheduleCalendar() {
                 done.classList.remove('is-error');
                 done.textContent = 'Link reset. Old calendars stopped updating. Use the buttons to add your calendar again.';
                 done.hidden = false;
-                resetLink.hidden = false;
+                window.setTimeout(() => {
+                    done.hidden = true;
+                    refreshFeedResetControls();
+                }, 6000);
                 window.gtag_event && window.gtag_event('click', 'engagement', 'reset-live-calendar-feed');
             }).catch(() => {
                 confirm.hidden = true;

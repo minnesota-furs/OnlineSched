@@ -432,6 +432,9 @@ test.describe('06 — Calendar', () => {
       await expect(done).toBeVisible();
       await expect(done).toContainText('Link reset. Old calendars stopped updating.');
       await expect(confirm).toBeHidden();
+      await expect(resetLink).toBeHidden();
+
+      await expect(done).toBeHidden({ timeout: 8000 });
       await expect(resetLink).toBeVisible();
     });
 
