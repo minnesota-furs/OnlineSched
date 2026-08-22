@@ -416,7 +416,7 @@ export function scheduleCalendar() {
                 ? 'No favorites in the current view to add.'
                 : 'No favorites to add.';
         } else if (isLiveScope()) {
-            help.textContent = 'Your calendar follows your favorites. Star or unstar events anytime.';
+            help.textContent = 'Your calendar will sync your favorites from online schedule.';
         } else if (result.total > maxFavoriteEvents) {
             help.textContent = `The first ${maxFavoriteEvents} favorites are included. Event details continue to update.`;
         } else {

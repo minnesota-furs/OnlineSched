@@ -354,7 +354,7 @@ test.describe('06 — Calendar', () => {
       await starFirstEventAndPickLiveScope(page);
 
       await expect(page.locator(`${S.calendarScope} option[value="all-favorites"]`)).toHaveText('My favorites - stays updated');
-      await expect(page.locator(S.calendarScopeHelp)).toHaveText('Your calendar follows your favorites. Star or unstar events anytime.');
+      await expect(page.locator(S.calendarScopeHelp)).toHaveText('Your calendar will sync your favorites from online schedule.');
       await expect(page.locator('#schedule-feed-reset-link')).toBeHidden();
 
       await stubWindowOpen(page);
