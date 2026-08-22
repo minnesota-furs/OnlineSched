@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 3.7.1
+Stable tag: 3.7.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -122,6 +122,13 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 3.7.2 =
+
+* Added calendar subscriptions for all favorites or the favorites visible in the current filtered view.
+* Simplified the calendar choices when the current view does not contain a distinct set of favorites.
+* Fixed schedule filters leaving empty hour headings and failing on hidden schedule items.
+* Updated Telegram login setup for its OpenID scopes and Web Login Client credentials.
 
 = 3.7.1 =
 
