@@ -46,6 +46,7 @@ export function scheduleFavorites() {
         }
 
         window.updateFavoritesCookie?.();
+        window.refreshCalendarFeedScope?.();
     });
 
     function setCookie(name, value, days) {
@@ -136,6 +137,7 @@ export function scheduleFavorites() {
                 setFavoriteState(item, true);
             });
         });
+        window.refreshCalendarFeedScope?.();
     }
 
     function collectFavoriteIdsFromDom() {

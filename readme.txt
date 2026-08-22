@@ -74,8 +74,9 @@ Filtered schedule ICS:
     /wp-content/plugins/OnlineSched/icalby.php?tag=essentials
     /wp-content/plugins/OnlineSched/icalby.php?room=main-stage,panel-room-a&tag=essentials&limit=10&textlen=300
     /wp-content/plugins/OnlineSched/icalby.php?room=all&cancelled_title_prefix=true
+    /wp-content/plugins/OnlineSched/icalby.php?events=123,456
 
-Cancelled schedule events use the standards-compliant STATUS:CANCELLED property. For display systems that ignore that status, add cancelled_title_prefix=true to a full or filtered schedule ICS URL to prefix cancelled summaries with "Cancelled - ". The parameter is opt-in and does not change stored event titles, individual event feeds, JSON, CSV, or the public schedule.
+The events parameter accepts up to 100 public event post IDs. It keeps that membership fixed while event details continue to update. Cancelled schedule events use the standards-compliant STATUS:CANCELLED property. For display systems that ignore that status, add cancelled_title_prefix=true to a full or filtered schedule ICS URL to prefix cancelled summaries with "Cancelled - ". The parameter is opt-in and does not change stored event titles, individual event feeds, JSON, CSV, or the public schedule.
 
 JSON app feed:
 

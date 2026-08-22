@@ -210,6 +210,58 @@ test.describe('06 — Calendar', () => {
       const count = await section.count();
       expect(count).toBe(1);
     });
+
+    test('favorite snapshots distinguish shown favorites from all favorites', async ({ page }) => {
+      const items = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) });
+      const first = items.nth(0);
+      const second = items.nth(1);
+      const firstId = (await first.getAttribute('id'))?.replace('onlineevt-', '');
+      const secondId = (await second.getAttribute('id'))?.replace('onlineevt-', '');
+      const firstTitle = (await first.locator(S.scheduleTitle).textContent())?.trim();
+
+      expect(firstId).toMatch(/^\d+$/);
+      expect(secondId).toMatch(/^\d+$/);
+      expect(firstTitle).toBeTruthy();
+
+      await first.locator(S.favoriteBtn).click();
+      await second.locator(S.favoriteBtn).click();
+      await page.fill(S.searchInput, firstTitle);
+      await expect(first).toBeVisible();
+      await expect(second).toBeHidden();
+
+      await page.evaluate(() => {
+        window.__calendarTestUrls = [];
+        window.open = (url) => {
+          window.__calendarTestUrls.push(String(url));
+        };
+      });
+
+      await page.selectOption(S.calendarScope, 'shown-favorites');
+      await expect(page.locator(S.calendarScopeHelp)).toHaveText('Snapshot 1 shown favorite. Event details continue to update.');
+      await page.locator(S.calendarApple).click();
+
+      const shownUrl = await page.evaluate(() => window.__calendarTestUrls.at(-1));
+      expect(shownUrl).toContain(`?events=${firstId}`);
+      expect(shownUrl).not.toContain(secondId);
+
+      await page.selectOption(S.calendarScope, 'all-favorites');
+      await expect(page.locator(S.calendarScopeHelp)).toHaveText('Snapshot 2 favorites. Event details continue to update.');
+      await page.locator(S.calendarApple).click();
+
+      const allUrl = await page.evaluate(() => window.__calendarTestUrls.at(-1));
+      expect(allUrl).toContain('?events=');
+      expect(allUrl).toContain(firstId);
+      expect(allUrl).toContain(secondId);
+    });
+
+    test('favorite snapshot actions stay disabled until the selection has events', async ({ page }) => {
+      await page.selectOption(S.calendarScope, 'shown-favorites');
+
+      await expect(page.locator(S.calendarScopeHelp)).toHaveText('No shown favorites to add.');
+      await expect(page.locator(S.calendarApple)).toBeDisabled();
+      await expect(page.locator(S.calendarGoogle)).toBeDisabled();
+      await expect(page.locator(S.calendarOutlook)).toBeDisabled();
+    });
   });
 
   test.describe('ICS endpoints', () => {
@@ -247,6 +299,53 @@ test.describe('06 — Calendar', () => {
       const response = await page.request.get('/wp-content/plugins/OnlineSched/icalby.php?room=all&tag=all&textlen=0');
 
       await expectIcsResponse(response, { minEvents: 2 });
+    });
+
+    test('icalby.php event membership stays live and omits missing events', async ({ page }) => {
+      const activeItem = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) }).first();
+      const cancelledItem = page.locator(`${S.scheduleItem}.canceled`).first();
+      const activeId = (await activeItem.getAttribute('id'))?.replace('onlineevt-', '');
+      const cancelledId = (await cancelledItem.getAttribute('id'))?.replace('onlineevt-', '');
+
+      expect(activeId).toMatch(/^\d+$/);
+      expect(cancelledId).toMatch(/^\d+$/);
+
+      const activeBody = await expectIcsResponse(
+        await page.request.get(`/wp-content/plugins/OnlineSched/ical.php?cal-id=${activeId}`),
+        { exactEvents: 1 }
+      );
+      const cancelledBody = await expectIcsResponse(
+        await page.request.get(`/wp-content/plugins/OnlineSched/ical.php?cal-id=${cancelledId}`),
+        { exactEvents: 1 }
+      );
+      const snapshotBody = await expectIcsResponse(
+        await page.request.get(`/wp-content/plugins/OnlineSched/icalby.php?events=${activeId},${cancelledId},99999999`),
+        { exactEvents: 2 }
+      );
+
+      expect(getIcsUids(snapshotBody)).toEqual(getIcsUids(activeBody).concat(getIcsUids(cancelledBody)).sort());
+      expect(snapshotBody).toContain('STATUS:CANCELLED');
+      expect(snapshotBody).not.toContain('99999999');
+    });
+
+    test('icalby.php does not turn an invalid event selection into the full schedule', async ({ page }) => {
+      const response = await page.request.get('/wp-content/plugins/OnlineSched/icalby.php?events=not-an-event');
+
+      await expectIcsResponse(response, { exactEvents: 0 });
+    });
+
+    test('icalby.php caps favorite snapshot membership at 100 event IDs', async ({ page }) => {
+      const activeItem = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) }).first();
+      const activeId = (await activeItem.getAttribute('id'))?.replace('onlineevt-', '');
+      const missingIds = Array.from({ length: 100 }, (_, index) => 90000000 + index);
+
+      expect(activeId).toMatch(/^\d+$/);
+
+      const response = await page.request.get(
+        `/wp-content/plugins/OnlineSched/icalby.php?events=${missingIds.concat(activeId).join(',')}`
+      );
+
+      await expectIcsResponse(response, { exactEvents: 0 });
     });
   });
 

@@ -30,6 +30,7 @@ if (!onlinesched_calendar_subscriptions_enabled()) {
  *
  * room=<names>              One or more room names, comma separated; `all` for every room.
  * tag=<tags>                One or more tag slugs, comma separated; `all` for every tag.
+ * events=<ids>              Up to 100 event post IDs, comma separated.
  * limit=<number>            Return only the newest N events.
  * textlen=<number>          Truncate the description (default 250); 0 or less for the full text.
  * cancelled_title_prefix=<bool>  Prefix cancelled titles, for clients that ignore STATUS:CANCELLED.
@@ -58,6 +59,32 @@ function onlinesched_get_request_slugs(array $keys) {
 	}
 
 	return array_values(array_filter(array_map('sanitize_title', explode(',', $value))));
+}
+
+function onlinesched_get_request_event_ids($key, $limit = 100) {
+	if (!isset($_REQUEST[$key]) || is_array($_REQUEST[$key])) {
+		return array();
+	}
+
+	$ids = array();
+	foreach (explode(',', wp_unslash($_REQUEST[$key])) as $value) {
+		$value = trim($value);
+		if ($value === '' || !ctype_digit($value)) {
+			continue;
+		}
+
+		$id = absint($value);
+		if ($id === 0 || isset($ids[$id])) {
+			continue;
+		}
+
+		$ids[$id] = $id;
+		if (count($ids) >= $limit) {
+			break;
+		}
+	}
+
+	return array_values($ids);
 }
 
 function onlinesched_icalby_request_flag_enabled($key) {
@@ -118,6 +145,20 @@ $args = array(
 	'order' => 'ASC',
 	'nopaging' => true
 );
+
+$event_filter_requested = isset($_REQUEST['events']);
+$event_ids = onlinesched_get_request_event_ids('events');
+if ($event_filter_requested && empty($event_ids)) {
+	$filename_prefix = function_exists('onlinesched_get_ical_filename_prefix') ? onlinesched_get_ical_filename_prefix() : 'onlinesched';
+	onlinesched_ical_send_headers($filename_prefix . '-favorites.ics');
+	echo onlinesched_ical_empty_calendar();
+	exit;
+}
+
+if ($event_filter_requested) {
+	$args['post__in'] = $event_ids;
+	$filename = '-favorites';
+}
 
 $sanitized_slugs = onlinesched_get_request_slugs(array('room', 'rooms'));
 if (!empty($sanitized_slugs)) {

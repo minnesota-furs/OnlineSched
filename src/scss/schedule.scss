@@ -520,6 +520,25 @@ dl.schedule-meta:after {
   }
 }
 
+.schedule-calendar-scope {
+  align-items: center;
+  display: flex;
+  font-size: 0.85em;
+  font-weight: normal;
+  gap: 8px;
+  margin-top: 8px;
+
+  select {
+    max-width: 100%;
+  }
+}
+
+.schedule-calendar-scope-help {
+  font-size: 0.75em;
+  font-weight: normal;
+  margin-top: 4px;
+}
+
 /* bottom buttons */
 
 .schedule-add-to-calendar-buttons {
@@ -551,6 +570,11 @@ dl.schedule-meta:after {
 
   &first-child {
     margin-left: 0px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
   }
 }
 

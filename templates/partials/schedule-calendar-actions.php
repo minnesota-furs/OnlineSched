@@ -13,20 +13,31 @@ if (!defined('ABSPATH')) {
                                                 <div class="os-col-xs-12 os-col-md-7 schedule-add-to-calendar-blurb d-flex align-items-center">
                                                     <span
                                                             id="schedule-add-to-calendar-message">Add this filtered list to your calendar.</span>
+                                                    <label class="schedule-calendar-scope" for="schedule-calendar-scope">
+                                                        <span>Events to include</span>
+                                                        <select id="schedule-calendar-scope">
+                                                            <option value="current">Current calendar feed</option>
+                                                            <option value="shown-favorites">Shown favorites</option>
+                                                            <option value="all-favorites">All favorites</option>
+                                                        </select>
+                                                    </label>
+                                                    <span class="schedule-calendar-scope-help" id="schedule-calendar-scope-help">
+                                                        Choose a favorites option to snapshot your favorites.
+                                                    </span>
                                                 </div>
                                                 <div class="os-col-xs-12 os-col-md-5 schedule-add-to-calendar-buttons">
-                                                    <button onclick="open_calendar_google()"
-                                                            aria-label="Add subscription"><i class="fab fa-google"
+                                                    <button id="schedule-calendar-google" onclick="open_calendar_google()"
+                                                            aria-label="Add selection to Google Calendar"><i class="fab fa-google"
                                                                                              aria-hidden="true"></i><br/>
                                                         Add to Google
                                                     </button>
-                                                    <button onclick="open_calendar_apple()"
-                                                            aria-label="Add subscription"><i class="fab fa-apple"
+                                                    <button id="schedule-calendar-apple" onclick="open_calendar_apple()"
+                                                            aria-label="Add selection to Apple Calendar"><i class="fab fa-apple"
                                                                                              aria-hidden="true"></i><br/>
                                                         Add to Apple<br/>(WebCal)
                                                     </button>
-                                                    <button onclick="open_calendar_outlook()"
-                                                            aria-label="Add subscription"><i class="fas fa-calendar-alt"
+                                                    <button id="schedule-calendar-outlook" onclick="open_calendar_outlook()"
+                                                            aria-label="Add selection to Outlook Calendar"><i class="fas fa-calendar-alt"
                                                                                              aria-hidden="true"></i><br/>
                                                         Add to Outlook
                                                     </button>

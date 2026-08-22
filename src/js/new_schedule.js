@@ -826,6 +826,7 @@ export function new_schedule() {
 
         reset_schedule(true);
         messageAtBottomForCalendar();
+        window.refreshCalendarFeedScope?.();
     }
 
     function resetHoursDays() {
