@@ -88,6 +88,7 @@ function onlinesched_essentials_page() {
 						<?php echo esc_html($tag->name); ?>
 					</label>
 				<?php endforeach; ?>
+					<p class="description">The companion app reads these tags too. Once nothing tagged here is still to come, its home screen widget tells people the convention is winding down, so Closing Ceremonies should carry one of them.</p>
 				</td></tr>
 			</table>
 			<?php submit_button('Save Essential Tab Settings'); ?>
