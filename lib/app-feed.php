@@ -477,9 +477,8 @@ function onlinesched_app_feed_schedule(array $filters = array(), $revisions = nu
 		}
 	}
 
-	ksort($payload['rooms']);
 	ksort($payload['tags']);
-	$payload['rooms'] = array_values($payload['rooms']);
+	$payload['rooms'] = onlinesched_app_feed_sort_rooms($payload['rooms']);
 	$payload['tags'] = array_values($payload['tags']);
 
 	return $payload;
@@ -502,6 +501,48 @@ function onlinesched_app_feed_event_terms($post_id, $taxonomy) {
 			'slug' => $term->slug,
 			'name' => html_entity_decode($term->name, ENT_QUOTES | ENT_HTML5, get_option('blog_charset')),
 		);
+	}
+
+	return $out;
+}
+
+/**
+ * Rooms in the order the schedule shows them: configured priority first, then
+ * name. Each room carries its own index so a client that stores rooms
+ * individually does not have to preserve array order to keep the order.
+ *
+ * @param array<string,array{slug:string,name:string}> $rooms Rooms keyed by slug.
+ * @param string[]|null $priority Room slugs in priority order, or null to read the setting.
+ * @return array<int,array{slug:string,name:string,sort:int}>
+ */
+function onlinesched_app_feed_sort_rooms($rooms, $priority = null) {
+	if (null === $priority) {
+		$priority = function_exists('onlinesched_get_room_sort_priority')
+			? onlinesched_get_room_sort_priority()
+			: array();
+	}
+	$rank = array_flip($priority);
+
+	uasort(
+		$rooms,
+		static function ($a, $b) use ($rank) {
+			$a_rank = isset($rank[$a['slug']]) ? $rank[$a['slug']] : PHP_INT_MAX;
+			$b_rank = isset($rank[$b['slug']]) ? $rank[$b['slug']] : PHP_INT_MAX;
+			if ($a_rank !== $b_rank) {
+				return $a_rank < $b_rank ? -1 : 1;
+			}
+
+			$by_name = strcasecmp($a['name'], $b['name']);
+			return 0 !== $by_name ? $by_name : strcmp($a['slug'], $b['slug']);
+		}
+	);
+
+	$out = array();
+	$index = 0;
+	foreach ($rooms as $room) {
+		$room['sort'] = $index;
+		$out[] = $room;
+		$index++;
 	}
 
 	return $out;

@@ -455,10 +455,11 @@ function onlinesched_modify_wp_query_clauses($clauses, $wp_query) {
         $room_order = '';
         if (!empty($room_priority)) {
             $quoted_rooms = array();
-            foreach ($room_priority as $room_name) {
-                $quoted_rooms[] = "'" . esc_sql($room_name) . "'";
+            foreach ($room_priority as $room_slug) {
+                $quoted_rooms[] = "'" . esc_sql($room_slug) . "'";
             }
-            $field_sql = 'FIELD(t.name, ' . implode(',', $quoted_rooms) . ')';
+            // Keyed on slug: a room rename must not drop it to alphabetical.
+            $field_sql = 'FIELD(t.slug, ' . implode(',', $quoted_rooms) . ')';
             $room_order = "({$field_sql} = 0) ASC, {$field_sql} ASC, ";
         }
         $clauses['orderby'] = "{$wpdb->postmeta}.meta_value ASC, {$room_order}t.name ASC, {$wpdb->posts}.post_title ASC";

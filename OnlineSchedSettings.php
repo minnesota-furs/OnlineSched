@@ -491,6 +491,38 @@ function onlinesched_text_input_row($option_name, $label, $default, $description
     <?php
 }
 
+function onlinesched_room_sort_priority_row()
+{
+    $option_name = 'onlinesched_room_sort_priority';
+    $stored = get_option($option_name, '');
+    $rooms = get_terms(array('taxonomy' => 'os_room', 'hide_empty' => false));
+    if (is_wp_error($rooms)) {
+        $rooms = array();
+    }
+    ?>
+    <tr>
+        <th scope="row"><label for="<?php echo esc_attr($option_name); ?>">Room Sort Priority</label></th>
+        <td>
+            <input type="text" id="<?php echo esc_attr($option_name); ?>" name="<?php echo esc_attr($option_name); ?>"
+                   value="<?php echo esc_attr($stored); ?>" class="regular-text" />
+            <p class="description">
+                Comma-separated room slugs, in the order they should appear. Rooms
+                left out follow in alphabetical order. Slugs are used because a room
+                can be renamed without losing its place.
+            </p>
+            <?php if (!empty($rooms)) : ?>
+                <p class="description"><strong>Available rooms</strong></p>
+                <ul class="description" style="margin:0 0 0 1em;">
+                    <?php foreach ($rooms as $room) : ?>
+                        <li><code><?php echo esc_html($room->slug); ?></code> &mdash; <?php echo esc_html($room->name); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </td>
+    </tr>
+    <?php
+}
+
 function onlinesched_number_input_row($option_name, $label, $default, $description)
 {
     $key = str_replace('onlinesched_', '', $option_name);
@@ -679,7 +711,7 @@ function OnlineSched_options_page()
                 onlinesched_number_input_row('onlinesched_sticky_offset_mobile', 'Mobile Sticky Offset', 0, 'Height in pixels of any fixed theme header above schedule tabs on mobile.');
                 onlinesched_text_input_row('onlinesched_calendar_name', 'Calendar Name', onlinesched_get_calendar_name(), 'Name shown by calendar clients for full-schedule subscriptions.');
                 onlinesched_text_input_row('onlinesched_ical_filename_prefix', 'iCal Filename Prefix', 'onlinesched', 'Short lowercase prefix for downloaded .ics files.');
-                onlinesched_text_input_row('onlinesched_room_sort_priority', 'Room Sort Priority', '', 'Optional comma-separated room names that should sort before the normal alphabetical room order.');
+                onlinesched_room_sort_priority_row();
                 onlinesched_minute_step_row();
                 ?>
             </table>
