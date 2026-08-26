@@ -671,25 +671,29 @@ export function new_schedule() {
     updateResetButtonState();
     resetSelectRooms();
 
-    // The selects stay the kiosk UI and the pre-panel UI, so they write into
-    // the same state the checkbox panels will drive.
-    function syncStateFromSelects() {
-        const dayValue = $('#schedule-select-days')?.value || 'Current';
-        if (dayValue === 'all' || dayValue === 'Current') setDayMode(dayValue);
-        else setDaySet([dayValue]);
+    // A menu speaks for its own facet only. Rebuilding all three would push the
+    // other sets through a control that holds one value, losing the rest.
+    function syncStateFromSelect(select) {
+        if (!select) return;
+        const value = select.value;
 
-        const tagValue = $('#schedule-select-tags')?.value || 'all';
-        filterState.tags = new Set(tagValue === 'all' ? [] : [String(tagValue)]);
+        if (select.id === 'schedule-select-days') {
+            const day = value || 'Current';
+            if (day === 'all' || day === 'Current') setDayMode(day);
+            else setDaySet([day]);
+            return;
+        }
 
-        const roomValue = $('#schedule-select-rooms')?.value || 'all';
-        filterState.rooms = new Set(roomValue === 'all' ? [] : [String(roomValue)]);
+        const set = new Set(!value || value === 'all' ? [] : [String(value)]);
+        if (select.id === 'schedule-select-tags') filterState.tags = set;
+        if (select.id === 'schedule-select-rooms') filterState.rooms = set;
     }
 
     buildFilterPanels();
 
     $$('#schedule-select-days, #schedule-select-tags, #schedule-select-rooms').forEach((select) => {
         select.addEventListener('change', function () {
-            syncStateFromSelects();
+            syncStateFromSelect(this);
             writeFilterHash();
 
             scheduleSort();
@@ -1063,14 +1067,11 @@ function hasMatchingAttribute(item, prefix, value) {
     // is what every existing bookmark and inbound link still carries.
 
     function readFilterHash(state) {
-        const carriesFilter = ['rooms', 'room', 'tags', 'tag', 'days', 'day']
-            .some((key) => state[key] !== undefined);
-        if (!carriesFilter) {
-            filterState.rooms.clear();
-            filterState.tags.clear();
-            setDayMode('Current');
-            return;
-        }
+        // The hash is the whole filter state, so a facet the route does not name
+        // returns to its default instead of surviving from the previous one.
+        filterState.rooms.clear();
+        filterState.tags.clear();
+        setDayMode('Current');
 
         const roomList = state.rooms !== undefined
             ? splitFilterList(state.rooms)

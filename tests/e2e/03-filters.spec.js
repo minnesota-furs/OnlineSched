@@ -497,6 +497,58 @@ test.describe('03 — Filters', () => {
     expect(await page.locator(`${S.scheduleItem}:visible`).count()).toBe(narrowed);
   });
 
+  // The menus hold one value each, so a chip must not push the other sets
+  // through them.
+  test('a room chip keeps a second facets full set', async ({ page }) => {
+    const tags = await page.evaluate(() => Array.from(
+      document.querySelectorAll('#schedule-select-tags option'))
+      .filter((option) => option.value !== 'all' && !option.disabled)
+      .map((option) => window.scheduleMasterTags?.[option.textContent.trim()])
+      .filter(Boolean).slice(0, 2));
+    if (tags.length < 2) return test.skip(true, 'Needs two live tags');
+
+    await page.goto(`/schedule/#days=all&tags=${tags.join(',')}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+    const tagButton = page.locator('[data-filter-panel="schedule-select-tags"] .os-filter-panel-button');
+    await expect(tagButton).toHaveText('Tags: 2 selected');
+
+    const chip = page.locator(`${S.scheduleItem}:visible .schedule-room .os-term-item[data-os-term-slug]`).first();
+    if (await chip.count() === 0) return test.skip(true, 'Needs a room chip');
+    await chip.click();
+    await page.waitForTimeout(600);
+
+    await expect(tagButton).toHaveText('Tags: 2 selected');
+    expect(decodeURIComponent(page.url())).toContain(`tags=${tags.join(',')}`);
+    expect(page.url()).toMatch(/rooms=/);
+  });
+
+  test('a route that names one facet clears the others', async ({ page }) => {
+    const tags = await page.evaluate(() => Array.from(
+      document.querySelectorAll('#schedule-select-tags option'))
+      .filter((option) => option.value !== 'all' && !option.disabled)
+      .map((option) => window.scheduleMasterTags?.[option.textContent.trim()])
+      .filter(Boolean).slice(0, 2));
+    const room = await page.locator(
+      `${S.selectRooms} option:not([value="all"]):not([disabled])`).first().getAttribute('value');
+    if (tags.length < 2 || !room) return test.skip(true, 'Needs two tags and a room');
+
+    await page.goto(`/schedule/#days=all&tags=${tags.join(',')}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+    await expect(page.locator(
+      '[data-filter-panel="schedule-select-tags"] .os-filter-panel-button')).toHaveText('Tags: 2 selected');
+
+    // A legacy single-facet route names only the room, so the tags go home.
+    await page.evaluate((slug) => { window.location.hash = `#room=${slug}`; }, room);
+    await page.waitForTimeout(800);
+
+    await expect(page.locator(
+      '[data-filter-panel="schedule-select-tags"] .os-filter-panel-button')).toHaveText('All Tags');
+    await expect(page.locator(
+      '[data-filter-panel="schedule-select-rooms"] .os-filter-panel-button')).not.toHaveText('All Rooms');
+  });
+
   test('clickable room/tag links are not present on kiosk', async ({ page }) => {
     await page.goto('/kiosk-schedule/');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });
