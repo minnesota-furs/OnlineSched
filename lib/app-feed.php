@@ -586,8 +586,14 @@ function onlinesched_app_feed_event_badges($post_id) {
 		if ('' === $badge_type) {
 			$badge_type = onlinesched_default_badge_type_for_tag_slug($term->slug);
 		}
-		if ('sensory' === sanitize_key($badge_type)) {
-			$badges['sensory'] = 'sensory';
+		if ('' === trim($badge_type)) {
+			continue;
+		}
+		// The badge type is the meaning and the slug is its stable spelling, so
+		// a client never has to match on a staff-typed name.
+		$slug = sanitize_title($badge_type);
+		if ('' !== $slug) {
+			$badges[$slug] = $slug;
 		}
 	}
 
