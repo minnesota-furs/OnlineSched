@@ -184,12 +184,16 @@ $check(
 );
 onlinesched_clear_tag_badge_type('essentials');
 
-// The association form's save path, exercised as the page runs it.
+// The association form's save path, exercised as the page runs it. The map is
+// emptied first so each result is only what this submission produced.
 $types = array('Dance', 'Essentials');
+$both = array('aft-map-goh', 'aft-map-meta');
+update_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, array());
 
 $result = onlinesched_tag_map_from_submission(
 	array('Dance' => array('aft-map-goh'), 'Essentials' => array('aft-map-meta')),
-	$types
+	$types,
+	$both
 );
 $check('a straight submission maps each tag to its type', array(
 	'aft-map-goh' => 'Dance',
@@ -199,28 +203,122 @@ $check('and reports no conflict', array(), $result['conflicts']);
 
 $result = onlinesched_tag_map_from_submission(
 	array('Dance' => array('aft-map-goh'), 'Essentials' => array('aft-map-goh')),
-	$types
+	$types,
+	$both
 );
 $check('two types claiming one tag is a conflict', array('aft-map-goh'), $result['conflicts']);
 $check('and nothing about that tag is stored', false, isset($result['map']['aft-map-goh']));
 
 $result = onlinesched_tag_map_from_submission(
 	array('Not A Type' => array('aft-map-goh')),
-	$types
+	$types,
+	$both
 );
 $check('a badge type that does not exist is ignored', array(), $result['map']);
 
 onlinesched_set_tag_badge_type('aft-map-meta', ONLINESCHED_BADGE_NONE);
-$result = onlinesched_tag_map_from_submission(array('Dance' => array('aft-map-goh')), $types);
+$result = onlinesched_tag_map_from_submission(
+	array('Dance' => array('aft-map-goh')),
+	$types,
+	array('aft-map-goh')
+);
 $check(
-	'an explicit None survives a save that never mentions it',
+	'a mapping the form never offered is carried forward, None included',
 	ONLINESCHED_BADGE_NONE,
 	isset($result['map']['aft-map-meta']) ? $result['map']['aft-map-meta'] : ''
 );
 onlinesched_clear_tag_badge_type('aft-map-meta');
 
-$result = onlinesched_tag_map_from_submission(array('Dance' => array()), $types);
+update_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, array());
+$result = onlinesched_tag_map_from_submission(array('Dance' => array()), $types, $both);
 $check('a type emptied on the form releases its tags', array(), $result['map']);
+
+// The tag form hooks, run as WordPress runs them.
+$hook_id = $make_tag('aft-map-hook', 'AFT Map Hook');
+$_POST['badge_type'] = 'Essentials';
+do_action('edited_os_tag', $hook_id);
+$check(
+	'the edit hook writes through the map',
+	'Essentials',
+	onlinesched_badge_type_for_tag('aft-map-hook', $hook_id)
+);
+
+$_POST['badge_type'] = '';
+do_action('edited_os_tag', $hook_id);
+$check(
+	'an empty choice on edit is None, not no action',
+	'',
+	onlinesched_badge_type_for_tag('aft-map-hook', $hook_id)
+);
+$check(
+	'and the mirror is cleared with it',
+	'',
+	(string) get_term_meta($hook_id, 'badge_type', true)
+);
+
+$_POST['badge_type'] = 'Not A Configured Type';
+do_action('edited_os_tag', $hook_id);
+$check(
+	'an unconfigured type is refused rather than stored',
+	'',
+	onlinesched_badge_type_for_tag('aft-map-hook', $hook_id)
+);
+unset($_POST['badge_type']);
+
+// A release through the association form must not resurrect from meta.
+onlinesched_set_tag_badge_type('aft-map-hook', 'Essentials');
+$check(
+	'set writes the mirror',
+	'Essentials',
+	(string) get_term_meta($hook_id, 'badge_type', true)
+);
+$released = onlinesched_tag_map_from_submission(
+	array('Essentials' => array()),
+	array('Essentials'),
+	array('aft-map-hook')
+);
+onlinesched_save_tag_badge_map($released['map']);
+$check(
+	'releasing on the form clears the mirror too',
+	'',
+	(string) get_term_meta($hook_id, 'badge_type', true)
+);
+$check(
+	'so the released tag cannot resurrect its old type',
+	'',
+	onlinesched_badge_type_for_tag('aft-map-hook', $hook_id)
+);
+
+// A mapping the form never showed survives a save.
+onlinesched_set_tag_badge_type('aft-map-hook', 'Essentials');
+$kept = onlinesched_tag_map_from_submission(
+	array('Essentials' => array()),
+	array('Essentials'),
+	array()
+);
+$check(
+	'a mapping the form did not offer is carried forward',
+	'Essentials',
+	isset($kept['map']['aft-map-hook']) ? $kept['map']['aft-map-hook'] : ''
+);
+
+// None chosen on the association form.
+$noned = onlinesched_tag_map_from_submission(
+	array(ONLINESCHED_BADGE_NONE => array('aft-map-hook')),
+	array('Essentials'),
+	array('aft-map-hook')
+);
+$check(
+	'the form can assign an explicit None',
+	ONLINESCHED_BADGE_NONE,
+	isset($noned['map']['aft-map-hook']) ? $noned['map']['aft-map-hook'] : ''
+);
+onlinesched_clear_tag_badge_type('aft-map-hook');
+$check(
+	'clearing a mapping clears the mirror',
+	'',
+	(string) get_term_meta($hook_id, 'badge_type', true)
+);
 
 foreach (array_keys($made) as $slug) {
 	$drop_tag($slug);

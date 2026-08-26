@@ -35,7 +35,52 @@ function onlinesched_save_tag_badge_map($map) {
 		$clean[$slug] = $type;
 	}
 	ksort($clean);
+
+	$previous = onlinesched_get_tag_badge_map();
 	update_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, $clean);
+	onlinesched_sync_badge_meta_mirror($previous, $clean);
+}
+
+/**
+ * Brings term meta in line with the map.
+ *
+ * Every write lands here, so a released or reassigned tag cannot keep meta
+ * that would resurrect its old type through the fallback.
+ *
+ * @param array<string,string> $before Map as it was.
+ * @param array<string,string> $after Map as it now is.
+ * @return void
+ */
+function onlinesched_sync_badge_meta_mirror($before, $after) {
+	$slugs = array_unique(array_merge(array_keys($before), array_keys($after)));
+	foreach ($slugs as $slug) {
+		$was = isset($before[$slug]) ? $before[$slug] : null;
+		$now = isset($after[$slug]) ? $after[$slug] : null;
+		if ($was === $now) {
+			continue;
+		}
+		$term = get_term_by('slug', $slug, 'os_tag');
+		if (!$term || is_wp_error($term)) {
+			continue;
+		}
+		if (null === $now || ONLINESCHED_BADGE_NONE === $now) {
+			delete_term_meta($term->term_id, 'badge_type');
+		} else {
+			update_term_meta($term->term_id, 'badge_type', $now);
+		}
+	}
+}
+
+/**
+ * @param string $type Badge type name.
+ * @return bool
+ */
+function onlinesched_badge_type_is_configured($type) {
+	if (ONLINESCHED_BADGE_NONE === $type) {
+		return true;
+	}
+	$types = get_option('onlinesched_badge_types', array());
+	return is_array($types) && in_array($type, $types, true);
 }
 
 /**
@@ -76,19 +121,16 @@ function onlinesched_set_tag_badge_type($slug, $type) {
 		return;
 	}
 
-	$map = onlinesched_get_tag_badge_map();
-	$map[$slug] = sanitize_text_field((string) $type);
-	onlinesched_save_tag_badge_map($map);
-
-	// The mirror keeps the tag screen and anything still reading meta in step.
-	$term = get_term_by('slug', $slug, 'os_tag');
-	if ($term && !is_wp_error($term)) {
-		if (ONLINESCHED_BADGE_NONE === $map[$slug]) {
-			delete_term_meta($term->term_id, 'badge_type');
-		} else {
-			update_term_meta($term->term_id, 'badge_type', $map[$slug]);
-		}
+	$type = sanitize_text_field((string) $type);
+	// A type nobody configured would map a tag to a name the Badge Types page
+	// cannot show, which is how an assignment becomes invisible.
+	if (!onlinesched_badge_type_is_configured($type)) {
+		return;
 	}
+
+	$map = onlinesched_get_tag_badge_map();
+	$map[$slug] = $type;
+	onlinesched_save_tag_badge_map($map);
 }
 
 /**
@@ -120,16 +162,6 @@ function onlinesched_reconcile_tag_badge_map($from, $to) {
 			unset($map[$slug]);
 		} else {
 			$map[$slug] = $to;
-		}
-		// The mirror has to follow, or a released tag resurrects its old type
-		// from stale meta and the map stops being the authority.
-		$term = get_term_by('slug', $slug, 'os_tag');
-		if ($term && !is_wp_error($term)) {
-			if (null === $to) {
-				delete_term_meta($term->term_id, 'badge_type');
-			} else {
-				update_term_meta($term->term_id, 'badge_type', $to);
-			}
 		}
 		$changed++;
 	}

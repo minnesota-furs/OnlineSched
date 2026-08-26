@@ -157,7 +157,10 @@ function onlinesched_badge_types_page() {
 		$posted = isset($_POST['badge_tags']) && is_array($_POST['badge_tags'])
 			? wp_unslash($_POST['badge_tags'])
 			: array();
-		$result = onlinesched_tag_map_from_submission($posted, $badge_types);
+		$offered = isset($_POST['badge_tags_offered']) && is_array($_POST['badge_tags_offered'])
+			? wp_unslash($_POST['badge_tags_offered'])
+			: array();
+		$result = onlinesched_tag_map_from_submission($posted, $badge_types, $offered);
 		if ($result['conflicts']) {
 			$message = 'Not saved: ' . implode(', ', $result['conflicts'])
 				. ' was claimed by more than one badge type. A tag belongs to one type.';
@@ -563,17 +566,16 @@ add_action('created_os_tag', function($term_id) {
     if (!$term || is_wp_error($term)) {
         return;
     }
-    $badge_type = isset($_POST['badge_type']) ? sanitize_text_field($_POST['badge_type']) : '';
-    if ('' !== $badge_type) {
-        onlinesched_set_tag_badge_type($term->slug, $badge_type);
+    if (!isset($_POST['badge_type'])) {
         return;
     }
-    // A recreated tag keeps whatever the map already holds for its slug, which
-    // is how a re-imported spelling heals without anyone retyping it.
-    $map = onlinesched_get_tag_badge_map();
-    if (isset($map[$term->slug])) {
-        onlinesched_set_tag_badge_type($term->slug, $map[$term->slug]);
-    }
+    $badge_type = sanitize_text_field($_POST['badge_type']);
+    // An empty choice on the create form is None, the same as on edit. Left as
+    // no action, a slug the built-in rule knows would quietly get a type back.
+    onlinesched_set_tag_badge_type(
+        $term->slug,
+        '' === $badge_type ? ONLINESCHED_BADGE_NONE : $badge_type
+    );
 }, 10, 1);
 
 // Save badge type on tag EDIT
@@ -707,10 +709,75 @@ function onlinesched_render_tag_association_panel($badge_types) {
 						</td>
 					</tr>
 				<?php endforeach; ?>
+					<tr>
+						<th scope="row" style="width:180px; vertical-align:top;">
+							No badge
+						</th>
+						<td>
+							<?php
+							$none_map = onlinesched_get_tag_badge_map();
+							$none_choices = array_values(array_filter(
+								$rows,
+								static function ($row) use ($none_map) {
+									$explicit_none = isset($none_map[$row['slug']])
+										&& ONLINESCHED_BADGE_NONE === $none_map[$row['slug']];
+									return $explicit_none || '' === $row['type'];
+								}
+							));
+							?>
+							<select name="badge_tags[<?php echo esc_attr(ONLINESCHED_BADGE_NONE); ?>][]" multiple size="8" style="min-width:320px;">
+								<?php foreach ($none_choices as $row) : ?>
+									<?php
+									$is_none = isset($none_map[$row['slug']])
+										&& ONLINESCHED_BADGE_NONE === $none_map[$row['slug']];
+									?>
+									<option value="<?php echo esc_attr($row['slug']); ?>" <?php selected($is_none); ?>>
+										<?php echo esc_html($row['name']); ?>
+										<?php echo $row['missing'] ? ' (missing)' : ''; ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description">
+								Selected tags carry no badge deliberately, and the built-in
+								rule will not put one back.
+							</p>
+						</td>
+					</tr>
 				</tbody>
 			</table>
+			<?php
+			$offered_slugs = array();
+			foreach ($rows as $row) {
+				$offered_slugs[$row['slug']] = true;
+			}
+			foreach (array_keys($offered_slugs) as $offered_slug) :
+				?>
+				<input type="hidden" name="badge_tags_offered[]" value="<?php echo esc_attr($offered_slug); ?>" />
+			<?php endforeach; ?>
 			<p><button type="submit" class="button button-primary">Save tag associations</button></p>
 		</form>
+
+		<?php
+		$stale = array();
+		foreach (onlinesched_get_tag_badge_map() as $slug => $type) {
+			if (ONLINESCHED_BADGE_NONE === $type || in_array($type, $badge_types, true)) {
+				continue;
+			}
+			$stale[$slug] = $type;
+		}
+		?>
+		<?php if ($stale) : ?>
+			<h4>Mapped to a badge type that no longer exists</h4>
+			<p class="description">
+				These keep their mapping rather than vanishing. Recreate the type or
+				move the tag.
+			</p>
+			<ul style="margin-left:1em;">
+				<?php foreach ($stale as $slug => $type) : ?>
+					<li><code><?php echo esc_html($slug); ?></code> &rarr; <?php echo esc_html($type); ?></li>
+				<?php endforeach; ?>
+			</ul>
+		<?php endif; ?>
 
 		<h4>Unassigned tags</h4>
 		<?php if (empty($unassigned)) : ?>
@@ -739,13 +806,14 @@ function onlinesched_render_tag_association_panel($badge_types) {
  *
  * @param array $posted Badge type name to array of tag slugs.
  * @param string[] $badge_types Configured badge type names.
+ * @param string[] $offered Every tag slug the form rendered.
  * @return array{map:array<string,string>, conflicts:string[]}
  */
-function onlinesched_tag_map_from_submission($posted, $badge_types) {
+function onlinesched_tag_map_from_submission($posted, $badge_types, $offered = array()) {
 	$claims = array();
 	foreach ((array) $posted as $type => $slugs) {
 		$type = sanitize_text_field((string) $type);
-		if (!in_array($type, $badge_types, true)) {
+		if (ONLINESCHED_BADGE_NONE !== $type && !in_array($type, $badge_types, true)) {
 			continue;
 		}
 		foreach ((array) $slugs as $slug) {
@@ -770,11 +838,15 @@ function onlinesched_tag_map_from_submission($posted, $badge_types) {
 		$map[$slug] = $types[0];
 	}
 
-	// An explicit None is a decision, not an omission, so it survives a save
-	// that does not mention it.
+	// A tag the form showed and nobody picked is released. A mapping it never
+	// showed is not this form's to throw away.
+	$shown = array();
+	foreach ((array) $offered as $slug) {
+		$shown[sanitize_title((string) $slug)] = true;
+	}
 	foreach (onlinesched_get_tag_badge_map() as $slug => $type) {
-		if (ONLINESCHED_BADGE_NONE === $type && !isset($map[$slug])) {
-			$map[$slug] = ONLINESCHED_BADGE_NONE;
+		if (!isset($map[$slug]) && !isset($shown[$slug])) {
+			$map[$slug] = $type;
 		}
 	}
 
