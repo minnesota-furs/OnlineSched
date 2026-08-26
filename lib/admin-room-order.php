@@ -1,11 +1,7 @@
 <?php
 /**
- * Drag-to-order UI for Room Sort Priority.
- *
- * Presentation only. The setting itself stays in the plugin because both the
- * schedule SQL and the app feed order rooms by it; this file just makes it
- * clickable. Delete the file, its require, and admin-room-order.js to go back
- * to the plain text field.
+ * Drag-to-order UI for Room Sort Priority. Presentation only: the ordering is
+ * shared with the app feed, but this widget is not.
  */
 
 function onlinesched_room_sort_priority_row()
@@ -114,7 +110,9 @@ function onlinesched_room_order_item($slug, $name, $pinned)
                 aria-label="Move <?php echo esc_attr($name); ?> up"<?php echo $pinned ? '' : ' hidden'; ?>>&uarr;</button>
         <button type="button" class="button button-small onlinesched-room-nudge" data-move="down"
                 aria-label="Move <?php echo esc_attr($name); ?> down"<?php echo $pinned ? '' : ' hidden'; ?>>&darr;</button>
-        <button type="button" class="button button-small onlinesched-room-toggle">
+        <button type="button" class="button button-small onlinesched-room-toggle"
+                aria-label="<?php echo esc_attr(($pinned ? 'Remove ' : 'Pin ') . $name); ?>"
+                data-room="<?php echo esc_attr($name); ?>">
             <?php echo $pinned ? 'Remove' : 'Pin'; ?>
         </button>
     </li>

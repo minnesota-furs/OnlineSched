@@ -219,6 +219,30 @@ foreach ($made as $term_id) {
 	wp_delete_term($term_id, 'os_room');
 }
 
+// The enqueue once pointed at a file that was not there: a 404, nothing thrown,
+// and the widget simply never appeared. Render and parse checks both missed it.
+$_GET['page'] = 'onlinesched-settings';
+do_action('admin_enqueue_scripts', 'settings_page_onlinesched-settings');
+unset($_GET['page']);
+
+$registered = wp_scripts()->registered;
+$check(
+	'the room order script is registered on the settings page',
+	true,
+	isset($registered['onlinesched-room-order'])
+);
+
+if (isset($registered['onlinesched-room-order'])) {
+	$src = $registered['onlinesched-room-order']->src;
+	$path = str_replace(content_url(), WP_CONTENT_DIR, $src);
+	$check('its URL resolves to a file that ships', true, file_exists($path));
+	$check(
+		'and that file is the widget, not an empty placeholder',
+		true,
+		false !== strpos((string) file_get_contents($path), 'onlinesched-room-ordered')
+	);
+}
+
 if ($failures > 0) {
 	WP_CLI::error($failures . ' room order check(s) failed.');
 }
