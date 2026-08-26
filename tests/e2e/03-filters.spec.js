@@ -225,7 +225,52 @@ test.describe('03 — Filters', () => {
 
     const selectedText = (await page.locator(`${S.selectTags} option:checked`).textContent())?.trim();
     expect(selectedText?.toLowerCase()).toBe(tagText.toLowerCase());
-    expect(page.url()).toContain(`tag=${routeValue}`);
+    expect(page.url()).toContain(`tags=${routeValue}`);
+  });
+
+  // The state layer holds sets before any checkbox UI exists, so the hash is
+  // the only way to drive a multi-selection.
+  test('two rooms in the hash show events from both', async ({ page }) => {
+    const roomValues = await page.locator(
+      `${S.selectRooms} option:not([value="all"]):not([disabled])`).evaluateAll(
+        (options) => options.slice(0, 2).map((option) => option.value));
+    if (roomValues.length < 2) return test.skip(true, 'Needs two live rooms');
+
+    const counts = [];
+    for (const room of roomValues) {
+      await page.goto(`/schedule/#days=all&rooms=${room}`);
+      await page.waitForSelector(S.schedule, { state: 'visible' });
+      await page.waitForTimeout(400);
+      counts.push(await page.locator(`${S.scheduleItem}:visible`).count());
+    }
+
+    await page.goto(`/schedule/#days=all&rooms=${roomValues.join(',')}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+    const both = await page.locator(`${S.scheduleItem}:visible`).count();
+
+    // OR within a facet: the pair shows at least as much as either alone, and
+    // strictly more than one of them unless the rooms share every event.
+    expect(both).toBeGreaterThanOrEqual(Math.max(...counts));
+    expect(both).toBeGreaterThan(Math.min(...counts));
+  });
+
+  test('a legacy single-value room link still filters', async ({ page }) => {
+    const room = await page.locator(
+      `${S.selectRooms} option:not([value="all"]):not([disabled])`).first().getAttribute('value');
+    if (!room) return test.skip(true, 'Needs a live room');
+
+    await page.goto(`/schedule/#day=all&room=${room}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+
+    // An old bookmark maps to a one-element set and the select still shows it,
+    // even though the plural form is the only one emitted.
+    expect(await page.locator(S.selectRooms).inputValue()).toBe(room);
+    const shown = await page.locator(`${S.scheduleItem}:visible`).count();
+    const total = await page.locator(S.scheduleItem).count();
+    expect(shown).toBeGreaterThan(0);
+    expect(shown).toBeLessThan(total);
   });
 
   test('clickable room/tag links are not present on kiosk', async ({ page }) => {

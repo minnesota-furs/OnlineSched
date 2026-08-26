@@ -29,7 +29,7 @@ test.describe('19 - Popup dismisses when it filters', () => {
     await expect(page.locator(S.selectRooms)).toHaveValue(slug);
 
     const hash = await page.evaluate(() => location.hash);
-    expect(hash).toContain(`room=${slug}`);
+    expect(hash).toContain(`rooms=${slug}`);
     expect(hash).not.toContain('evt=');
   });
 

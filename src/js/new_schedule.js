@@ -21,6 +21,42 @@ let dayAvailability = new Set();
 let tagAvailability = new Set();
 let roomAvailability = new Set();
 
+// What the person has narrowed to. An empty set means no restriction, which
+// is what the single "All" option used to mean.
+const filterState = {
+    rooms: new Set(),
+    tags: new Set(),
+    // `all` and `Current` are modes rather than days, so they never coexist
+    // with a chosen day. Null mode means the day set is in charge.
+    dayMode: 'Current',
+    days: new Set(),
+};
+
+function splitFilterList(value) {
+    return String(value ?? '')
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+}
+
+function joinFilterList(values) {
+    return Array.from(values).join(',');
+}
+
+function setDayMode(mode) {
+    filterState.dayMode = mode;
+    filterState.days.clear();
+}
+
+function setDaySet(days) {
+    filterState.days = new Set(days);
+    filterState.dayMode = filterState.days.size ? null : 'Current';
+}
+
+function dayFilterIsOpen() {
+    return filterState.dayMode === 'all' || filterState.dayMode === 'Current';
+}
+
 function stripTags(value) {
     const holder = document.createElement('div');
     holder.innerHTML = value || '';
@@ -94,6 +130,50 @@ export function new_schedule() {
         } else {
             history.pushState(next, '', url);
         }
+    }
+
+    // Tag options carry an id as their value and the label as their text; the
+    // hash has always spoken label-derived slugs, so the two are mapped here.
+    function tagRouteForValue(value) {
+        const select = $('#schedule-select-tags');
+        if (!select) return null;
+        for (const option of select.options) {
+            if (String(option.value) === String(value)) {
+                return getTagRouteValueFromText(option.textContent);
+            }
+        }
+        return null;
+    }
+
+    function tagValueForRoute(route) {
+        const select = $('#schedule-select-tags');
+        if (!select || !route) return null;
+        const normalized = normalizeRouteKey(route);
+        for (const option of select.options) {
+            if (normalizeRouteKey(option.textContent.trim()) === normalized) {
+                return option.value;
+            }
+        }
+        return null;
+    }
+
+    // Emits the plural form only; the legacy singular keys are still read on
+    // the way in, so old bookmarks and inbound links keep working.
+    function writeFilterHash() {
+        const days = filterState.dayMode === 'Current'
+            ? null
+            : (filterState.dayMode === 'all' ? 'all' : joinFilterList(filterState.days));
+        const tagRoutes = Array.from(filterState.tags)
+            .map(tagRouteForValue)
+            .filter(Boolean);
+        updateHashState({
+            day: null,
+            tag: null,
+            room: null,
+            days,
+            tags: tagRoutes.length ? joinFilterList(tagRoutes) : null,
+            rooms: filterState.rooms.size ? joinFilterList(filterState.rooms) : null,
+        }, true);
     }
 
     function getSelectedTagRouteValue() {
@@ -558,11 +638,24 @@ export function new_schedule() {
     updateResetButtonState();
     resetSelectRooms();
 
+    // The selects stay the kiosk UI and the pre-panel UI, so they write into
+    // the same state the checkbox panels will drive.
+    function syncStateFromSelects() {
+        const dayValue = $('#schedule-select-days')?.value || 'Current';
+        if (dayValue === 'all' || dayValue === 'Current') setDayMode(dayValue);
+        else setDaySet([dayValue]);
+
+        const tagValue = $('#schedule-select-tags')?.value || 'all';
+        filterState.tags = new Set(tagValue === 'all' ? [] : [String(tagValue)]);
+
+        const roomValue = $('#schedule-select-rooms')?.value || 'all';
+        filterState.rooms = new Set(roomValue === 'all' ? [] : [String(roomValue)]);
+    }
+
     $$('#schedule-select-days, #schedule-select-tags, #schedule-select-rooms').forEach((select) => {
         select.addEventListener('change', function () {
-            if (this.id === 'schedule-select-days') updateHashState({ day: this.value === 'Current' ? null : this.value }, true);
-            else if (this.id === 'schedule-select-tags') updateHashState({ tag: this.value === 'all' ? null : getSelectedTagRouteValue() }, true);
-            else if (this.id === 'schedule-select-rooms') updateHashState({ room: this.value === 'all' ? null : this.value }, true);
+            syncStateFromSelects();
+            writeFilterHash();
 
             scheduleSort();
             resetSelectTags();
@@ -602,8 +695,11 @@ export function new_schedule() {
         const icon = this.querySelector('i');
         updateIconClasses(icon, window.favoritesFilterActive);
 
-        if (window.favoritesFilterActive && $('#schedule-select-days')) {
-            $('#schedule-select-days').value = 'all';
+        // Favorites spans the whole convention, so the day narrowing opens up.
+        // Room and tag choices are deliberately left alone.
+        if (window.favoritesFilterActive) {
+            setDayMode('all');
+            applyStateToSelects();
         }
 
         scheduleSort();
@@ -631,13 +727,22 @@ export function new_schedule() {
     }
 
     function resetDropDowns() {
-        if ($('#schedule-select-days')) $('#schedule-select-days').value = 'Current';
-        if ($('#schedule-select-tags')) $('#schedule-select-tags').value = 'all';
-        if ($('#schedule-select-rooms')) $('#schedule-select-rooms').value = 'all';
+        setDayMode('Current');
+        filterState.tags.clear();
+        filterState.rooms.clear();
+        applyStateToSelects();
         if ($('#schedule-search-text')) $('#schedule-search-text').value = '';
     }
 
-    function hasMatchingAttribute(item, prefix, value) {
+    function hasAnyMatchingAttribute(item, prefix, values) {
+    if (!values || values.size === 0) return true;
+    for (const value of values) {
+        if (hasMatchingAttribute(item, prefix, value)) return true;
+    }
+    return false;
+}
+
+function hasMatchingAttribute(item, prefix, value) {
         if (!item || !item.attributes) return false;
 
         for (const attr of item.attributes) {
@@ -654,23 +759,19 @@ export function new_schedule() {
             return;
         }
 
-        let selectedDay = $('#schedule-select-days')?.value || 'Current';
-        let selectedTag = $('#schedule-select-tags')?.value || 'all';
-        let selectedRoom = $('#schedule-select-rooms')?.value || 'all';
+        const selectedTags = filterState.tags;
+        const selectedRooms = filterState.rooms;
         const searchText = ($('#schedule-search-text')?.value || '').toLowerCase();
-
-        if (selectedTag !== 'all') selectedTag = String(selectedTag);
-        if (selectedRoom !== 'all') selectedRoom = String(selectedRoom);
 
         const favoritesFilterActive = window.favoritesFilterActive;
         const essentialsFilterActive = (window.eventschedule_showEvents === false);
         const essentialsTags = window.essentialsTags || [];
 
-        if (selectedDay === 'all' || selectedDay === 'Current') {
+        if (dayFilterIsOpen()) {
             $$('.schedule-day').forEach(showElement);
         } else {
             $$('.schedule-day').forEach((dayEl) => {
-                if (dayEl.getAttribute('data-schedule-day') === selectedDay) {
+                if (filterState.days.has(dayEl.getAttribute('data-schedule-day'))) {
                     showElement(dayEl);
                 } else {
                     hideElement(dayEl);
@@ -678,7 +779,9 @@ export function new_schedule() {
             });
         }
 
-        const currentDateUTC = selectedDay === 'Current' ? currentDateTimeTimestampUTC() : null;
+        const currentDateUTC = filterState.dayMode === 'Current'
+            ? currentDateTimeTimestampUTC()
+            : null;
 
         dayAvailability = new Set();
         tagAvailability = new Set();
@@ -695,7 +798,7 @@ export function new_schedule() {
             let roomOk = true;
 
             const day = item.closest('.schedule-day');
-            if (selectedDay !== 'Current' && !isElementVisible(day)) {
+            if (filterState.dayMode !== 'Current' && !isElementVisible(day)) {
                 show = false;
                 dayOk = false;
             }
@@ -714,17 +817,17 @@ export function new_schedule() {
                 }
             }
 
-            if (selectedTag !== 'all' && !hasMatchingAttribute(item, 'data-schedule-tag', selectedTag)) {
+            if (!hasAnyMatchingAttribute(item, 'data-schedule-tag', selectedTags)) {
                 show = false;
                 tagOk = false;
             }
 
-            if (selectedRoom !== 'all' && !hasMatchingAttribute(item, 'data-schedule-room-', selectedRoom)) {
+            if (!hasAnyMatchingAttribute(item, 'data-schedule-room-', selectedRooms)) {
                 show = false;
                 roomOk = false;
             }
 
-            if (selectedDay === 'Current') {
+            if (filterState.dayMode === 'Current') {
                 const itemDate = Number(item.dataset.endTime);
                 if (!itemDate || itemDate <= currentDateUTC) {
                     show = false;
@@ -776,9 +879,9 @@ export function new_schedule() {
 
         const isDefault = (
             searchText.trim() === '' &&
-            selectedTag === 'all' &&
-            selectedRoom === 'all' &&
-            selectedDay === 'Current' &&
+            selectedTags.size === 0 &&
+            selectedRooms.size === 0 &&
+            filterState.dayMode === 'Current' &&
             !favoritesFilterActive
         );
 
@@ -912,21 +1015,67 @@ export function new_schedule() {
         select.value = selected;
     }
 
+    // Both hash forms are read forever: `rooms=a,b` is what we emit, `room=a`
+    // is what every existing bookmark and inbound link still carries.
+    function readFilterHash(state) {
+        const roomList = state.rooms !== undefined
+            ? splitFilterList(state.rooms)
+            : (state.room !== undefined ? splitFilterList(state.room) : null);
+        if (roomList) {
+            filterState.rooms = new Set(roomList.filter((value) => value !== 'all'));
+        }
+
+        const tagSource = state.tags !== undefined ? state.tags : state.tag;
+        if (tagSource !== undefined) {
+            const values = splitFilterList(tagSource)
+                .filter((route) => route !== 'all')
+                .map(tagValueForRoute)
+                .filter((value) => value !== null && value !== undefined);
+            filterState.tags = new Set(values);
+        }
+
+        const daySource = state.days !== undefined ? state.days : state.day;
+        if (daySource !== undefined) {
+            const dayList = splitFilterList(daySource);
+            if (dayList.length === 1 && (dayList[0] === 'all' || dayList[0] === 'Current')) {
+                setDayMode(dayList[0]);
+            } else if (dayList.length) {
+                setDaySet(dayList);
+            } else {
+                setDayMode('Current');
+            }
+        }
+    }
+
+    function applyStateToSelects() {
+        const daysSelect = $('#schedule-select-days');
+        if (daysSelect) {
+            daysSelect.value = filterState.dayMode
+                ? filterState.dayMode
+                : (Array.from(filterState.days)[0] || 'Current');
+        }
+        const tagsSelect = $('#schedule-select-tags');
+        if (tagsSelect) tagsSelect.value = Array.from(filterState.tags)[0] || 'all';
+        const roomsSelect = $('#schedule-select-rooms');
+        if (roomsSelect) roomsSelect.value = Array.from(filterState.rooms)[0] || 'all';
+    }
+
     function handleHashRouting() {
         const state = getHashState();
         showElement($('#schedule'));
 
-        // Restored tag/room dropdowns are populated from currently-visible items.
+        // Restored tag/room menus are populated from currently-visible items.
         // On a fresh load those are today-only events, so expand to all days first.
-        if ((state.tag && state.tag !== 'all') || (state.room && state.room !== 'all')) {
-            const daysSelect = $('#schedule-select-days');
-            if (daysSelect) daysSelect.value = 'all';
+        const wantsTag = (state.tag && state.tag !== 'all') || (state.tags && state.tags !== 'all');
+        const wantsRoom = (state.room && state.room !== 'all') || (state.rooms && state.rooms !== 'all');
+        if (wantsTag || wantsRoom) {
+            setDayMode('all');
+            applyStateToSelects();
             scheduleSort();
         }
 
-        if (state.day !== undefined && $('#schedule-select-days')) $('#schedule-select-days').value = state.day || 'Current';
-        if (state.tag !== undefined && $('#schedule-select-tags')) selectTagFromRouteValue(state.tag);
-        if (state.room !== undefined && $('#schedule-select-rooms')) $('#schedule-select-rooms').value = state.room || 'all';
+        readFilterHash(state);
+        applyStateToSelects();
         if (state.q !== undefined && $('#schedule-search-text')) $('#schedule-search-text').value = state.q || '';
 
         scheduleSort();
@@ -952,7 +1101,8 @@ export function new_schedule() {
             const eventEl = getEventItemById(state.evt);
             if (eventEl) {
                 if (!isElementVisible(eventEl)) {
-                    if ($('#schedule-select-days')) $('#schedule-select-days').value = 'all';
+                    setDayMode('all');
+                    applyStateToSelects();
                     scheduleSort();
                 }
 
