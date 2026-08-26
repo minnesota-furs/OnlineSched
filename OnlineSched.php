@@ -43,6 +43,7 @@ require_once('lib/datetime.php');
 require_once('lib/feed-revisions.php');
 require_once('lib/app-feed.php');
 require_once('lib/schedule-maintenance.php');
+require_once('lib/room-priority-migration.php');
 require_once('lib/csv-import.php');
 include_once("lib/theme.php");
 include_once("lib/help.php");

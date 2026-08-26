@@ -459,33 +459,8 @@ function onlinesched_get_room_sort_priority()
     }
 
     $rooms = array_values(array_filter(array_map('sanitize_text_field', $rooms)));
-    $rooms = array_map('onlinesched_room_priority_token_to_slug', $rooms);
-    $rooms = array_values(array_filter($rooms));
 
     return apply_filters('os_room_sort_priority', $rooms);
-}
-
-/**
- * A stored entry is a slug. Entries saved before the slug switch are room
- * names, so an unmatched token gets one name lookup before it is kept as-is.
- *
- * @param string $token Stored priority entry.
- * @return string
- */
-function onlinesched_room_priority_token_to_slug($token)
-{
-    if ('' === $token || !function_exists('get_term_by')) {
-        return $token;
-    }
-
-    // get_term_by('slug') runs sanitize_title on the input, so a room name can
-    // match here. Either way the term's own slug is the answer, never the token.
-    $term = get_term_by('slug', $token, 'os_room');
-    if (!$term) {
-        $term = get_term_by('name', $token, 'os_room');
-    }
-
-    return ($term && !is_wp_error($term)) ? $term->slug : $token;
 }
 
 function onlinesched_get_page_content($key, $fallback_slug = '')

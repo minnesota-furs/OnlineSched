@@ -72,11 +72,59 @@ $check(
 	$slugs(onlinesched_app_feed_sort_rooms($rooms, array('gone-room', 'lakeshore', 'alpha-room')))
 );
 
-// The stored setting resolves to slugs, including entries saved as names
-// before the switch. This part needs real terms.
+// The one-time converter. It rewrites the stored setting, so nothing has to
+// resolve names at read time.
+$terms = array(
+	array('slug' => 'main-stage', 'name' => 'Main Stage'),
+	array('slug' => 'greenway-a', 'name' => 'Greenway (A)'),
+	array('slug' => 'lakeshore', 'name' => 'Lakeshore'),
+	// This room's NAME is another room's SLUG.
+	array('slug' => 'decoy-room', 'name' => 'lakeshore'),
+);
+
+$converted = onlinesched_convert_room_priority_tokens(
+	array('main-stage', 'greenway-a'),
+	$terms
+);
+$check('exact slugs convert to themselves', array('main-stage', 'greenway-a'), $converted['slugs']);
+$check('nothing is rejected when every token is a slug', array(), $converted['rejected']);
+
+$converted = onlinesched_convert_room_priority_tokens(
+	array('Main Stage', 'Greenway (A)'),
+	$terms
+);
+$check(
+	'legacy names convert to slugs, including a name that does not sanitize to its slug',
+	array('main-stage', 'greenway-a'),
+	$converted['slugs']
+);
+
+$converted = onlinesched_convert_room_priority_tokens(array('No Such Room'), $terms);
+$check('an unresolved token is rejected, not guessed', array(), $converted['slugs']);
+$check('the rejection names the token', 'No Such Room', $converted['rejected'][0]['token']);
+
+$converted = onlinesched_convert_room_priority_tokens(array('lakeshore'), $terms);
+$check(
+	'a token that is one room\'s slug and another room\'s name is rejected',
+	array(),
+	$converted['slugs']
+);
+
+$converted = onlinesched_convert_room_priority_tokens(
+	array('main-stage', 'Main Stage', 'main-stage'),
+	$terms
+);
+$check('duplicates collapse to one entry', array('main-stage'), $converted['slugs']);
+
+$converted = onlinesched_convert_room_priority_tokens(
+	array(' main-stage ', '', 'greenway-a'),
+	$terms
+);
+$check('padding and empty entries are handled', array('main-stage', 'greenway-a'), $converted['slugs']);
+
+// End to end against real terms: convert once, then rename, and the order
+// holds because what is stored is a slug.
 $made = array();
-// The second room's slug is deliberately unrelated to its name: a name that
-// sanitizes to its own slug resolves by accident and proves nothing.
 $fixtures = array(
 	'aft-order-one' => 'AFT Order One',
 	'aft-two-alt'   => 'AFT Order Two',
@@ -94,42 +142,41 @@ foreach ($fixtures as $slug => $name) {
 }
 
 $original_setting = get_option('onlinesched_room_sort_priority', '');
-
-update_option('onlinesched_room_sort_priority', 'aft-two-alt, aft-order-one');
-$check(
-	'slug entries are read straight through',
-	array('aft-two-alt', 'aft-order-one'),
-	onlinesched_get_room_sort_priority()
-);
+$original_flag = get_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION, '');
 
 update_option('onlinesched_room_sort_priority', 'AFT Order Two, AFT Order One');
+$report = onlinesched_run_room_priority_slug_conversion(true);
+$check('the converter reports what it did', 'converted', $report['status']);
 $check(
-	'entries saved as names before the switch resolve to slugs',
-	array('aft-two-alt', 'aft-order-one'),
-	onlinesched_get_room_sort_priority()
+	'the option now holds slugs, not names',
+	'aft-two-alt, aft-order-one',
+	get_option('onlinesched_room_sort_priority')
 );
 
-// Rename both rooms. The name-shaped setting is now pointing at names that no
-// longer exist, which is the breakage the slug switch removes.
 wp_update_term($made['aft-two-alt'], 'os_room', array('name' => 'AFT Order Two Renamed'));
-wp_update_term($made['aft-order-one'], 'os_room', array('name' => 'AFT Order One Renamed'));
 $check(
-	'a stale name entry stops resolving, which is the failure slugs avoid',
-	array('AFT Order Two', 'aft-order-one'),
-	onlinesched_get_room_sort_priority()
-);
-
-update_option('onlinesched_room_sort_priority', 'aft-two-alt, aft-order-one');
-$check(
-	'the same rename leaves slug entries untouched',
+	'a rename after conversion leaves the order alone',
 	array('aft-two-alt', 'aft-order-one'),
 	onlinesched_get_room_sort_priority()
 );
+
+$check(
+	'running it again changes nothing',
+	'aft-two-alt, aft-order-one',
+	(string) (onlinesched_run_room_priority_slug_conversion(true) ? get_option('onlinesched_room_sort_priority') : '')
+);
+
+$check('a converted site is not converted twice', 'already-converted', onlinesched_run_room_priority_slug_conversion()['status']);
 
 if ('' === $original_setting) {
 	delete_option('onlinesched_room_sort_priority');
 } else {
 	update_option('onlinesched_room_sort_priority', $original_setting);
+}
+if ('' === $original_flag) {
+	delete_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION);
+} else {
+	update_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION, $original_flag);
 }
 foreach ($made as $term_id) {
 	wp_delete_term($term_id, 'os_room');
