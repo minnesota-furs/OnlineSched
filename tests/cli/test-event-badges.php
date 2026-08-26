@@ -23,27 +23,30 @@ $check = static function ($label, $expected, $actual) use (&$failures) {
 };
 
 $made_tags = array();
-$make_tag = static function ($slug, $name, $badge_type = null) use (&$made_tags) {
-	$existing = get_term_by('slug', $slug, 'os_tag');
-	if ($existing) {
-		wp_delete_term($existing->term_id, 'os_tag');
+
+// Fixture terms are prefixed and created fresh. An earlier version deleted
+// whatever already held the slug it wanted, taking real terms with it.
+$make_tag = static function ($slug, $name, $badge_type) use (&$made_tags) {
+	if (0 !== strpos($slug, 'aft-badge-')) {
+		WP_CLI::error('Fixture slugs must be prefixed aft-badge-, refusing ' . $slug);
+	}
+	if (get_term_by('slug', $slug, 'os_tag')) {
+		WP_CLI::error('Fixture slug ' . $slug . ' already exists; refusing to touch it.');
 	}
 	$term = wp_insert_term($name, 'os_tag', array('slug' => $slug));
 	if (is_wp_error($term)) {
 		WP_CLI::error('Could not create the fixture tag ' . $slug . ': ' . $term->get_error_message());
 	}
-	if (null !== $badge_type) {
-		update_term_meta($term['term_id'], 'badge_type', $badge_type);
-	}
-	$made_tags[] = $term['term_id'];
+	update_term_meta($term['term_id'], 'badge_type', $badge_type);
+	$made_tags[$slug] = $term['term_id'];
 	return $term['term_id'];
 };
 
-// A tag whose badge type comes from term meta, and one that relies on the
-// built-in slug defaults.
-$make_tag('aft-dance-tag', 'AFT Dance', 'Dance');
-$make_tag('guest-of-honor', 'Guest of Honor');
-$make_tag('essentials', 'Essentials');
+// Badge types are set explicitly rather than leaning on the slug defaults, so
+// the fixture never needs a real slug such as guest-of-honor or essentials.
+$make_tag('aft-badge-dance', 'AFT Badge Dance', 'Dance');
+$make_tag('aft-badge-goh', 'AFT Badge GoH', 'Guest Of Honor');
+$make_tag('aft-badge-essentials', 'AFT Badge Essentials', 'Essentials');
 
 $post_id = wp_insert_post(array(
 	'post_type'   => 'os_event',
@@ -54,16 +57,20 @@ if (is_wp_error($post_id) || !$post_id) {
 	WP_CLI::error('Could not create the fixture event.');
 }
 
-wp_set_object_terms($post_id, array('essentials'), 'os_tag');
+wp_set_object_terms($post_id, array('aft-badge-essentials'), 'os_tag');
 $check('an essentials tag publishes its badge type', array('essentials'), onlinesched_app_feed_event_badges($post_id));
 
-wp_set_object_terms($post_id, array('guest-of-honor'), 'os_tag');
+wp_set_object_terms($post_id, array('aft-badge-goh'), 'os_tag');
 $check('a guest of honor tag publishes its badge type', array('guest-of-honor'), onlinesched_app_feed_event_badges($post_id));
 
-wp_set_object_terms($post_id, array('aft-dance-tag'), 'os_tag');
-$check('a dance badge type set in term meta is published', array('dance'), onlinesched_app_feed_event_badges($post_id));
+wp_set_object_terms($post_id, array('aft-badge-dance'), 'os_tag');
+$check('a badge type set in term meta is published', array('dance'), onlinesched_app_feed_event_badges($post_id));
 
-wp_set_object_terms($post_id, array('essentials', 'guest-of-honor', 'aft-dance-tag'), 'os_tag');
+wp_set_object_terms(
+	$post_id,
+	array('aft-badge-essentials', 'aft-badge-goh', 'aft-badge-dance'),
+	'os_tag'
+);
 $check(
 	'an event carrying all three publishes all three, so the client can rank them',
 	array('dance', 'essentials', 'guest-of-honor'),
@@ -74,8 +81,11 @@ wp_set_object_terms($post_id, array(), 'os_tag');
 $check('an event with no tags publishes no badges', array(), onlinesched_app_feed_event_badges($post_id));
 
 wp_delete_post($post_id, true);
-foreach ($made_tags as $term_id) {
-	wp_delete_term($term_id, 'os_tag');
+foreach ($made_tags as $slug => $term_id) {
+	$term = get_term_by('slug', $slug, 'os_tag');
+	if ($term && (int) $term->term_id === (int) $term_id) {
+		wp_delete_term($term_id, 'os_tag');
+	}
 }
 
 if ($failures > 0) {
