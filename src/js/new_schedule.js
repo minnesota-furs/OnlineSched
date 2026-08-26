@@ -216,18 +216,7 @@ export function new_schedule() {
         }, true);
     }
 
-    function getSelectedTagRouteValue() {
-        const select = $('#schedule-select-tags');
-        const text = select?.options[select.selectedIndex]?.textContent?.trim();
-        return tagSlugForLabel(text) || getTagRouteValueFromText(text);
-    }
 
-    function selectTagFromRouteValue(tagSlug) {
-        const select = $('#schedule-select-tags');
-        if (!select || !tagSlug) return;
-        const value = tagValueForRoute(tagSlug);
-        if (value !== null) select.value = value;
-    }
 
     function normalizeEventId(eventId) {
         return String(eventId || '').replace(/^#/, '').replace(/^onlineevt-/, '').replace(/\D/g, '');
@@ -671,8 +660,8 @@ export function new_schedule() {
     updateResetButtonState();
     resetSelectRooms();
 
-    // A menu speaks for its own facet only. Rebuilding all three would push the
-    // other sets through a control that holds one value, losing the rest.
+    // A menu speaks for its own facet. Rebuilding all three pushes the other
+    // sets through a control that holds one value, and the rest are lost.
     function syncStateFromSelect(select) {
         if (!select) return;
         const value = select.value;
@@ -774,14 +763,14 @@ export function new_schedule() {
     }
 
     function hasAnyMatchingAttribute(item, prefix, values) {
-    if (!values || values.size === 0) return true;
-    for (const value of values) {
-        if (hasMatchingAttribute(item, prefix, value)) return true;
+        if (!values || values.size === 0) return true;
+        for (const value of values) {
+            if (hasMatchingAttribute(item, prefix, value)) return true;
+        }
+        return false;
     }
-    return false;
-}
 
-function hasMatchingAttribute(item, prefix, value) {
+    function hasMatchingAttribute(item, prefix, value) {
         if (!item || !item.attributes) return false;
 
         for (const attr of item.attributes) {
@@ -1067,13 +1056,12 @@ function hasMatchingAttribute(item, prefix, value) {
     // is what every existing bookmark and inbound link still carries.
 
     function readFilterHash(state) {
-        // A facet the route does not name returns to its default. A bare legacy
-        // room=/tag= widens to All Days; the theme documents that for Con Maps.
+        // A bare legacy room=/tag= widens to All Days, which the theme documents
+        // for Con Maps. The plural form omits days while Current, so it must not.
         const widensToAllDays = ((state.room && state.room !== 'all')
             || (state.tag && state.tag !== 'all'))
             && state.days === undefined && state.day === undefined;
 
-        // Plural routes omit days while Current, so they must not widen.
         filterState.rooms.clear();
         filterState.tags.clear();
         setDayMode(widensToAllDays ? 'all' : 'Current');
@@ -1263,7 +1251,8 @@ function hasMatchingAttribute(item, prefix, value) {
         } else if (state.tab === 'map') {
             $('#map-tab')?.click();
             scrollTopMenu();
-        } else if (state.room) {
+        } else {
+            // No tab key means the schedule, whichever tab the last route left up.
             $('[data-os-tab="programming"]')?.click();
         }
 

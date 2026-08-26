@@ -499,7 +499,7 @@ test.describe('03 — Filters', () => {
 
   // The menus hold one value each, so a chip must not push the other sets
   // through them.
-  test('a room chip keeps a second facets full set', async ({ page }) => {
+  test('a room chip leaves the tag set intact', async ({ page }) => {
     const tags = await page.evaluate(() => Array.from(
       document.querySelectorAll('#schedule-select-tags option'))
       .filter((option) => option.value !== 'all' && !option.disabled)
@@ -539,7 +539,7 @@ test.describe('03 — Filters', () => {
     await expect(page.locator(
       '[data-filter-panel="schedule-select-tags"] .os-filter-panel-button')).toHaveText('Tags: 2 selected');
 
-    // A legacy single-facet route names only the room, so the tags go home.
+    // The route names only the room, so the tag set returns to its default.
     await page.evaluate((slug) => { window.location.hash = `#room=${slug}`; }, room);
     await page.waitForTimeout(800);
 
@@ -587,6 +587,40 @@ test.describe('03 — Filters', () => {
     await page.waitForTimeout(500);
     await expect(page.locator(
       '[data-filter-panel="schedule-select-days"] .os-filter-panel-button')).toHaveText('Now and Future');
+  });
+
+  // A route with no tab key is the schedule, whichever tab was last shown.
+  test('Back from Hours restores Programming', async ({ page }) => {
+    await page.goto('/schedule/');
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+
+    await page.locator('#hours-tab').click();
+    await page.waitForTimeout(600);
+    await page.goBack();
+    await page.waitForTimeout(800);
+
+    await expect(page.locator('#schedule')).toBeVisible();
+    await expect(page.locator('#hours')).toBeHidden();
+  });
+
+  test('Back to a plural filter route restores Programming', async ({ page }) => {
+    const room = await page.locator(
+      `${S.selectRooms} option:not([value="all"]):not([disabled])`).first().getAttribute('value');
+    if (!room) return test.skip(true, 'Needs a live room');
+
+    await page.goto(`/schedule/#rooms=${room}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+
+    await page.locator('#hours-tab').click();
+    await page.waitForTimeout(600);
+    await page.goBack();
+    await page.waitForTimeout(800);
+
+    expect(page.url()).toContain(`rooms=${room}`);
+    await expect(page.locator('#schedule')).toBeVisible();
+    await expect(page.locator('#hours')).toBeHidden();
   });
 
   test('clickable room/tag links are not present on kiosk', async ({ page }) => {
