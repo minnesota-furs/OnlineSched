@@ -712,8 +712,24 @@ function onlinesched_render_tag_association_panel($badge_types) {
 							<?php echo esc_html($type); ?>
 						</th>
 						<td>
-							<select name="badge_tags[<?php echo esc_attr($type); ?>][]" multiple size="6" style="min-width:320px;">
-								<?php foreach ($rows as $row) : ?>
+							<?php
+							// This type's tags plus the unclaimed ones. The whole
+							// catalogue made every box look like it held every tag.
+							$choices = array_values(array_filter(
+								$rows,
+								static function ($row) use ($type) {
+									return $row['type'] === $type || '' === $row['type'];
+								}
+							));
+							$mine = count(array_filter(
+								$choices,
+								static function ($row) use ($type) {
+									return $row['type'] === $type;
+								}
+							));
+							?>
+							<select name="badge_tags[<?php echo esc_attr($type); ?>][]" multiple size="8" style="min-width:320px;">
+								<?php foreach ($choices as $row) : ?>
 									<option value="<?php echo esc_attr($row['slug']); ?>"
 										<?php selected($row['type'], $type); ?>>
 										<?php echo esc_html($row['name']); ?>
@@ -721,6 +737,10 @@ function onlinesched_render_tag_association_panel($badge_types) {
 									</option>
 								<?php endforeach; ?>
 							</select>
+							<p class="description">
+								<?php echo (int) $mine; ?> assigned. The rest of this list is
+								unassigned tags you can add.
+							</p>
 						</td>
 					</tr>
 				<?php endforeach; ?>
