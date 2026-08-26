@@ -549,6 +549,46 @@ test.describe('03 — Filters', () => {
       '[data-filter-panel="schedule-select-rooms"] .os-filter-panel-button')).not.toHaveText('All Rooms');
   });
 
+  // Con Maps links are documented in the theme as widening the day selector.
+  test('a legacy room link still widens to All Days', async ({ page }) => {
+    const room = await page.locator(
+      `${S.selectRooms} option:not([value="all"]):not([disabled])`).first().getAttribute('value');
+    if (!room) return test.skip(true, 'Needs a live room');
+
+    await page.goto(`/schedule/#room=${room}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(500);
+
+    await expect(page.locator(
+      '[data-filter-panel="schedule-select-days"] .os-filter-panel-button')).toHaveText('All Days');
+    await expect(page.locator(
+      '[data-filter-panel="schedule-select-rooms"] .os-filter-panel-button')).not.toHaveText('All Rooms');
+  });
+
+  // The emitted plural form omits days while Current, so it must not widen or
+  // a chip URL would change the day mode on reload.
+  test('a chip picked in Now and Future reloads in Now and Future', async ({ page }) => {
+    const chip = page.locator(`${S.scheduleItem}:visible .schedule-room .os-term-item[data-os-term-slug]`).first();
+    if (await chip.count() === 0) return test.skip(true, 'Needs a room chip');
+
+    await page.goto('/schedule/');
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+    expect(await page.locator(S.selectDays).inputValue()).toBe('Current');
+
+    await page.locator(`${S.scheduleItem}:visible .schedule-room .os-term-item[data-os-term-slug]`)
+      .first().click();
+    await page.waitForTimeout(600);
+    expect(page.url()).toMatch(/rooms=/);
+    expect(page.url()).not.toMatch(/days=/);
+
+    await page.reload();
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(500);
+    await expect(page.locator(
+      '[data-filter-panel="schedule-select-days"] .os-filter-panel-button')).toHaveText('Now and Future');
+  });
+
   test('clickable room/tag links are not present on kiosk', async ({ page }) => {
     await page.goto('/kiosk-schedule/');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });

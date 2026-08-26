@@ -1067,11 +1067,16 @@ function hasMatchingAttribute(item, prefix, value) {
     // is what every existing bookmark and inbound link still carries.
 
     function readFilterHash(state) {
-        // The hash is the whole filter state, so a facet the route does not name
-        // returns to its default instead of surviving from the previous one.
+        // A facet the route does not name returns to its default. A bare legacy
+        // room=/tag= widens to All Days; the theme documents that for Con Maps.
+        const widensToAllDays = ((state.room && state.room !== 'all')
+            || (state.tag && state.tag !== 'all'))
+            && state.days === undefined && state.day === undefined;
+
+        // Plural routes omit days while Current, so they must not widen.
         filterState.rooms.clear();
         filterState.tags.clear();
-        setDayMode('Current');
+        setDayMode(widensToAllDays ? 'all' : 'Current');
 
         const roomList = state.rooms !== undefined
             ? splitFilterList(state.rooms)
