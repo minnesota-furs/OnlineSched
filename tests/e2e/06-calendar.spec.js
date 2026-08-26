@@ -211,6 +211,53 @@ test.describe('06 — Calendar', () => {
       expect(count).toBe(1);
     });
 
+    test('two rooms disable the current feed and say why', async ({ page }) => {
+      const rooms = await page.locator(
+        `${S.selectRooms} option:not([value="all"]):not([disabled])`).evaluateAll(
+          (options) => options.slice(0, 2).map((option) => option.value));
+      if (rooms.length < 2) return test.skip(true, 'Needs two live rooms');
+
+      await page.goto(`/schedule/#days=all&rooms=${rooms.join(',')}`);
+      await page.waitForSelector(S.schedule, { state: 'visible' });
+      await page.waitForTimeout(400);
+
+      await expect(page.locator('#schedule-add-to-calendar-message')).toHaveText(
+        'Calendar only takes one room and one tag. Remove multiple selections or add to your favorites instead');
+      const buttons = page.locator('.schedule-add-to-calendar-buttons button');
+      const disabled = await buttons.evaluateAll((all) => all.map((button) => button.disabled));
+      expect(disabled.length).toBeGreaterThan(0);
+      expect(disabled.every(Boolean)).toBe(true);
+      expect(await page.evaluate(
+        () => document.querySelector('#schedule-calendar-scope option[value="current"]').disabled)).toBe(true);
+
+      // A feed built from the selects would carry only the first room.
+      expect(await page.evaluate(() => window.open_calendar_apple())).toBe(false);
+    });
+
+    test('dropping back to one room restores the feed', async ({ page }) => {
+      const rooms = await page.locator(
+        `${S.selectRooms} option:not([value="all"]):not([disabled])`).evaluateAll(
+          (options) => options.slice(0, 2).map((option) => option.value));
+      if (rooms.length < 2) return test.skip(true, 'Needs two live rooms');
+
+      await page.goto(`/schedule/#days=all&rooms=${rooms.join(',')}`);
+      await page.waitForSelector(S.schedule, { state: 'visible' });
+      await page.waitForTimeout(400);
+
+      const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
+      await panel.locator('button').click();
+      await panel.locator(`.os-filter-panel-row input[value="${rooms[1]}"]`).uncheck();
+      await page.waitForTimeout(400);
+
+      await expect(page.locator('#schedule-add-to-calendar-message')).not.toHaveText(
+        /Calendar only takes one room/);
+      const disabled = await page.locator('.schedule-add-to-calendar-buttons button')
+        .evaluateAll((all) => all.map((button) => button.disabled));
+      expect(disabled.some(Boolean)).toBe(false);
+      expect(await page.evaluate(
+        () => document.querySelector('#schedule-calendar-scope option[value="current"]').disabled)).toBe(false);
+    });
+
     test('favorite snapshots distinguish the current view from all favorites', async ({ page }) => {
       const items = page.locator(S.scheduleItem).filter({ has: page.locator(S.favoriteBtn) });
       const first = items.nth(0);

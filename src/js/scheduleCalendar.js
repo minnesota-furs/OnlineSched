@@ -354,6 +354,10 @@ export function scheduleCalendar() {
         return document.getElementById('schedule-calendar-scope')?.value || 'current';
     }
 
+    function calendarFacetIsMultiValued() {
+        return window.scheduleCalendarFacetIsMultiValued?.() === true;
+    }
+
     function refreshCalendarFeedScope() {
         const select = document.getElementById('schedule-calendar-scope');
         const scopeControl = select?.closest('.schedule-calendar-scope');
@@ -391,11 +395,17 @@ export function scheduleCalendar() {
             currentViewOption?.remove();
         }
 
+        const multiValued = calendarFacetIsMultiValued();
+        const currentOption = select?.querySelector('option[value="current"]');
+        if (currentOption) {
+            currentOption.disabled = multiValued;
+        }
+
         const scope = getCalendarScope();
 
         if (scope === 'current') {
             buttons.forEach((button) => {
-                button.disabled = false;
+                button.disabled = multiValued;
             });
             if (help) {
                 help.textContent = 'Choose a favorites option to snapshot your favorites.';
@@ -579,6 +589,13 @@ export function scheduleCalendar() {
             }
 
             return 'webcal://' + window.location.host + '/wp-content/plugins/OnlineSched/icalby.php?events=' + result.ids.join(',');
+        }
+
+        // The selects carry only the first value of a set, so a multi-valued
+        // filter would otherwise build a feed narrower than the screen shows.
+        if (calendarFacetIsMultiValued()) {
+            refreshCalendarFeedScope();
+            return null;
         }
 
         let url = '';

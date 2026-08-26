@@ -273,6 +273,66 @@ test.describe('03 — Filters', () => {
     expect(shown).toBeLessThan(total);
   });
 
+  test('ticking two rooms in the panel filters to both and names the count', async ({ page }) => {
+    const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
+    await panel.locator('button').click();
+    const boxes = panel.locator('.os-filter-panel-row input:not([value="all"]):not([disabled])');
+    if (await boxes.count() < 2) return test.skip(true, 'Needs two live rooms');
+
+    await boxes.nth(0).check();
+    await page.waitForTimeout(300);
+    const one = await page.locator(`${S.scheduleItem}:visible`).count();
+    await boxes.nth(1).check();
+    await page.waitForTimeout(300);
+    const two = await page.locator(`${S.scheduleItem}:visible`).count();
+
+    expect(two).toBeGreaterThan(one);
+    await expect(panel.locator('button')).toHaveText('Rooms: 2 selected');
+    expect(page.url()).toMatch(/rooms=[^&]+(,|%2C)/);
+  });
+
+  // All and Now and Future are modes, so they never coexist with a picked day.
+  test('a day mode and a picked day replace each other', async ({ page }) => {
+    const panel = page.locator('[data-filter-panel="schedule-select-days"]');
+    await panel.locator('button').click();
+    const allRow = panel.locator('.os-filter-panel-row input[value="all"]');
+    const dayRows = panel.locator(
+      '.os-filter-panel-row input:not([value="all"]):not([value="Current"]):not([disabled])');
+    if (await dayRows.count() < 1) return test.skip(true, 'Needs a live day');
+
+    await allRow.check();
+    await page.waitForTimeout(300);
+    await dayRows.nth(0).check();
+    await page.waitForTimeout(300);
+    expect(await allRow.isChecked()).toBe(false);
+    expect(await dayRows.nth(0).isChecked()).toBe(true);
+
+    await allRow.check();
+    await page.waitForTimeout(300);
+    expect(await dayRows.nth(0).isChecked()).toBe(false);
+    expect(await panel.locator('.os-filter-panel-row input:checked').count()).toBe(1);
+  });
+
+  test('a room chip replaces the set instead of joining it', async ({ page }) => {
+    const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
+    await panel.locator('button').click();
+    const boxes = panel.locator('.os-filter-panel-row input:not([value="all"]):not([disabled])');
+    if (await boxes.count() < 2) return test.skip(true, 'Needs two live rooms');
+    await boxes.nth(0).check();
+    await boxes.nth(1).check();
+    await page.waitForTimeout(300);
+    await page.keyboard.press('Escape');
+
+    const chip = page.locator(`${S.scheduleItem}:visible ${S.filterLink} .os-term-item`).first();
+    if (await chip.count() === 0) return test.skip(true, 'Needs a filter chip');
+    const chipText = (await chip.textContent()).trim();
+    await chip.click();
+    await page.waitForTimeout(400);
+
+    await expect(panel.locator('button')).toHaveText(chipText);
+    expect(await panel.locator('.os-filter-panel-row input:checked').count()).toBe(1);
+  });
+
   test('clickable room/tag links are not present on kiosk', async ({ page }) => {
     await page.goto('/kiosk-schedule/');
     await page.waitForSelector(S.schedule, { state: 'visible', timeout: 15000 });

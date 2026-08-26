@@ -3,6 +3,7 @@ import { rewriteGoogleCalendarUrlForAndroid } from './scheduleCalendar.js';
 import { isElementVisible } from './elementVisibility.js';
 import { openModal } from './osModal.js';
 import { updateIconClasses } from './osIcons.js';
+import { createFilterPanels, refreshFilterPanels } from './scheduleFilterPanel.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -157,12 +158,31 @@ export function new_schedule() {
         return null;
     }
 
+    // A day value is a full label such as "Tuesday, September 15", so its own
+    // comma would split the list it travels in.
+    function dayRouteForValue(value) {
+        if (value === 'all' || value === 'Current') return value;
+        return String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+
+    function dayValueForRoute(route) {
+        if (route === 'all' || route === 'Current') return route;
+        const select = $('#schedule-select-days');
+        const normalized = normalizeRouteKey(route);
+        for (const option of select?.options || []) {
+            if (normalizeRouteKey(option.value) === normalized) return option.value;
+        }
+        return route;
+    }
+
     // Emits the plural form only; the legacy singular keys are still read on
     // the way in, so old bookmarks and inbound links keep working.
     function writeFilterHash() {
         const days = filterState.dayMode === 'Current'
             ? null
-            : (filterState.dayMode === 'all' ? 'all' : joinFilterList(filterState.days));
+            : (filterState.dayMode === 'all'
+                ? 'all'
+                : joinFilterList(Array.from(filterState.days).map(dayRouteForValue)));
         const tagRoutes = Array.from(filterState.tags)
             .map(tagRouteForValue)
             .filter(Boolean);
@@ -652,6 +672,8 @@ export function new_schedule() {
         filterState.rooms = new Set(roomValue === 'all' ? [] : [String(roomValue)]);
     }
 
+    buildFilterPanels();
+
     $$('#schedule-select-days, #schedule-select-tags, #schedule-select-rooms').forEach((select) => {
         select.addEventListener('change', function () {
             syncStateFromSelects();
@@ -876,6 +898,7 @@ function hasMatchingAttribute(item, prefix, value) {
         resetSelectDays();
         resetSelectTags();
         resetSelectRooms();
+        refreshFilterPanels(filterState);
 
         const isDefault = (
             searchText.trim() === '' &&
@@ -1015,19 +1038,27 @@ function hasMatchingAttribute(item, prefix, value) {
         select.value = selected;
     }
 
+    // A day label such as "Tuesday, September 15" holds a comma, and a legacy
+    // singular key always carried one value, so it is never split.
+    function legacyValue(value) {
+        const trimmed = String(value ?? '').trim();
+        return trimmed ? [trimmed] : [];
+    }
+
     // Both hash forms are read forever: `rooms=a,b` is what we emit, `room=a`
     // is what every existing bookmark and inbound link still carries.
+
     function readFilterHash(state) {
         const roomList = state.rooms !== undefined
             ? splitFilterList(state.rooms)
-            : (state.room !== undefined ? splitFilterList(state.room) : null);
+            : (state.room !== undefined ? legacyValue(state.room) : null);
         if (roomList) {
             filterState.rooms = new Set(roomList.filter((value) => value !== 'all'));
         }
 
         const tagSource = state.tags !== undefined ? state.tags : state.tag;
         if (tagSource !== undefined) {
-            const values = splitFilterList(tagSource)
+            const values = (state.tags !== undefined ? splitFilterList(tagSource) : legacyValue(tagSource))
                 .filter((route) => route !== 'all')
                 .map(tagValueForRoute)
                 .filter((value) => value !== null && value !== undefined);
@@ -1036,15 +1067,122 @@ function hasMatchingAttribute(item, prefix, value) {
 
         const daySource = state.days !== undefined ? state.days : state.day;
         if (daySource !== undefined) {
-            const dayList = splitFilterList(daySource);
+            const dayList = state.days !== undefined
+                ? splitFilterList(daySource)
+                : legacyValue(daySource);
             if (dayList.length === 1 && (dayList[0] === 'all' || dayList[0] === 'Current')) {
                 setDayMode(dayList[0]);
             } else if (dayList.length) {
-                setDaySet(dayList);
+                setDaySet(dayList.map(dayValueForRoute));
             } else {
                 setDayMode('Current');
             }
         }
+    }
+
+    function summarizeSet(values, allLabel, noun, labelFor) {
+        if (values.size === 0) return allLabel;
+        if (values.size === 1) return labelFor(Array.from(values)[0]);
+        return `${noun}: ${values.size} selected`;
+    }
+
+    const DAY_ABBREVIATIONS = {
+        Sunday: 'Sun.', Monday: 'Mon.', Tuesday: 'Tues.', Wednesday: 'Wed.',
+        Thursday: 'Thurs.', Friday: 'Fri.', Saturday: 'Sat.',
+        January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr',
+        August: 'Aug', September: 'Sept', October: 'Oct',
+        November: 'Nov', December: 'Dec',
+    };
+
+    // The button has one line to work with. Rows in the list keep the full day
+    // name, so only the summary is shortened.
+    function shortDayLabel(value) {
+        return String(value).replace(/[A-Z][a-z]+/g, (word) => DAY_ABBREVIATIONS[word] || word);
+    }
+
+    function optionLabel(selector, value) {
+        const select = $(selector);
+        if (!select) return String(value);
+        for (const option of select.options) {
+            if (String(option.value) === String(value)) return option.textContent.trim();
+        }
+        return String(value);
+    }
+
+    function buildFilterPanels() {
+        // Kiosk keeps the single-select menus: hallway users compose one-tap
+        // queries and the layout must not grow a popover.
+        if ($('#schedule')?.classList.contains('kiosk-schedule')) return;
+
+        createFilterPanels([
+            {
+                selector: '#schedule-select-rooms',
+                modeValues: ['all'],
+                isChecked: (value) => value === 'all'
+                    ? filterState.rooms.size === 0
+                    : filterState.rooms.has(value),
+                isNarrowed: () => filterState.rooms.size > 0,
+                summarize: () => summarizeSet(
+                    filterState.rooms, optionLabel('#schedule-select-rooms', 'all'), 'Rooms',
+                    (value) => optionLabel('#schedule-select-rooms', value)),
+                onChange: (value, checked) => {
+                    if (value === 'all') filterState.rooms.clear();
+                    else if (checked) filterState.rooms.add(value);
+                    else filterState.rooms.delete(value);
+                    commitPanelChange();
+                },
+            },
+            {
+                selector: '#schedule-select-tags',
+                modeValues: ['all'],
+                isChecked: (value) => value === 'all'
+                    ? filterState.tags.size === 0
+                    : filterState.tags.has(value),
+                isNarrowed: () => filterState.tags.size > 0,
+                summarize: () => summarizeSet(
+                    filterState.tags, optionLabel('#schedule-select-tags', 'all'), 'Tags',
+                    (value) => optionLabel('#schedule-select-tags', value)),
+                onChange: (value, checked) => {
+                    if (value === 'all') filterState.tags.clear();
+                    else if (checked) filterState.tags.add(value);
+                    else filterState.tags.delete(value);
+                    commitPanelChange();
+                },
+            },
+            {
+                selector: '#schedule-select-days',
+                modeValues: ['all', 'Current'],
+                isChecked: (value) => (value === 'all' || value === 'Current')
+                    ? filterState.dayMode === value
+                    : filterState.days.has(value),
+                isNarrowed: () => filterState.dayMode !== 'Current',
+                summarize: () => {
+                    if (filterState.dayMode) return optionLabel('#schedule-select-days', filterState.dayMode);
+                    return summarizeSet(
+                        filterState.days, optionLabel('#schedule-select-days', 'Current'), 'Days',
+                        shortDayLabel);
+                },
+                onChange: (value, checked) => {
+                    // all and Now-and-Future are modes, so they replace any
+                    // chosen days rather than joining them.
+                    if (value === 'all' || value === 'Current') setDayMode(value);
+                    else {
+                        const days = new Set(filterState.days);
+                        if (checked) days.add(value);
+                        else days.delete(value);
+                        setDaySet(days);
+                    }
+                    commitPanelChange();
+                },
+            },
+        ]);
+    }
+
+    function commitPanelChange() {
+        applyStateToSelects();
+        writeFilterHash();
+        scheduleSort();
+        updateResetButtonState();
     }
 
     function applyStateToSelects() {
@@ -1202,9 +1340,20 @@ function hasMatchingAttribute(item, prefix, value) {
     window.addEventListener('popstate', handleHashRouting);
     window.addEventListener('hashchange', handleHashRouting);
 
+    // icalby.php takes one room and one tag, so a wider selection has no feed.
+    function calendarFacetIsMultiValued() {
+        return filterState.rooms.size > 1 || filterState.tags.size > 1;
+    }
+    window.scheduleCalendarFacetIsMultiValued = calendarFacetIsMultiValued;
+
     function messageAtBottomForCalendar() {
         const message = $('#schedule-add-to-calendar-message');
         if (!message) return;
+
+        if (calendarFacetIsMultiValued()) {
+            message.innerHTML = 'Calendar only takes one room and one tag. Remove multiple selections or add to your favorites instead';
+            return;
+        }
 
         if (
             (($('#schedule-search-text')?.value || '').trim() === '') &&

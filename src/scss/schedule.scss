@@ -1094,3 +1094,137 @@ dl.schedule-meta:after {
 .os-hours__open .fa-circle {
   font-size: 8px;
 }
+
+// Checkbox filter panels stand in for the single-select menus. The button
+// borrows .os-form-control so a closed panel reads as the control it replaced.
+.os-filter-panel-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+}
+
+.os-filter-panel {
+  position: relative;
+}
+
+.os-filter-panel-button {
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+
+  // A wrapped label grows the control out of line with the other filters.
+  white-space: nowrap;
+  overflow: hidden;
+
+  .os-filter-panel-button-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &::after {
+    content: '';
+    flex: 0 0 auto;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid currentColor;
+  }
+
+  &.is-active {
+    border-color: var(--os-green);
+    color: var(--os-green);
+    font-weight: 600;
+  }
+}
+
+.os-filter-panel-list {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--os-green);
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  padding: 4px 0;
+}
+
+.os-filter-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  font-weight: 400;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--os-green-soft);
+  }
+
+  input:disabled {
+    cursor: default;
+  }
+
+  // Greyed rows stay listed and keep their label, same as the menu they mirror.
+  &:has(input:disabled) {
+    color: #8a8a8a;
+    cursor: default;
+  }
+}
+
+.os-filter-panel-mode {
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.os-filter-panel-scrim {
+  display: none;
+}
+
+// A popover anchored to the button runs under the sticky header on a phone,
+// so the list becomes a sheet the thumb can reach.
+@media (max-width: 767px) {
+  .os-filter-panel-list {
+    position: fixed;
+    z-index: 1001;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    max-height: 70vh;
+    padding: 4px 0 12px;
+    border-width: 1px 0 0;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .os-filter-panel-row {
+    padding: 12px 16px;
+  }
+
+  .os-filter-panel-scrim {
+    display: block;
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  .os-filter-panel-scrim[hidden] {
+    display: none;
+  }
+}
