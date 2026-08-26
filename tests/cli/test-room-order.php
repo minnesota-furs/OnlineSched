@@ -144,6 +144,21 @@ foreach ($fixtures as $slug => $name) {
 $original_setting = get_option('onlinesched_room_sort_priority', '');
 $original_flag = get_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION, '');
 
+// WP_CLI::error exits, so the restore runs on shutdown rather than only on a
+// clean finish. An aborted run must not leave the site's priority rewritten.
+register_shutdown_function(static function () use ($original_setting, $original_flag) {
+	if ('' === $original_setting) {
+		delete_option('onlinesched_room_sort_priority');
+	} else {
+		update_option('onlinesched_room_sort_priority', $original_setting);
+	}
+	if ('' === $original_flag) {
+		delete_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION);
+	} else {
+		update_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION, $original_flag);
+	}
+});
+
 update_option('onlinesched_room_sort_priority', 'AFT Order Two, AFT Order One');
 $report = onlinesched_run_room_priority_slug_conversion(true);
 $check('the converter reports what it did', 'converted', $report['status']);
@@ -167,6 +182,28 @@ $check(
 );
 
 $check('a converted site is not converted twice', 'already-converted', onlinesched_run_room_priority_slug_conversion()['status']);
+
+// A token nobody can resolve must stop the conversion, not vanish from it.
+update_option('onlinesched_room_sort_priority', 'aft-order-one, No Such Room Here');
+delete_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION);
+$blocked = onlinesched_run_room_priority_slug_conversion(true);
+$check('an unresolved token blocks the conversion', 'blocked', $blocked['status']);
+$check(
+	'the setting is left exactly as it was',
+	'aft-order-one, No Such Room Here',
+	get_option('onlinesched_room_sort_priority')
+);
+$check(
+	'the converted flag is not set, so it can be retried',
+	false,
+	(bool) get_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION)
+);
+$check('and the report names the token', 'No Such Room Here', $blocked['rejected'][0]['token']);
+
+update_option('onlinesched_room_sort_priority', 'aft-order-one');
+$fixed = onlinesched_run_room_priority_slug_conversion(true);
+$check('removing it lets the conversion through', 'converted', $fixed['status']);
+$check('and the flag is set once it succeeds', true, (bool) get_option(ONLINESCHED_ROOM_PRIORITY_CONVERTED_OPTION));
 
 if ('' === $original_setting) {
 	delete_option('onlinesched_room_sort_priority');
