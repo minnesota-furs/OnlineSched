@@ -51,11 +51,22 @@ $drop_tag = static function ($slug) use (&$made) {
 $original_map = get_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, array());
 update_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, array());
 
+// The built-in rule is exercised against a fixture slug, so no real tag is
+// written to. aft-map-ruled stands in for a slug the defaults know.
+add_filter(
+	'os_default_badge_type_for_tag_slug',
+	static function ($type, $slug) {
+		return 'aft-map-ruled' === $slug ? 'Essentials' : $type;
+	},
+	10,
+	2
+);
+
 // A built-in slug resolves through the defaults with nothing mapped.
 $check(
 	'the built-in rule answers when the map is silent',
 	'Essentials',
-	onlinesched_badge_type_for_tag('essentials')
+	onlinesched_badge_type_for_tag('aft-map-ruled')
 );
 
 $goh_id = $make_tag('aft-map-goh', 'AFT Map GoH');
@@ -74,24 +85,24 @@ $check(
 );
 
 // Explicit assignment beats the built-in rule for a slug the rule knows.
-onlinesched_set_tag_badge_type('essentials', 'Guest Of Honor');
+onlinesched_set_tag_badge_type('aft-map-ruled', 'Guest Of Honor');
 $check(
 	'an explicit assignment beats the built-in rule',
 	'Guest Of Honor',
-	onlinesched_badge_type_for_tag('essentials')
+	onlinesched_badge_type_for_tag('aft-map-ruled')
 );
 
-onlinesched_set_tag_badge_type('essentials', ONLINESCHED_BADGE_NONE);
+onlinesched_set_tag_badge_type('aft-map-ruled', ONLINESCHED_BADGE_NONE);
 $check(
 	'None beats both the rule and any meta',
 	'',
-	onlinesched_badge_type_for_tag('essentials')
+	onlinesched_badge_type_for_tag('aft-map-ruled')
 );
-onlinesched_clear_tag_badge_type('essentials');
+onlinesched_clear_tag_badge_type('aft-map-ruled');
 $check(
 	'clearing the mapping hands the slug back to the rule',
 	'Essentials',
-	onlinesched_badge_type_for_tag('essentials')
+	onlinesched_badge_type_for_tag('aft-map-ruled')
 );
 
 // Term meta is a fallback, never an override.
@@ -160,29 +171,31 @@ $check(
 	onlinesched_badge_type_for_tag('aft-map-goh', $goh_id)
 );
 
-// Filling in defaults runs the real handler body, not a copy of its rule.
-onlinesched_set_tag_badge_type('essentials', ONLINESCHED_BADGE_NONE);
+// Filling in defaults runs the real handler body, not a copy of its rule. The
+// fixture tag carries the injected default, so no real tag is touched.
+$ruled_id = $make_tag('aft-map-ruled', 'AFT Map Ruled');
+onlinesched_set_tag_badge_type('aft-map-ruled', ONLINESCHED_BADGE_NONE);
 onlinesched_fill_default_badge_types();
 $check(
 	'an explicit None survives a defaults pass',
 	'',
-	onlinesched_badge_type_for_tag('essentials')
+	onlinesched_badge_type_for_tag('aft-map-ruled', $ruled_id)
 );
 
-onlinesched_clear_tag_badge_type('essentials');
+onlinesched_clear_tag_badge_type('aft-map-ruled');
 onlinesched_fill_default_badge_types();
 $check(
 	'an unmapped slug with a built-in default gets mapped',
 	'Essentials',
-	onlinesched_badge_type_for_tag('essentials')
+	onlinesched_badge_type_for_tag('aft-map-ruled', $ruled_id)
 );
 $map_after = onlinesched_get_tag_badge_map();
 $check(
 	'and it is written to the map, not only to meta',
 	'Essentials',
-	isset($map_after['essentials']) ? $map_after['essentials'] : ''
+	isset($map_after['aft-map-ruled']) ? $map_after['aft-map-ruled'] : ''
 );
-onlinesched_clear_tag_badge_type('essentials');
+onlinesched_clear_tag_badge_type('aft-map-ruled');
 
 // The association form's save path, exercised as the page runs it. The map is
 // emptied first so each result is only what this submission produced.
@@ -319,6 +332,26 @@ $check(
 	'',
 	(string) get_term_meta($hook_id, 'badge_type', true)
 );
+
+// An explicit None must not read as an unclassified tag.
+onlinesched_set_tag_badge_type('aft-map-hook', ONLINESCHED_BADGE_NONE);
+$row = null;
+foreach (onlinesched_tag_badge_rows() as $candidate) {
+	if ('aft-map-hook' === $candidate['slug']) {
+		$row = $candidate;
+	}
+}
+$check('a deliberate None is flagged as such', true, !empty($row['none']));
+$check('and still resolves to no type', '', $row['type']);
+
+onlinesched_clear_tag_badge_type('aft-map-hook');
+$row = null;
+foreach (onlinesched_tag_badge_rows() as $candidate) {
+	if ('aft-map-hook' === $candidate['slug']) {
+		$row = $candidate;
+	}
+}
+$check('an unmapped tag is not flagged as a deliberate None', false, !empty($row['none']));
 
 foreach (array_keys($made) as $slug) {
 	$drop_tag($slug);

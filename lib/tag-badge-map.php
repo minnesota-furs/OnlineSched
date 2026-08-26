@@ -174,7 +174,7 @@ function onlinesched_reconcile_tag_badge_map($from, $to) {
 /**
  * Every os_tag with the type it resolves to, for the admin association screen.
  *
- * @return array<int,array{slug:string,name:string,type:string,missing:bool,explicit:bool}>
+ * @return array<int,array{slug:string,name:string,type:string,missing:bool,explicit:bool,none:bool}>
  */
 function onlinesched_tag_badge_rows() {
 	$map = onlinesched_get_tag_badge_map();
@@ -193,6 +193,10 @@ function onlinesched_tag_badge_rows() {
 			'type'     => onlinesched_badge_type_for_tag($term->slug, $term->term_id),
 			'missing'  => false,
 			'explicit' => isset($map[$term->slug]),
+			// A deliberate None and a tag nobody has classified both resolve to
+			// no type. They are not the same thing and must not read alike.
+			'none'     => isset($map[$term->slug])
+				&& ONLINESCHED_BADGE_NONE === $map[$term->slug],
 		);
 	}
 
@@ -208,6 +212,7 @@ function onlinesched_tag_badge_rows() {
 			'type'     => ONLINESCHED_BADGE_NONE === $type ? '' : $type,
 			'missing'  => true,
 			'explicit' => true,
+			'none'     => ONLINESCHED_BADGE_NONE === $type,
 		);
 	}
 

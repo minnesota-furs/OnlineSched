@@ -651,7 +651,12 @@ function onlinesched_render_tag_association_panel($badge_types) {
 	$rows = onlinesched_tag_badge_rows();
 	$by_type = array();
 	$unassigned = array();
+	$no_badge = array();
 	foreach ($rows as $row) {
+		if (!empty($row['none'])) {
+			$no_badge[] = $row;
+			continue;
+		}
 		if ('' === $row['type']) {
 			$unassigned[] = $row;
 			continue;
@@ -683,6 +688,9 @@ function onlinesched_render_tag_association_panel($badge_types) {
 							$choices = array_values(array_filter(
 								$rows,
 								static function ($row) use ($type) {
+									if (!empty($row['none'])) {
+										return false;
+									}
 									return $row['type'] === $type || '' === $row['type'];
 								}
 							));
@@ -715,23 +723,16 @@ function onlinesched_render_tag_association_panel($badge_types) {
 						</th>
 						<td>
 							<?php
-							$none_map = onlinesched_get_tag_badge_map();
 							$none_choices = array_values(array_filter(
 								$rows,
-								static function ($row) use ($none_map) {
-									$explicit_none = isset($none_map[$row['slug']])
-										&& ONLINESCHED_BADGE_NONE === $none_map[$row['slug']];
-									return $explicit_none || '' === $row['type'];
+								static function ($row) {
+									return !empty($row['none']) || '' === $row['type'];
 								}
 							));
 							?>
 							<select name="badge_tags[<?php echo esc_attr(ONLINESCHED_BADGE_NONE); ?>][]" multiple size="8" style="min-width:320px;">
 								<?php foreach ($none_choices as $row) : ?>
-									<?php
-									$is_none = isset($none_map[$row['slug']])
-										&& ONLINESCHED_BADGE_NONE === $none_map[$row['slug']];
-									?>
-									<option value="<?php echo esc_attr($row['slug']); ?>" <?php selected($is_none); ?>>
+									<option value="<?php echo esc_attr($row['slug']); ?>" <?php selected(!empty($row['none'])); ?>>
 										<?php echo esc_html($row['name']); ?>
 										<?php echo $row['missing'] ? ' (missing)' : ''; ?>
 									</option>
@@ -775,6 +776,19 @@ function onlinesched_render_tag_association_panel($badge_types) {
 			<ul style="margin-left:1em;">
 				<?php foreach ($stale as $slug => $type) : ?>
 					<li><code><?php echo esc_html($slug); ?></code> &rarr; <?php echo esc_html($type); ?></li>
+				<?php endforeach; ?>
+			</ul>
+		<?php endif; ?>
+
+		<?php if ($no_badge) : ?>
+			<h4>Deliberately no badge</h4>
+			<ul style="margin-left:1em;">
+				<?php foreach ($no_badge as $row) : ?>
+					<li>
+						<?php echo esc_html($row['name']); ?>
+						<code><?php echo esc_html($row['slug']); ?></code>
+						<?php echo $row['missing'] ? '<em>(tag missing)</em>' : ''; ?>
+					</li>
 				<?php endforeach; ?>
 			</ul>
 		<?php endif; ?>

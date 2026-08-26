@@ -567,7 +567,9 @@ function onlinesched_default_badge_type_for_tag_slug($slug) {
 	);
 
 	$slug = sanitize_title($slug);
-	return isset($defaults[$slug]) ? $defaults[$slug] : '';
+	$type = isset($defaults[$slug]) ? $defaults[$slug] : '';
+
+	return apply_filters('os_default_badge_type_for_tag_slug', $type, $slug);
 }
 
 /**
