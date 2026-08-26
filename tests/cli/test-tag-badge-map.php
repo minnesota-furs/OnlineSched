@@ -184,6 +184,44 @@ $check(
 );
 onlinesched_clear_tag_badge_type('essentials');
 
+// The association form's save path, exercised as the page runs it.
+$types = array('Dance', 'Essentials');
+
+$result = onlinesched_tag_map_from_submission(
+	array('Dance' => array('aft-map-goh'), 'Essentials' => array('aft-map-meta')),
+	$types
+);
+$check('a straight submission maps each tag to its type', array(
+	'aft-map-goh' => 'Dance',
+	'aft-map-meta' => 'Essentials',
+), $result['map']);
+$check('and reports no conflict', array(), $result['conflicts']);
+
+$result = onlinesched_tag_map_from_submission(
+	array('Dance' => array('aft-map-goh'), 'Essentials' => array('aft-map-goh')),
+	$types
+);
+$check('two types claiming one tag is a conflict', array('aft-map-goh'), $result['conflicts']);
+$check('and nothing about that tag is stored', false, isset($result['map']['aft-map-goh']));
+
+$result = onlinesched_tag_map_from_submission(
+	array('Not A Type' => array('aft-map-goh')),
+	$types
+);
+$check('a badge type that does not exist is ignored', array(), $result['map']);
+
+onlinesched_set_tag_badge_type('aft-map-meta', ONLINESCHED_BADGE_NONE);
+$result = onlinesched_tag_map_from_submission(array('Dance' => array('aft-map-goh')), $types);
+$check(
+	'an explicit None survives a save that never mentions it',
+	ONLINESCHED_BADGE_NONE,
+	isset($result['map']['aft-map-meta']) ? $result['map']['aft-map-meta'] : ''
+);
+onlinesched_clear_tag_badge_type('aft-map-meta');
+
+$result = onlinesched_tag_map_from_submission(array('Dance' => array()), $types);
+$check('a type emptied on the form releases its tags', array(), $result['map']);
+
 foreach (array_keys($made) as $slug) {
 	$drop_tag($slug);
 }

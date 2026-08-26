@@ -154,52 +154,15 @@ function onlinesched_badge_types_page() {
 		}
 	}
 	if ($action === 'save_tag_map') {
-		$assigned = array();
 		$posted = isset($_POST['badge_tags']) && is_array($_POST['badge_tags'])
-			? $_POST['badge_tags']
+			? wp_unslash($_POST['badge_tags'])
 			: array();
-		$claims = array();
-		foreach ($posted as $type => $slugs) {
-			$type = sanitize_text_field($type);
-			if (!in_array($type, $badge_types, true)) {
-				continue;
-			}
-			foreach ((array) $slugs as $slug) {
-				$slug = sanitize_title($slug);
-				if ('' === $slug) {
-					continue;
-				}
-				// A tag belongs to at most one type, so a second claim is a
-				// conflict to report rather than a duplicate to store.
-				if (isset($claims[$slug])) {
-					$claims[$slug][] = $type;
-					continue;
-				}
-				$claims[$slug] = array($type);
-			}
-		}
-
-		$conflicts = array();
-		foreach ($claims as $slug => $types) {
-			if (count($types) > 1) {
-				$conflicts[] = $slug;
-				continue;
-			}
-			$assigned[$slug] = $types[0];
-		}
-
-		if ($conflicts) {
-			$message = 'Not saved: ' . implode(', ', $conflicts)
+		$result = onlinesched_tag_map_from_submission($posted, $badge_types);
+		if ($result['conflicts']) {
+			$message = 'Not saved: ' . implode(', ', $result['conflicts'])
 				. ' was claimed by more than one badge type. A tag belongs to one type.';
 		} else {
-			$existing = onlinesched_get_tag_badge_map();
-			foreach ($existing as $slug => $type) {
-				// Keep an explicit None; anything else not re-claimed is released.
-				if (ONLINESCHED_BADGE_NONE === $type && !isset($assigned[$slug])) {
-					$assigned[$slug] = ONLINESCHED_BADGE_NONE;
-				}
-			}
-			onlinesched_save_tag_badge_map($assigned);
+			onlinesched_save_tag_badge_map($result['map']);
 			$message = 'Tag associations saved.';
 		}
 	}
@@ -769,4 +732,52 @@ function onlinesched_render_tag_association_panel($badge_types) {
 		<?php endif; ?>
 	</div>
 	<?php
+}
+
+/**
+ * Turns a posted association form into the map it should become.
+ *
+ * @param array $posted Badge type name to array of tag slugs.
+ * @param string[] $badge_types Configured badge type names.
+ * @return array{map:array<string,string>, conflicts:string[]}
+ */
+function onlinesched_tag_map_from_submission($posted, $badge_types) {
+	$claims = array();
+	foreach ((array) $posted as $type => $slugs) {
+		$type = sanitize_text_field((string) $type);
+		if (!in_array($type, $badge_types, true)) {
+			continue;
+		}
+		foreach ((array) $slugs as $slug) {
+			$slug = sanitize_title((string) $slug);
+			if ('' === $slug) {
+				continue;
+			}
+			$claims[$slug][] = $type;
+		}
+	}
+
+	$map = array();
+	$conflicts = array();
+	foreach ($claims as $slug => $types) {
+		$types = array_values(array_unique($types));
+		// A tag belongs to one type, so a second claim is a conflict to report
+		// rather than a duplicate to store or a winner to pick silently.
+		if (count($types) > 1) {
+			$conflicts[] = $slug;
+			continue;
+		}
+		$map[$slug] = $types[0];
+	}
+
+	// An explicit None is a decision, not an omission, so it survives a save
+	// that does not mention it.
+	foreach (onlinesched_get_tag_badge_map() as $slug => $type) {
+		if (ONLINESCHED_BADGE_NONE === $type && !isset($map[$slug])) {
+			$map[$slug] = ONLINESCHED_BADGE_NONE;
+		}
+	}
+
+	sort($conflicts);
+	return array('map' => $map, 'conflicts' => $conflicts);
 }
