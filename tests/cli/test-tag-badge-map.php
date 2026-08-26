@@ -160,6 +160,30 @@ $check(
 	onlinesched_badge_type_for_tag('aft-map-goh', $goh_id)
 );
 
+// Filling in defaults runs the real handler body, not a copy of its rule.
+onlinesched_set_tag_badge_type('essentials', ONLINESCHED_BADGE_NONE);
+onlinesched_fill_default_badge_types();
+$check(
+	'an explicit None survives a defaults pass',
+	'',
+	onlinesched_badge_type_for_tag('essentials')
+);
+
+onlinesched_clear_tag_badge_type('essentials');
+onlinesched_fill_default_badge_types();
+$check(
+	'an unmapped slug with a built-in default gets mapped',
+	'Essentials',
+	onlinesched_badge_type_for_tag('essentials')
+);
+$map_after = onlinesched_get_tag_badge_map();
+$check(
+	'and it is written to the map, not only to meta',
+	'Essentials',
+	isset($map_after['essentials']) ? $map_after['essentials'] : ''
+);
+onlinesched_clear_tag_badge_type('essentials');
+
 foreach (array_keys($made) as $slug) {
 	$drop_tag($slug);
 }

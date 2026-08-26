@@ -637,20 +637,40 @@ function onlinesched_assign_default_badge_types_ajax() {
     if (!current_user_can('manage_os_tag')) {
         wp_send_json_error('Permission denied');
     }
+    wp_send_json_success([ 'updated' => onlinesched_fill_default_badge_types() ]);
+}
+
+/**
+ * Maps every unmapped tag whose slug has a built-in default.
+ *
+ * @return int Number of tags mapped.
+ */
+function onlinesched_fill_default_badge_types() {
     $tags = get_terms([
         'taxonomy' => 'os_tag',
         'hide_empty' => false,
     ]);
+    if (is_wp_error($tags)) {
+        return 0;
+    }
+
+    $map = onlinesched_get_tag_badge_map();
     $updated = 0;
     foreach ($tags as $tag) {
-        $default_badge_type = onlinesched_default_badge_type_for_tag_slug($tag->slug);
-        $current_badge_type = (string) get_term_meta($tag->term_id, 'badge_type', true);
-        if ('' === $current_badge_type && '' !== $default_badge_type) {
-            update_term_meta($tag->term_id, 'badge_type', $default_badge_type);
-            $updated++;
+        // A slug the map already answers for was decided by staff, and that
+        // includes an explicit None. Filling defaults must not overrule it.
+        if (isset($map[$tag->slug])) {
+            continue;
         }
+        $default_badge_type = onlinesched_default_badge_type_for_tag_slug($tag->slug);
+        if ('' === $default_badge_type) {
+            continue;
+        }
+        onlinesched_set_tag_badge_type($tag->slug, $default_badge_type);
+        $updated++;
     }
-    wp_send_json_success([ 'updated' => $updated ]);
+
+    return $updated;
 }
 add_action('wp_ajax_onlinesched_assign_default_badge_types', 'onlinesched_assign_default_badge_types_ajax');
 
