@@ -1368,6 +1368,8 @@ function hasMatchingAttribute(item, prefix, value) {
         return {
             rooms: Array.from(filterState.rooms),
             tags: Array.from(filterState.tags).map(tagSlugForValue).filter(Boolean),
+            // Now and Future emits no day filter on purpose: trimming the feed
+            // would erase earlier days from a calendar someone subscribed late.
             days: filterState.dayMode ? [] : Array.from(filterState.days).map(dayRouteForValue),
         };
     }
@@ -1384,6 +1386,8 @@ function hasMatchingAttribute(item, prefix, value) {
             message.innerHTML = narrowed
                 ? 'Your calendar gets the room, tag and day filters. Search text is not part of a calendar feed.'
                 : 'Your calendar gets the full schedule. Search text is not part of a calendar feed.';
+        } else if (narrowed && filterState.dayMode === 'Current') {
+            message.innerHTML = 'Add this filtered list to your calendar. The feed also carries earlier events for your selection.';
         } else if (narrowed) {
             message.innerHTML = 'Add this filtered list to your calendar!';
         } else {

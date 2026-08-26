@@ -276,6 +276,44 @@ test.describe('06 — Calendar', () => {
       expect((body.match(/^BEGIN:VEVENT\r?$/gm) || []).length).toBe(shown);
     });
 
+    test('Now and Future keeps earlier events and the blurb names them', async ({ page }) => {
+      const room = await page.locator(
+        `${S.selectRooms} option:not([value="all"]):not([disabled])`).first().getAttribute('value');
+      if (!room) return test.skip(true, 'Needs a live room');
+
+      // A room arriving by hash expands to All Days, so the room is picked from
+      // the default view the way a person reaches this state.
+      await page.goto('/schedule/');
+      await page.waitForSelector(S.schedule, { state: 'visible' });
+      await page.waitForTimeout(400);
+      const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
+      await panel.locator('.os-filter-panel-button').click();
+      await panel.locator(`.os-filter-panel-row input[value="${room}"]`).check();
+      await page.waitForTimeout(400);
+      await panel.locator('.os-filter-panel-close').click();
+      expect(await page.locator(S.selectDays).inputValue()).toBe('Current');
+
+      const shown = await page.locator(`${S.scheduleItem}:visible`).count();
+      const url = await page.evaluate(() => {
+        let captured = null;
+        const open = window.open;
+        window.open = (target) => { captured = target; return null; };
+        window.open_calendar_apple();
+        window.open = open;
+        return captured;
+      });
+
+      const feed = await page.request.get(url.replace(/^webcal:/, 'https:'));
+      const body = await expectIcsResponse(feed, { minEvents: 1 });
+      const carried = (body.match(/^BEGIN:VEVENT\r?$/gm) || []).length;
+
+      // The feed deliberately keeps days the view has already passed, so the
+      // blurb has to say so rather than let the extra events be a surprise.
+      expect(carried).toBeGreaterThanOrEqual(shown);
+      await expect(page.locator('#schedule-add-to-calendar-message'))
+        .toContainText('also carries earlier events');
+    });
+
     test('search is excluded from the feed and the blurb says so', async ({ page }) => {
       await page.fill(S.searchInput, 'Coyote');
       await page.waitForTimeout(400);
