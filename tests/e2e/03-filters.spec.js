@@ -218,14 +218,15 @@ test.describe('03 — Filters', () => {
     )?.trim();
     if (!tagText) return test.skip(true, 'Second tag text missing');
 
-    const routeValue = await secondTag.getAttribute('data-os-tag-route') ||
-      tagText.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // The taxonomy slug is the emitted identity, whatever the label reads.
+    const slug = await page.evaluate(
+      (label) => window.scheduleMasterTags?.[label] ?? null, tagText);
     await secondTag.click();
     await page.waitForTimeout(400);
 
     const selectedText = (await page.locator(`${S.selectTags} option:checked`).textContent())?.trim();
     expect(selectedText?.toLowerCase()).toBe(tagText.toLowerCase());
-    expect(page.url()).toContain(`tags=${routeValue}`);
+    expect(decodeURIComponent(page.url())).toContain(`tags=${slug}`);
   });
 
   // The state layer holds sets before any checkbox UI exists, so the hash is
@@ -434,6 +435,66 @@ test.describe('03 — Filters', () => {
     await page.keyboard.press('Escape');
     await expect(list).toBeHidden();
     expect(await trigger.evaluate((el) => el === document.activeElement)).toBe(true);
+  });
+
+  test('switching tabs clears the plural keys and survives a reload', async ({ page }) => {
+    const rooms = await page.locator(
+      `${S.selectRooms} option:not([value="all"]):not([disabled])`).evaluateAll(
+        (options) => options.slice(0, 2).map((option) => option.value));
+    if (rooms.length < 2) return test.skip(true, 'Needs two live rooms');
+
+    await page.goto(`/schedule/#days=all&rooms=${rooms.join(',')}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+
+    await page.locator('[data-os-tab="essentials"]').click();
+    await page.waitForTimeout(600);
+    expect(page.url()).not.toMatch(/rooms=/);
+    expect(page.url()).not.toMatch(/days=/);
+
+    await page.reload();
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+    await expect(page.locator(
+      '[data-filter-panel="schedule-select-rooms"] .os-filter-panel-button')).toHaveText('All Rooms');
+  });
+
+  // One tag identity. A label-derived key spelled the same tag three ways.
+  test('a tag whose label differs from its slug filters from chip and hash', async ({ page }) => {
+    const target = await page.evaluate(() => {
+      const options = Array.from(document.querySelectorAll('#schedule-select-tags option'))
+        .filter((option) => option.value !== 'all');
+      const key = (text) => (text || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      for (const option of options) {
+        const label = option.textContent.trim();
+        const slug = window.scheduleMasterTags?.[label];
+        if (slug && key(slug) !== key(label)) return { label, slug };
+      }
+      return null;
+    });
+    if (!target) return test.skip(true, 'Fixtures have no tag whose slug differs from its label');
+
+    const panel = page.locator('[data-filter-panel="schedule-select-tags"] .os-filter-panel-button');
+    const chip = page.locator(`${S.scheduleItem}:visible ${S.filterLink} .os-term-item`)
+      .filter({ hasText: target.label }).first();
+    if (await chip.count() === 0) return test.skip(true, 'Needs a rendered chip for that tag');
+
+    const before = await page.locator(`${S.scheduleItem}:visible`).count();
+    await chip.click();
+    await page.waitForTimeout(600);
+
+    await expect(panel).toHaveText(target.label);
+    expect(await page.locator(`${S.scheduleItem}:visible`).count()).toBeLessThan(before);
+    // The hash carries the taxonomy slug, not a key derived from the label.
+    expect(decodeURIComponent(page.url())).toContain(`tags=${target.slug}`);
+
+    const narrowed = await page.locator(`${S.scheduleItem}:visible`).count();
+    const legacy = target.label.toLowerCase().replace(/[^a-z0-9]/g, '');
+    await page.goto(`/schedule/#days=all&tag=${legacy}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+    await expect(panel).toHaveText(target.label);
+    expect(await page.locator(`${S.scheduleItem}:visible`).count()).toBe(narrowed);
   });
 
   test('clickable room/tag links are not present on kiosk', async ({ page }) => {

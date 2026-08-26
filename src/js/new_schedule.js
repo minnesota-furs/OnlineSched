@@ -33,6 +33,13 @@ const filterState = {
     days: new Set(),
 };
 
+// Every route that clears the filters clears both hash forms, or a plural set
+// outlives the control that says it is gone.
+const CLEARED_FILTER_KEYS = {
+    day: null, tag: null, room: null,
+    days: null, tags: null, rooms: null,
+};
+
 function splitFilterList(value) {
     return String(value ?? '')
         .split(',')
@@ -133,14 +140,29 @@ export function new_schedule() {
         }
     }
 
-    // Tag options carry an id as their value and the label as their text; the
-    // hash has always spoken label-derived slugs, so the two are mapped here.
+    // One identity for a tag: the taxonomy slug. A label-derived key gave the
+    // same tag three spellings, and "Music & Performance" matched none of them.
+    function tagSlugForLabel(label) {
+        const slug = window.scheduleMasterTags ? window.scheduleMasterTags[String(label).trim()] : null;
+        return slug || null;
+    }
+
+    // Older links carry a label-derived key, and term markup carries one built
+    // from an entity-encoded name, so both still resolve.
+    function tagRouteKeys(option) {
+        const label = option.textContent.trim();
+        const keys = [normalizeRouteKey(label), normalizeRouteKey(label.replace(/&/g, 'amp'))];
+        const slug = tagSlugForLabel(label);
+        if (slug) keys.unshift(normalizeRouteKey(slug));
+        return keys;
+    }
+
     function tagRouteForValue(value) {
         const select = $('#schedule-select-tags');
         if (!select) return null;
         for (const option of select.options) {
             if (String(option.value) === String(value)) {
-                return getTagRouteValueFromText(option.textContent);
+                return tagSlugForLabel(option.textContent) || getTagRouteValueFromText(option.textContent);
             }
         }
         return null;
@@ -151,9 +173,7 @@ export function new_schedule() {
         if (!select || !route) return null;
         const normalized = normalizeRouteKey(route);
         for (const option of select.options) {
-            if (normalizeRouteKey(option.textContent.trim()) === normalized) {
-                return option.value;
-            }
+            if (tagRouteKeys(option).includes(normalized)) return option.value;
         }
         return null;
     }
@@ -199,22 +219,14 @@ export function new_schedule() {
     function getSelectedTagRouteValue() {
         const select = $('#schedule-select-tags');
         const text = select?.options[select.selectedIndex]?.textContent?.trim();
-        return getTagRouteValueFromText(text);
+        return tagSlugForLabel(text) || getTagRouteValueFromText(text);
     }
 
     function selectTagFromRouteValue(tagSlug) {
         const select = $('#schedule-select-tags');
         if (!select || !tagSlug) return;
-        // Normalize slug so hyphens in WP term slugs don't prevent a match.
-        const normalizedTag = normalizeRouteKey(tagSlug);
-        for (const option of select.options) {
-            const text = option.textContent.trim();
-            const optionSlug = normalizeRouteKey(text);
-            if (optionSlug === normalizedTag) {
-                select.value = option.value;
-                return;
-            }
-        }
+        const value = tagValueForRoute(tagSlug);
+        if (value !== null) select.value = value;
     }
 
     function normalizeEventId(eventId) {
@@ -383,11 +395,12 @@ export function new_schedule() {
         const hash = e.detail.hash;
         if (hash && e.detail.isTrusted) {
             const tabName = hash.substring(1);
-            if (tabName !== 'programming') {
-                updateHashState({ day: null, tag: null, room: null, q: null, evt: null, tab: tabName }, false);
-            } else {
-                updateHashState({ day: null, tag: null, room: null, q: null, evt: null, tab: null }, false);
-            }
+            updateHashState({
+                ...CLEARED_FILTER_KEYS,
+                q: null,
+                evt: null,
+                tab: tabName !== 'programming' ? tabName : null,
+            }, false);
 
             resetDropDowns();
             window.favoritesFilterActive = false;
@@ -695,11 +708,7 @@ export function new_schedule() {
     });
 
     $('#schedule-reset')?.addEventListener('click', function () {
-        updateHashState({
-            day: null, tag: null, room: null,
-            days: null, tags: null, rooms: null,
-            q: null,
-        }, true);
+        updateHashState({ ...CLEARED_FILTER_KEYS, q: null }, true);
         resetDropDowns();
         window.favoritesFilterActive = false;
         const favoritesToggle = $('#schedule-favorites-toggle');
@@ -1329,14 +1338,11 @@ function hasMatchingAttribute(item, prefix, value) {
         if (!select) return;
 
         const tagRoute = termItem.dataset.osTagRoute || getTagRouteValueFromText(tagText);
-        let matched = false;
-        for (const option of select.options) {
-            if (getTagRouteValueFromText(option.textContent) === tagRoute) {
-                select.value = option.value;
-                dispatchChange(select);
-                matched = true;
-                break;
-            }
+        const tagValue = tagValueForRoute(tagRoute) ?? tagValueForRoute(getTagRouteValueFromText(tagText));
+        const matched = tagValue !== null;
+        if (matched) {
+            select.value = tagValue;
+            dispatchChange(select);
         }
 
         if (matched) {
