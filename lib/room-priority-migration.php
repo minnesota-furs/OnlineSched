@@ -124,12 +124,6 @@ function onlinesched_run_room_priority_slug_conversion($force = false) {
 	);
 }
 
-/**
- * Says out loud when the conversion is stuck, because a silent skip is how the
- * room order would go missing without anyone noticing.
- *
- * @return void
- */
 function onlinesched_room_priority_admin_notice() {
 	if (!current_user_can('manage_options')) {
 		return;
