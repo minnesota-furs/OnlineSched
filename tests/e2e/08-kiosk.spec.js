@@ -122,6 +122,8 @@ test.describe('08 — Kiosk Mode (/kiosk-schedule/)', () => {
     // A class check rather than toBeVisible(), since kiosk CSS hides panes in a
     // way Playwright's visibility heuristic misses.
     await expect(page.locator(S.tabMap)).toHaveClass(/os-tab-pane--active/);
+    await expect(page.locator('.os-lead .fm-map-canvas')).toHaveCount(0);
+    await expect(page.locator('#map .fm-map-canvas svg')).toHaveCount(2);
   });
 
   test('event map link opens the kiosk Map tab and selects its room', async ({ page }) => {

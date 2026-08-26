@@ -52,6 +52,15 @@ try {
 	$assert( false === strpos( $html, 'Legacy excerpt marker.' ), 'Page content must replace the legacy excerpt when both exist.' );
 	$assert( 1 === substr_count( $html, 'from page content' ), 'The ordinary schedule intro must render once.' );
 
+	$kiosk_html = onlinesched_render_schedule(
+		array(
+			'mode' => 'kiosk',
+			'tabs' => array( 'programming' ),
+		)
+	);
+	$assert( false === strpos( $kiosk_html, 'from page content' ), 'Kiosk mode must not render page content as an introduction.' );
+	$assert( false !== strpos( $kiosk_html, 'Legacy excerpt marker.' ), 'Kiosk mode must retain the excerpt introduction.' );
+
 	wp_update_post(
 		array(
 			'ID'           => $page_id,

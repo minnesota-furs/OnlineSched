@@ -101,7 +101,7 @@ function onlinesched_render_schedule($args = array()) {
         $current_post = get_post();
         if ($current_post instanceof WP_Post && is_page() && !has_shortcode($current_post->post_content, 'onlinesched_schedule')) {
             echo '<h1>' . esc_html(get_the_title()) . '</h1>';
-            echo onlinesched_schedule_intro_html($current_post, !$liveStreaming);
+            echo onlinesched_schedule_intro_html($current_post, !$liveStreaming && $args['mode'] !== 'kiosk');
             edit_post_link(__('Edit', 'onlinesched'), '<div class="edit-link">', '</div>');
         }
 
