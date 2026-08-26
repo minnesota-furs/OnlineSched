@@ -491,38 +491,6 @@ function onlinesched_text_input_row($option_name, $label, $default, $description
     <?php
 }
 
-function onlinesched_room_sort_priority_row()
-{
-    $option_name = 'onlinesched_room_sort_priority';
-    $stored = get_option($option_name, '');
-    $rooms = get_terms(array('taxonomy' => 'os_room', 'hide_empty' => false));
-    if (is_wp_error($rooms)) {
-        $rooms = array();
-    }
-    ?>
-    <tr>
-        <th scope="row"><label for="<?php echo esc_attr($option_name); ?>">Room Sort Priority</label></th>
-        <td>
-            <input type="text" id="<?php echo esc_attr($option_name); ?>" name="<?php echo esc_attr($option_name); ?>"
-                   value="<?php echo esc_attr($stored); ?>" class="regular-text" />
-            <p class="description">
-                Comma-separated room slugs, in the order they should appear. Rooms
-                left out follow in alphabetical order. Slugs are used because a room
-                can be renamed without losing its place.
-            </p>
-            <?php if (!empty($rooms)) : ?>
-                <p class="description"><strong>Available rooms</strong></p>
-                <ul class="description" style="margin:0 0 0 1em;">
-                    <?php foreach ($rooms as $room) : ?>
-                        <li><code><?php echo esc_html($room->slug); ?></code> &mdash; <?php echo esc_html($room->name); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            <?php endif; ?>
-        </td>
-    </tr>
-    <?php
-}
-
 function onlinesched_number_input_row($option_name, $label, $default, $description)
 {
     $key = str_replace('onlinesched_', '', $option_name);
