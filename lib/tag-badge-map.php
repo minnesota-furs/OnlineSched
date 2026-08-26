@@ -80,7 +80,9 @@ function onlinesched_badge_type_is_configured($type) {
 		return true;
 	}
 	$types = get_option('onlinesched_badge_types', array());
-	return is_array($types) && in_array($type, $types, true);
+	$ok = is_array($types) && in_array($type, $types, true);
+
+	return (bool) apply_filters('os_badge_type_is_configured', $ok, $type);
 }
 
 /**

@@ -48,11 +48,31 @@ $drop_tag = static function ($slug) use (&$made) {
 	}
 };
 
-$original_map = get_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, array());
-update_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, array());
+// The live map is left alone: only aft-map-* keys are written and removed, so
+// an early exit cannot strand the site's own map.
+$fixture_only = static function ($map) {
+	$out = array();
+	foreach ((array) $map as $slug => $type) {
+		if (0 === strpos($slug, 'aft-map-')) {
+			$out[$slug] = $type;
+		}
+	}
+	return $out;
+};
 
-// The built-in rule is exercised against a fixture slug, so no real tag is
-// written to. aft-map-ruled stands in for a slug the defaults know.
+// A badge type only this fixture uses, so reconciling it cannot move a real
+// tag's mapping.
+add_filter(
+	'os_badge_type_is_configured',
+	static function ($ok, $type) {
+		return 'AFT Map Type' === $type ? true : $ok;
+	},
+	10,
+	2
+);
+
+// aft-map-ruled stands in for a slug the built-in defaults know, so the rule
+// is exercised without borrowing a real tag.
 add_filter(
 	'os_default_badge_type_for_tag_slug',
 	static function ($type, $slug) {
@@ -149,21 +169,22 @@ $check(
 	onlinesched_badge_type_for_tag('aft-map-goh-2', $other_id)
 );
 
-// Reconciliation.
+// Reconciliation, on a badge type no real tag carries.
+onlinesched_set_tag_badge_type('aft-map-goh', 'AFT Map Type');
 $check(
 	'a renamed badge type takes its tags with it',
 	1,
-	onlinesched_reconcile_tag_badge_map('Guest Of Honor', 'Guests Of Honor')
+	onlinesched_reconcile_tag_badge_map('AFT Map Type', 'AFT Map Type Renamed')
 );
 $check(
 	'the tag now resolves to the new name',
-	'Guests Of Honor',
+	'AFT Map Type Renamed',
 	onlinesched_badge_type_for_tag('aft-map-goh', $goh_id)
 );
 $check(
 	'a deleted badge type releases its tags',
 	1,
-	onlinesched_reconcile_tag_badge_map('Guests Of Honor', null)
+	onlinesched_reconcile_tag_badge_map('AFT Map Type Renamed', null)
 );
 $check(
 	'a released tag falls back to the rule, which knows nothing here',
@@ -197,11 +218,10 @@ $check(
 );
 onlinesched_clear_tag_badge_type('aft-map-ruled');
 
-// The association form's save path, exercised as the page runs it. The map is
-// emptied first so each result is only what this submission produced.
+// The association form's save path, exercised as the page runs it. Results are
+// filtered to fixture keys, because the live map is carried through untouched.
 $types = array('Dance', 'Essentials');
 $both = array('aft-map-goh', 'aft-map-meta');
-update_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, array());
 
 $result = onlinesched_tag_map_from_submission(
 	array('Dance' => array('aft-map-goh'), 'Essentials' => array('aft-map-meta')),
@@ -211,7 +231,7 @@ $result = onlinesched_tag_map_from_submission(
 $check('a straight submission maps each tag to its type', array(
 	'aft-map-goh' => 'Dance',
 	'aft-map-meta' => 'Essentials',
-), $result['map']);
+), $fixture_only($result['map']));
 $check('and reports no conflict', array(), $result['conflicts']);
 
 $result = onlinesched_tag_map_from_submission(
@@ -227,7 +247,7 @@ $result = onlinesched_tag_map_from_submission(
 	$types,
 	$both
 );
-$check('a badge type that does not exist is ignored', array(), $result['map']);
+$check('a badge type that does not exist is ignored', array(), $fixture_only($result['map']));
 
 onlinesched_set_tag_badge_type('aft-map-meta', ONLINESCHED_BADGE_NONE);
 $result = onlinesched_tag_map_from_submission(
@@ -242,9 +262,12 @@ $check(
 );
 onlinesched_clear_tag_badge_type('aft-map-meta');
 
-update_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, array());
 $result = onlinesched_tag_map_from_submission(array('Dance' => array()), $types, $both);
-$check('a type emptied on the form releases its tags', array(), $result['map']);
+$check(
+	'a type emptied on the form releases its tags',
+	array(),
+	$fixture_only($result['map'])
+);
 
 // The tag form hooks, run as WordPress runs them.
 $hook_id = $make_tag('aft-map-hook', 'AFT Map Hook');
@@ -356,7 +379,14 @@ $check('an unmapped tag is not flagged as a deliberate None', false, !empty($row
 foreach (array_keys($made) as $slug) {
 	$drop_tag($slug);
 }
-update_option(ONLINESCHED_TAG_BADGE_MAP_OPTION, $original_map);
+// Prefix cleanup: the live map keeps every entry it had.
+$final = onlinesched_get_tag_badge_map();
+foreach (array_keys($final) as $slug) {
+	if (0 === strpos($slug, 'aft-map-')) {
+		unset($final[$slug]);
+	}
+}
+onlinesched_save_tag_badge_map($final);
 
 if ($failures > 0) {
 	WP_CLI::error($failures . ' tag badge map check(s) failed.');
