@@ -35,16 +35,13 @@ function onlinesched_room_sort_priority_row()
     <tr>
         <th scope="row"><label for="<?php echo esc_attr($option_name); ?>">Room Sort Priority</label></th>
         <td>
-            <div id="onlinesched-room-order" style="display:none; max-width:760px;">
+            <div id="onlinesched-room-order" hidden style="max-width:820px;">
                 <div style="display:flex; gap:18px;">
                     <div style="flex:1 1 0;">
                         <p><strong>Shown first, in this order</strong></p>
                         <ul class="onlinesched-room-list onlinesched-room-ordered" style="min-height:60px; margin:0; padding:6px; border:1px solid #c3c4c7; background:#fff;">
                             <?php foreach ($ordered as $slug => $name) : ?>
-                                <li data-slug="<?php echo esc_attr($slug); ?>" style="padding:6px 8px; margin:0 0 4px; border:1px solid #dcdcde; background:#f6f7f7; cursor:grab;">
-                                    <?php echo esc_html($name); ?>
-                                    <a href="#" class="onlinesched-room-move" style="float:right;">remove</a>
-                                </li>
+                                <?php onlinesched_room_order_item($slug, $name, true); ?>
                             <?php endforeach; ?>
                         </ul>
                         <p class="description onlinesched-room-empty" style="display:none;">
@@ -55,15 +52,14 @@ function onlinesched_room_sort_priority_row()
                         <p><strong>Alphabetical after those</strong></p>
                         <ul class="onlinesched-room-list onlinesched-room-pool" style="min-height:60px; margin:0; padding:6px; border:1px solid #c3c4c7; background:#fff;">
                             <?php foreach ($pool as $slug => $name) : ?>
-                                <li data-slug="<?php echo esc_attr($slug); ?>" style="padding:6px 8px; margin:0 0 4px; border:1px solid #dcdcde; background:#f6f7f7; cursor:grab;">
-                                    <?php echo esc_html($name); ?>
-                                    <a href="#" class="onlinesched-room-move" style="float:right;">pin</a>
-                                </li>
+                                <?php onlinesched_room_order_item($slug, $name, false); ?>
                             <?php endforeach; ?>
                         </ul>
                     </div>
                 </div>
-                <p class="description">Drag to reorder, or use pin and remove. Saved as room slugs.</p>
+                <p class="description">
+                    Drag a room, or use the arrows and Pin. Saved as room slugs.
+                </p>
             </div>
 
             <div class="onlinesched-room-typed">
@@ -96,8 +92,31 @@ add_action('admin_enqueue_scripts', function ($hook) {
     wp_enqueue_script(
         'onlinesched-room-order',
         plugin_dir_url(__FILE__) . 'admin-room-order.js',
-        array('jquery', 'jquery-ui-sortable'),
+        array(),
         file_exists($path) ? filemtime($path) : '1.0',
         true
     );
 });
+
+/**
+ * @param string $slug Room slug.
+ * @param string $name Room name.
+ * @param bool $pinned Whether the room is in the ordered list.
+ * @return void
+ */
+function onlinesched_room_order_item($slug, $name, $pinned)
+{
+    ?>
+    <li draggable="true" data-slug="<?php echo esc_attr($slug); ?>"
+        style="display:flex; align-items:center; gap:6px; padding:6px 8px; margin:0 0 4px; border:1px solid #dcdcde; background:#f6f7f7; cursor:grab;">
+        <span style="flex:1 1 auto;"><?php echo esc_html($name); ?></span>
+        <button type="button" class="button button-small onlinesched-room-nudge" data-move="up"
+                aria-label="Move <?php echo esc_attr($name); ?> up"<?php echo $pinned ? '' : ' hidden'; ?>>&uarr;</button>
+        <button type="button" class="button button-small onlinesched-room-nudge" data-move="down"
+                aria-label="Move <?php echo esc_attr($name); ?> down"<?php echo $pinned ? '' : ' hidden'; ?>>&darr;</button>
+        <button type="button" class="button button-small onlinesched-room-toggle">
+            <?php echo $pinned ? 'Remove' : 'Pin'; ?>
+        </button>
+    </li>
+    <?php
+}
