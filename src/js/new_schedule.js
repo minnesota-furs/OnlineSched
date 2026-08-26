@@ -216,8 +216,6 @@ export function new_schedule() {
         }, true);
     }
 
-
-
     function normalizeEventId(eventId) {
         return String(eventId || '').replace(/^#/, '').replace(/^onlineevt-/, '').replace(/\D/g, '');
     }
@@ -1252,7 +1250,6 @@ export function new_schedule() {
             $('#map-tab')?.click();
             scrollTopMenu();
         } else {
-            // No tab key means the schedule, whichever tab the last route left up.
             $('[data-os-tab="programming"]')?.click();
         }
 
