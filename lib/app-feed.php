@@ -447,6 +447,7 @@ function onlinesched_app_feed_schedule(array $filters = array(), $revisions = nu
 		$rooms = onlinesched_app_feed_event_terms($post_id, 'os_room');
 		$tags = onlinesched_app_feed_event_terms($post_id, 'os_tag');
 		$panelists = onlinesched_app_feed_event_terms($post_id, 'os_panelist');
+		$badges = onlinesched_app_feed_event_badges($post_id);
 
 		$tag_names = array_map('strtolower', wp_list_pluck($tags, 'name'));
 		$cancelled = in_array('canceled', $tag_names, true) || in_array('cancelled', $tag_names, true);
@@ -460,6 +461,7 @@ function onlinesched_app_feed_schedule(array $filters = array(), $revisions = nu
 			'end'              => wp_date('c', $end_time),
 			'rooms'            => wp_list_pluck($rooms, 'slug'),
 			'tags'             => wp_list_pluck($tags, 'slug'),
+			'badges'           => $badges,
 			'panelists'        => wp_list_pluck($panelists, 'name'),
 			'description_html' => wp_kses_post($item->post_content),
 			'cancelled'        => $cancelled,
@@ -503,6 +505,53 @@ function onlinesched_app_feed_event_terms($post_id, $taxonomy) {
 	}
 
 	return $out;
+}
+
+/**
+ * @param string $slug Tag slug.
+ * @return string
+ */
+function onlinesched_default_badge_type_for_tag_slug($slug) {
+	$defaults = array(
+		'essentials'       => 'Essentials',
+		'streaming'        => 'Streaming',
+		'restricted'       => 'Adult',
+		'sensory'          => 'Sensory',
+		'sensory-friendly' => 'Sensory',
+		'guest-of-honor'   => 'Guest Of Honor',
+		'special-guest'    => 'Special Guest',
+		'vip'              => 'VIP',
+		'cancelled'        => 'Cancelled',
+		'canceled'         => 'Cancelled',
+	);
+
+	$slug = sanitize_title($slug);
+	return isset($defaults[$slug]) ? $defaults[$slug] : '';
+}
+
+/**
+ * @param int $post_id Event post ID.
+ * @return string[]
+ */
+function onlinesched_app_feed_event_badges($post_id) {
+	$terms = get_the_terms($post_id, 'os_tag');
+	if (!is_array($terms)) {
+		return array();
+	}
+
+	$badges = array();
+	foreach ($terms as $term) {
+		$badge_type = (string) get_term_meta($term->term_id, 'badge_type', true);
+		if ('' === $badge_type) {
+			$badge_type = onlinesched_default_badge_type_for_tag_slug($term->slug);
+		}
+		if ('sensory' === sanitize_key($badge_type)) {
+			$badges['sensory'] = 'sensory';
+		}
+	}
+
+	ksort($badges);
+	return array_values($badges);
 }
 
 /**

@@ -319,17 +319,24 @@ $seed_feed_revisions = static function (array $entries) {
 $created_post_ids = array();
 $created_term_ids = array(); // taxonomy => [term_id, ...]
 $created_files = array();
+$original_badge_meta = array();
 $selected_info_page_ids = array();
 $onlinesched_aft_info_ids_filter = static function ($ids) use (&$selected_info_page_ids) {
 	return $selected_info_page_ids;
 };
 add_filter('os_app_info_page_ids', $onlinesched_aft_info_ids_filter);
 
-$restore = static function () use (&$original_options, $missing, &$created_post_ids, &$created_term_ids, &$created_files, $onlinesched_aft_info_ids_filter) {
+$restore = static function () use (&$original_options, $missing, &$created_post_ids, &$created_term_ids, &$created_files, &$original_badge_meta, $onlinesched_aft_info_ids_filter) {
 	remove_filter('os_app_info_page_ids', $onlinesched_aft_info_ids_filter);
 	foreach ($created_post_ids as $post_id) {
 		if ($post_id && get_post($post_id)) {
 			wp_delete_post($post_id, true);
+		}
+	}
+	foreach ($original_badge_meta as $term_id => $values) {
+		delete_term_meta($term_id, 'badge_type');
+		foreach ($values as $value) {
+			add_term_meta($term_id, 'badge_type', $value);
 		}
 	}
 	foreach ($created_term_ids as $taxonomy => $ids) {
@@ -1646,6 +1653,40 @@ try {
 		$created_term_ids['os_tag'][] = $tag_restricted['term_id'];
 	}
 
+	$tag_sensory_a = wp_insert_term('AFT Quiet Space ' . $run_id, 'os_tag');
+	$assert(!is_wp_error($tag_sensory_a), 'First sensory tag term must be created.');
+	$created_term_ids['os_tag'][] = $tag_sensory_a['term_id'];
+	update_term_meta($tag_sensory_a['term_id'], 'badge_type', 'Sensory');
+
+	$tag_sensory_b = wp_insert_term('AFT Low Stimulation ' . $run_id, 'os_tag');
+	$assert(!is_wp_error($tag_sensory_b), 'Second sensory tag term must be created.');
+	$created_term_ids['os_tag'][] = $tag_sensory_b['term_id'];
+	update_term_meta($tag_sensory_b['term_id'], 'badge_type', 'Sensory');
+
+	$tag_sensory_default = get_term_by('slug', 'sensory', 'os_tag');
+	if (!$tag_sensory_default) {
+		$inserted = wp_insert_term('Sensory', 'os_tag', array('slug' => 'sensory'));
+		$assert(!is_wp_error($inserted), 'Default sensory tag term must be created.');
+		$created_term_ids['os_tag'][] = $inserted['term_id'];
+		$tag_sensory_default_id = $inserted['term_id'];
+	} else {
+		$tag_sensory_default_id = $tag_sensory_default->term_id;
+		$original_badge_meta[$tag_sensory_default_id] = get_term_meta($tag_sensory_default_id, 'badge_type', false);
+	}
+	delete_term_meta($tag_sensory_default_id, 'badge_type');
+
+	$tag_sensory_override = get_term_by('slug', 'sensory-friendly', 'os_tag');
+	if (!$tag_sensory_override) {
+		$inserted = wp_insert_term('Sensory Friendly', 'os_tag', array('slug' => 'sensory-friendly'));
+		$assert(!is_wp_error($inserted), 'Override sensory tag term must be created.');
+		$created_term_ids['os_tag'][] = $inserted['term_id'];
+		$tag_sensory_override_id = $inserted['term_id'];
+	} else {
+		$tag_sensory_override_id = $tag_sensory_override->term_id;
+		$original_badge_meta[$tag_sensory_override_id] = get_term_meta($tag_sensory_override_id, 'badge_type', false);
+	}
+	update_term_meta($tag_sensory_override_id, 'badge_type', 'Essentials');
+
 	$panelist = wp_insert_term('AFT Shapes Panelist ' . $run_id, 'os_panelist');
 	$assert(!is_wp_error($panelist), 'Shapes panelist term must be created.');
 	$created_term_ids['os_panelist'][] = $panelist['term_id'];
@@ -1665,7 +1706,12 @@ try {
 	$assert(!is_wp_error($event_normal), 'Normal shapes event must be created.');
 	$created_post_ids[] = $event_normal;
 	wp_set_object_terms($event_normal, array($shapes_room['term_id']), 'os_room', false);
-	wp_set_object_terms($event_normal, array($tag_general_id), 'os_tag', false);
+	wp_set_object_terms(
+		$event_normal,
+		array($tag_general_id, $tag_sensory_a['term_id'], $tag_sensory_b['term_id']),
+		'os_tag',
+		false
+	);
 	wp_set_object_terms($event_normal, array($panelist['term_id']), 'os_panelist', false);
 
 	$event_cancelled = wp_insert_post(array(
@@ -1701,6 +1747,36 @@ try {
 	$created_post_ids[] = $event_adult;
 	wp_set_object_terms($event_adult, array($shapes_room['term_id']), 'os_room', false);
 	wp_set_object_terms($event_adult, array($tag_restricted_id), 'os_tag', false);
+
+	$event_sensory_default = wp_insert_post(array(
+		'post_type'    => 'os_event',
+		'post_status'  => 'publish',
+		'post_title'   => 'AFT Default Sensory Event ' . $run_id,
+		'meta_input'   => array(
+			'onlinesched_year'              => $active_year,
+			'onlinesched_sorttime'          => strtotime('2031-06-01 12:00:00'),
+			'onlinesched_timelen'           => 30,
+			'onlinesched_external_event_id' => 'SHAPE-SENSORY-DEFAULT-' . $run_id,
+		),
+	), true);
+	$assert(!is_wp_error($event_sensory_default), 'Default sensory event must be created.');
+	$created_post_ids[] = $event_sensory_default;
+	wp_set_object_terms($event_sensory_default, array($tag_sensory_default_id), 'os_tag', false);
+
+	$event_sensory_override = wp_insert_post(array(
+		'post_type'    => 'os_event',
+		'post_status'  => 'publish',
+		'post_title'   => 'AFT Override Sensory Event ' . $run_id,
+		'meta_input'   => array(
+			'onlinesched_year'              => $active_year,
+			'onlinesched_sorttime'          => strtotime('2031-06-01 13:00:00'),
+			'onlinesched_timelen'           => 30,
+			'onlinesched_external_event_id' => 'SHAPE-SENSORY-OVERRIDE-' . $run_id,
+		),
+	), true);
+	$assert(!is_wp_error($event_sensory_override), 'Override sensory event must be created.');
+	$created_post_ids[] = $event_sensory_override;
+	wp_set_object_terms($event_sensory_override, array($tag_sensory_override_id), 'os_tag', false);
 
 	$event_other_year = wp_insert_post(array(
 		'post_type'    => 'os_event',
@@ -1886,6 +1962,14 @@ try {
 	$assert(isset($events_by_id[$event_normal]), 'The normal fixture event must be present in the schedule.');
 	$assert(false === $events_by_id[$event_normal]['cancelled'] && false === $events_by_id[$event_normal]['adult'], 'A normal event must be neither cancelled nor adult.');
 	$pass('cancelled/adult flags derive from tag names (Cancelled/Restricted)');
+
+	$assert(array('sensory') === $events_by_id[$event_normal]['badges'], 'Multiple Sensory tags must emit one canonical sensory badge.');
+	$assert(array() === $events_by_id[$event_cancelled]['badges'], 'An unrelated tag must not emit a sensory badge.');
+	$assert(array('sensory') === $events_by_id[$event_sensory_default]['badges'], 'The sensory slug must emit a default sensory badge when metadata is absent.');
+	$assert(array() === $events_by_id[$event_sensory_override]['badges'], 'Explicit non-Sensory metadata must override the sensory-friendly slug default.');
+	$assert('Sensory' === onlinesched_default_badge_type_for_tag_slug('sensory'), 'The sensory slug must default to the Sensory badge type.');
+	$assert('Sensory' === onlinesched_default_badge_type_for_tag_slug('sensory-friendly'), 'The sensory-friendly slug must default to the Sensory badge type.');
+	$pass('schedule badges use explicit tag metadata and canonical sensory defaults');
 
 	// --- E continued: schedule ETag carries the resolved publication flag ---
 

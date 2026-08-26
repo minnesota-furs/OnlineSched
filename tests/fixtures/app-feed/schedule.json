@@ -37,6 +37,7 @@
       "tags": [
         "essentials"
       ],
+      "badges": [],
       "panelists": [
         "Board"
       ],
@@ -55,6 +56,7 @@
         "panel-room-a"
       ],
       "tags": [],
+      "badges": [],
       "panelists": [],
       "description_html": "<p>18+ comedy hour.</p>",
       "cancelled": false,
@@ -73,6 +75,7 @@
       "tags": [
         "fursuiting"
       ],
+      "badges": [],
       "panelists": [],
       "description_html": "<p>The parade.</p>",
       "cancelled": true,

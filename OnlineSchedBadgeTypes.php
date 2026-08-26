@@ -544,25 +544,15 @@ add_action('created_os_tag', function($term_id) {
     if ($badge_type) {
         update_term_meta($term_id, 'badge_type', $badge_type);
     } else {
-        // Auto-assign badge type based on slug if not set
         $term = get_term($term_id, 'os_tag');
         $slug = $term ? $term->slug : '';
         $name = $term ? strtolower($term->name) : '';
-        $default_slug_to_badge_type = [
-            'essentials' => 'Essentials',
-            'streaming' => 'Streaming',
-            'restricted' => 'Adult',
-            'sensory' => 'Sensory',
-            'guest-of-honor' => 'Guest Of Honor',
-            'special-guest' => 'Special Guest',
-            'vip' => 'VIP',
-            'cancelled' => 'Cancelled',
-            'canceled' => 'Cancelled',
-        ];
-        if (isset($default_slug_to_badge_type[$slug])) {
-            update_term_meta($term_id, 'badge_type', $default_slug_to_badge_type[$slug]);
-        } elseif (isset($default_slug_to_badge_type[sanitize_title($name)])) {
-            update_term_meta($term_id, 'badge_type', $default_slug_to_badge_type[sanitize_title($name)]);
+        $default_badge_type = onlinesched_default_badge_type_for_tag_slug($slug);
+        if ('' === $default_badge_type) {
+            $default_badge_type = onlinesched_default_badge_type_for_tag_slug($name);
+        }
+        if ('' !== $default_badge_type) {
+            update_term_meta($term_id, 'badge_type', $default_badge_type);
         }
     }
 }, 10, 1);
@@ -582,26 +572,16 @@ function onlinesched_assign_default_badge_types_ajax() {
     if (!current_user_can('manage_os_tag')) {
         wp_send_json_error('Permission denied');
     }
-    $default_slug_to_badge_type = [
-        'essentials' => 'Essentials',
-        'streaming' => 'Streaming',
-        'restricted' => 'Adult',
-        'sensory' => 'Sensory',
-        'guest-of-honor' => 'Guest Of Honor',
-        'special-guest' => 'Special Guest',
-        'vip' => 'VIP',
-        'cancelled' => 'Cancelled',
-        'canceled' => 'Cancelled',
-    ];
     $tags = get_terms([
         'taxonomy' => 'os_tag',
         'hide_empty' => false,
     ]);
     $updated = 0;
     foreach ($tags as $tag) {
-        $slug = $tag->slug;
-        if (isset($default_slug_to_badge_type[$slug])) {
-            update_term_meta($tag->term_id, 'badge_type', $default_slug_to_badge_type[$slug]);
+        $default_badge_type = onlinesched_default_badge_type_for_tag_slug($tag->slug);
+        $current_badge_type = (string) get_term_meta($tag->term_id, 'badge_type', true);
+        if ('' === $current_badge_type && '' !== $default_badge_type) {
+            update_term_meta($tag->term_id, 'badge_type', $default_badge_type);
             $updated++;
         }
     }
