@@ -582,10 +582,9 @@ function onlinesched_app_feed_event_badges($post_id) {
 
 	$badges = array();
 	foreach ($terms as $term) {
-		$badge_type = (string) get_term_meta($term->term_id, 'badge_type', true);
-		if ('' === $badge_type) {
-			$badge_type = onlinesched_default_badge_type_for_tag_slug($term->slug);
-		}
+		$badge_type = function_exists('onlinesched_badge_type_for_tag')
+			? onlinesched_badge_type_for_tag($term->slug, $term->term_id)
+			: (string) get_term_meta($term->term_id, 'badge_type', true);
 		if ('' === trim($badge_type)) {
 			continue;
 		}

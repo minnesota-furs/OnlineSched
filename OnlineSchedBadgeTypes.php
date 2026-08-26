@@ -153,6 +153,57 @@ function onlinesched_badge_types_page() {
 			$message = 'Badge type already exists.';
 		}
 	}
+	if ($action === 'save_tag_map') {
+		$assigned = array();
+		$posted = isset($_POST['badge_tags']) && is_array($_POST['badge_tags'])
+			? $_POST['badge_tags']
+			: array();
+		$claims = array();
+		foreach ($posted as $type => $slugs) {
+			$type = sanitize_text_field($type);
+			if (!in_array($type, $badge_types, true)) {
+				continue;
+			}
+			foreach ((array) $slugs as $slug) {
+				$slug = sanitize_title($slug);
+				if ('' === $slug) {
+					continue;
+				}
+				// A tag belongs to at most one type, so a second claim is a
+				// conflict to report rather than a duplicate to store.
+				if (isset($claims[$slug])) {
+					$claims[$slug][] = $type;
+					continue;
+				}
+				$claims[$slug] = array($type);
+			}
+		}
+
+		$conflicts = array();
+		foreach ($claims as $slug => $types) {
+			if (count($types) > 1) {
+				$conflicts[] = $slug;
+				continue;
+			}
+			$assigned[$slug] = $types[0];
+		}
+
+		if ($conflicts) {
+			$message = 'Not saved: ' . implode(', ', $conflicts)
+				. ' was claimed by more than one badge type. A tag belongs to one type.';
+		} else {
+			$existing = onlinesched_get_tag_badge_map();
+			foreach ($existing as $slug => $type) {
+				// Keep an explicit None; anything else not re-claimed is released.
+				if (ONLINESCHED_BADGE_NONE === $type && !isset($assigned[$slug])) {
+					$assigned[$slug] = ONLINESCHED_BADGE_NONE;
+				}
+			}
+			onlinesched_save_tag_badge_map($assigned);
+			$message = 'Tag associations saved.';
+		}
+	}
+
 	if ($action === 'delete' && isset($_POST['badge_type_delete'])) {
 		$del = sanitize_text_field($_POST['badge_type_delete']);
 		$key = array_search($del, $badge_types);
@@ -181,7 +232,8 @@ function onlinesched_badge_types_page() {
 					delete_term_meta($tag->term_id, 'badge_type');
 				}
 			}
-			$message = 'Badge type deleted.';
+			$unmapped = onlinesched_reconcile_tag_badge_map($del, null);
+			$message = 'Badge type deleted. ' . $unmapped . ' tag mapping(s) released.';
 		}
 	}
 	if ($action === 'edit' && isset($_POST['badge_type_edit_old'], $_POST['badge_type_edit_new'])) {
@@ -231,7 +283,8 @@ function onlinesched_badge_types_page() {
 			update_option($colors_option_name, $badge_types_colors);
 			update_option($fg_colors_option_name, $badge_types_fg_colors);
 			update_option($row_colors_option_name, $badge_types_row_colors);
-			$message = 'Badge type updated.';
+			$moved = onlinesched_reconcile_tag_badge_map($old, $new);
+			$message = 'Badge type updated. ' . $moved . ' tag mapping(s) followed the rename.';
 		} else {
 			$message = 'Badge type already exists or not found.';
 		}
@@ -239,6 +292,9 @@ function onlinesched_badge_types_page() {
 	?>
 	<div class="wrap">
 		<h2>Badge Types</h2>
+
+		<?php onlinesched_render_tag_association_panel($badge_types); ?>
+
         
         <script>
             // Hardcoded to prevent cache issues
@@ -521,7 +577,7 @@ add_action('os_tag_edit_form_fields', function($term) {
     if (!empty($badge_types)) {
         natcasesort($badge_types);
     }
-    $selected = get_term_meta($term->term_id, 'badge_type', true);
+    $selected = onlinesched_badge_type_for_tag($term->slug, $term->term_id);
     ?>
     <tr class="form-field">
         <th scope="row"><label for="badge_type">Badge Type</label></th>
@@ -540,30 +596,39 @@ add_action('os_tag_edit_form_fields', function($term) {
 
 // Save badge type on tag CREATE
 add_action('created_os_tag', function($term_id) {
+    $term = get_term($term_id, 'os_tag');
+    if (!$term || is_wp_error($term)) {
+        return;
+    }
     $badge_type = isset($_POST['badge_type']) ? sanitize_text_field($_POST['badge_type']) : '';
-    if ($badge_type) {
-        update_term_meta($term_id, 'badge_type', $badge_type);
-    } else {
-        $term = get_term($term_id, 'os_tag');
-        $slug = $term ? $term->slug : '';
-        $name = $term ? strtolower($term->name) : '';
-        $default_badge_type = onlinesched_default_badge_type_for_tag_slug($slug);
-        if ('' === $default_badge_type) {
-            $default_badge_type = onlinesched_default_badge_type_for_tag_slug($name);
-        }
-        if ('' !== $default_badge_type) {
-            update_term_meta($term_id, 'badge_type', $default_badge_type);
-        }
+    if ('' !== $badge_type) {
+        onlinesched_set_tag_badge_type($term->slug, $badge_type);
+        return;
+    }
+    // A recreated tag keeps whatever the map already holds for its slug, which
+    // is how a re-imported spelling heals without anyone retyping it.
+    $map = onlinesched_get_tag_badge_map();
+    if (isset($map[$term->slug])) {
+        onlinesched_set_tag_badge_type($term->slug, $map[$term->slug]);
     }
 }, 10, 1);
 
 // Save badge type on tag EDIT
 add_action('edited_os_tag', function($term_id) {
-    $badge_type = isset($_POST['badge_type']) ? sanitize_text_field($_POST['badge_type']) : '';
-    if ($badge_type) {
-        update_term_meta($term_id, 'badge_type', $badge_type);
+    if (!isset($_POST['badge_type'])) {
+        return;
     }
-    // Removed default assignment logic from EDIT hook
+    $term = get_term($term_id, 'os_tag');
+    if (!$term || is_wp_error($term)) {
+        return;
+    }
+    $badge_type = sanitize_text_field($_POST['badge_type']);
+    // An empty choice is None, not "leave it alone". Without this the screen
+    // offers None and nothing happens.
+    onlinesched_set_tag_badge_type(
+        $term->slug,
+        '' === $badge_type ? ONLINESCHED_BADGE_NONE : $badge_type
+    );
 }, 10, 1);
 
 function onlinesched_assign_default_badge_types_ajax() {
@@ -588,3 +653,80 @@ function onlinesched_assign_default_badge_types_ajax() {
     wp_send_json_success([ 'updated' => $updated ]);
 }
 add_action('wp_ajax_onlinesched_assign_default_badge_types', 'onlinesched_assign_default_badge_types_ajax');
+
+/**
+ * The association screen: badge types down the page, each holding the schedule
+ * tags assigned to it. Names are shown because staff recognise names; slugs are
+ * what gets stored.
+ *
+ * @param string[] $badge_types Configured badge type names.
+ * @return void
+ */
+function onlinesched_render_tag_association_panel($badge_types) {
+	$rows = onlinesched_tag_badge_rows();
+	$by_type = array();
+	$unassigned = array();
+	foreach ($rows as $row) {
+		if ('' === $row['type']) {
+			$unassigned[] = $row;
+			continue;
+		}
+		$by_type[$row['type']][] = $row;
+	}
+	?>
+	<div class="card" style="max-width:none; padding:12px 16px; margin-bottom:20px;">
+		<h3 style="margin-top:0;">Tags in each badge type</h3>
+		<p class="description">
+			One badge type holds many tags; a tag belongs to at most one type.
+			Hold command or control to select several. A tag left out of every
+			list is unassigned and shows below.
+		</p>
+		<form method="post">
+			<?php wp_nonce_field('onlinesched_badge_types'); ?>
+			<input type="hidden" name="badge_action" value="save_tag_map" />
+			<table class="widefat striped">
+				<tbody>
+				<?php foreach ($badge_types as $type) : ?>
+					<tr>
+						<th scope="row" style="width:180px; vertical-align:top;">
+							<?php echo esc_html($type); ?>
+						</th>
+						<td>
+							<select name="badge_tags[<?php echo esc_attr($type); ?>][]" multiple size="6" style="min-width:320px;">
+								<?php foreach ($rows as $row) : ?>
+									<option value="<?php echo esc_attr($row['slug']); ?>"
+										<?php selected($row['type'], $type); ?>>
+										<?php echo esc_html($row['name']); ?>
+										<?php echo $row['missing'] ? ' (missing)' : ''; ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<p><button type="submit" class="button button-primary">Save tag associations</button></p>
+		</form>
+
+		<h4>Unassigned tags</h4>
+		<?php if (empty($unassigned)) : ?>
+			<p class="description">Every tag carries a badge type.</p>
+		<?php else : ?>
+			<p class="description">
+				A newly imported spelling lands here. That is the signal to map it,
+				not something to infer.
+			</p>
+			<ul style="margin-left:1em;">
+				<?php foreach ($unassigned as $row) : ?>
+					<li>
+						<?php echo esc_html($row['name']); ?>
+						<code><?php echo esc_html($row['slug']); ?></code>
+						<?php echo $row['missing'] ? '<em>(mapping kept, tag missing)</em>' : ''; ?>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		<?php endif; ?>
+	</div>
+	<?php
+}
