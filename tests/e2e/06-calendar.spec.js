@@ -2,7 +2,9 @@
 const { test, expect } = require('@playwright/test');
 const S = require('../helpers/selectors');
 
-const PHP_ERROR_PATTERN = /(?:PHP\s+(?:Deprecated|Fatal error|Notice|Parse error|Warning)|Deprecated:|Fatal error:|Notice:|Parse error:|Warning:)/i;
+// PHP writes errors at the start of a line; folded ICS text lines begin with a
+// space, so event copy such as "WARNING: things may get STEAMY!" is not a fatal.
+const PHP_ERROR_PATTERN = /^(?:<br\s*\/?>)?(?:<b>)?(?:PHP\s+)?(?:Deprecated|Fatal error|Notice|Parse error|Warning)(?:<\/b>)?:/mi;
 const SUBSCRIPTIONS_DISABLED_PARAM = 'onlinesched_test_calendar_subscriptions=disabled';
 
 function withSubscriptionsDisabled(path) {
@@ -211,7 +213,7 @@ test.describe('06 — Calendar', () => {
       expect(count).toBe(1);
     });
 
-    test('two rooms disable the current feed and say why', async ({ page }) => {
+    test('two rooms build one feed url carrying both', async ({ page }) => {
       const rooms = await page.locator(
         `${S.selectRooms} option:not([value="all"]):not([disabled])`).evaluateAll(
           (options) => options.slice(0, 2).map((option) => option.value));
@@ -221,41 +223,65 @@ test.describe('06 — Calendar', () => {
       await page.waitForSelector(S.schedule, { state: 'visible' });
       await page.waitForTimeout(400);
 
-      await expect(page.locator('#schedule-add-to-calendar-message')).toHaveText(
-        'Calendar only takes one room and one tag. Remove multiple selections or add to your favorites instead');
       const buttons = page.locator('.schedule-add-to-calendar-buttons button');
       const disabled = await buttons.evaluateAll((all) => all.map((button) => button.disabled));
-      expect(disabled.length).toBeGreaterThan(0);
-      expect(disabled.every(Boolean)).toBe(true);
-      expect(await page.evaluate(
-        () => document.querySelector('#schedule-calendar-scope option[value="current"]').disabled)).toBe(true);
+      expect(disabled.some(Boolean)).toBe(false);
 
-      // A feed built from the selects would carry only the first room.
-      expect(await page.evaluate(() => window.open_calendar_apple())).toBe(false);
+      const url = await page.evaluate(() => {
+        let captured = null;
+        const open = window.open;
+        window.open = (target) => { captured = target; return null; };
+        window.open_calendar_apple();
+        window.open = open;
+        return captured;
+      });
+      expect(url).toContain('icalby.php?');
+      for (const room of rooms) expect(decodeURIComponent(url)).toContain(room);
+
+      // The feed the person is handed holds exactly what the page shows.
+      const shown = await page.locator(`${S.scheduleItem}:visible`).count();
+      const feed = await page.request.get(url.replace(/^webcal:/, 'https:'));
+      const body = await expectIcsResponse(feed, { minEvents: 1 });
+      expect((body.match(/^BEGIN:VEVENT\r?$/gm) || []).length).toBe(shown);
     });
 
-    test('dropping back to one room restores the feed', async ({ page }) => {
-      const rooms = await page.locator(
-        `${S.selectRooms} option:not([value="all"]):not([disabled])`).evaluateAll(
-          (options) => options.slice(0, 2).map((option) => option.value));
-      if (rooms.length < 2) return test.skip(true, 'Needs two live rooms');
-
-      await page.goto(`/schedule/#days=all&rooms=${rooms.join(',')}`);
+    test('a day narrowed view hands over only that day', async ({ page }) => {
+      await page.goto('/schedule/#days=all');
       await page.waitForSelector(S.schedule, { state: 'visible' });
       await page.waitForTimeout(400);
 
-      const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
-      await panel.locator('button').click();
-      await panel.locator(`.os-filter-panel-row input[value="${rooms[1]}"]`).uncheck();
+      const day = await page.locator(
+        `${S.selectDays} option:not([value="all"]):not([value="Current"]):not([disabled])`)
+        .first().getAttribute('value');
+      if (!day) return test.skip(true, 'Needs a live day');
+      const slug = day.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      await page.goto(`/schedule/#days=${slug}`);
+      await page.waitForSelector(S.schedule, { state: 'visible' });
       await page.waitForTimeout(400);
 
-      await expect(page.locator('#schedule-add-to-calendar-message')).not.toHaveText(
-        /Calendar only takes one room/);
-      const disabled = await page.locator('.schedule-add-to-calendar-buttons button')
-        .evaluateAll((all) => all.map((button) => button.disabled));
-      expect(disabled.some(Boolean)).toBe(false);
-      expect(await page.evaluate(
-        () => document.querySelector('#schedule-calendar-scope option[value="current"]').disabled)).toBe(false);
+      const shown = await page.locator(`${S.scheduleItem}:visible`).count();
+      const url = await page.evaluate(() => {
+        let captured = null;
+        const open = window.open;
+        window.open = (target) => { captured = target; return null; };
+        window.open_calendar_apple();
+        window.open = open;
+        return captured;
+      });
+      expect(decodeURIComponent(url)).toContain(slug);
+
+      const feed = await page.request.get(url.replace(/^webcal:/, 'https:'));
+      const body = await expectIcsResponse(feed, { minEvents: 1 });
+      expect((body.match(/^BEGIN:VEVENT\r?$/gm) || []).length).toBe(shown);
+    });
+
+    test('search is excluded from the feed and the blurb says so', async ({ page }) => {
+      await page.fill(S.searchInput, 'Coyote');
+      await page.waitForTimeout(400);
+
+      await expect(page.locator('#schedule-add-to-calendar-message'))
+        .toContainText('Search text is not part of a calendar feed.');
     });
 
     test('favorite snapshots distinguish the current view from all favorites', async ({ page }) => {

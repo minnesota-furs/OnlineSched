@@ -354,10 +354,6 @@ export function scheduleCalendar() {
         return document.getElementById('schedule-calendar-scope')?.value || 'current';
     }
 
-    function calendarFacetIsMultiValued() {
-        return window.scheduleCalendarFacetIsMultiValued?.() === true;
-    }
-
     function refreshCalendarFeedScope() {
         const select = document.getElementById('schedule-calendar-scope');
         const scopeControl = select?.closest('.schedule-calendar-scope');
@@ -395,17 +391,11 @@ export function scheduleCalendar() {
             currentViewOption?.remove();
         }
 
-        const multiValued = calendarFacetIsMultiValued();
-        const currentOption = select?.querySelector('option[value="current"]');
-        if (currentOption) {
-            currentOption.disabled = multiValued;
-        }
-
         const scope = getCalendarScope();
 
         if (scope === 'current') {
             buttons.forEach((button) => {
-                button.disabled = multiValued;
+                button.disabled = false;
             });
             if (help) {
                 help.textContent = 'Choose a favorites option to snapshot your favorites.';
@@ -591,35 +581,16 @@ export function scheduleCalendar() {
             return 'webcal://' + window.location.host + '/wp-content/plugins/OnlineSched/icalby.php?events=' + result.ids.join(',');
         }
 
-        // The selects carry only the first value of a set, so a multi-valued
-        // filter would otherwise build a feed narrower than the screen shows.
-        if (calendarFacetIsMultiValued()) {
-            refreshCalendarFeedScope();
-            return null;
-        }
+        // The feed takes comma lists for every facet, so it is built from the
+        // filter state rather than the menus, which hold one value each.
+        const feed = window.scheduleFeedFilters ? window.scheduleFeedFilters() : { rooms: [], tags: [], days: [] };
+        const params = new URLSearchParams();
+        if (feed.rooms.length) params.set('rooms', feed.rooms.join(','));
+        if (feed.tags.length) params.set('tags', feed.tags.join(','));
+        if (feed.days.length) params.set('days', feed.days.join(','));
+        const query = params.toString() || 'room=all';
 
-        let url = '';
-        const searchText = document.getElementById('schedule-search-text');
-        if (searchText && searchText.value.trim() !== '') {
-            url = '?room=all';
-        } else {
-            const tagsSelect = document.getElementById('schedule-select-tags');
-            const selectedTagText = tagsSelect ? tagsSelect.options[tagsSelect.selectedIndex]?.text : null;
-            const tagSlug = (selectedTagText && window.scheduleMasterTags) ? window.scheduleMasterTags[selectedTagText] : null;
-            if (tagSlug) url = '&tag=' + tagSlug;
-
-            const roomsSelect = document.getElementById('schedule-select-rooms');
-            const selectedRoomText = roomsSelect ? roomsSelect.options[roomsSelect.selectedIndex]?.text : null;
-            const roomSlug = (selectedRoomText && window.scheduleMasterRooms) ? window.scheduleMasterRooms[selectedRoomText] : null;
-            if (roomSlug) url += '&room=' + roomSlug;
-
-            if (url === '') {
-                url = '?room=all';
-            } else {
-                url = '?' + url.slice(1);
-            }
-        }
-        return 'webcal://' + window.location.host + '/wp-content/plugins/OnlineSched/icalby.php' + url;
+        return 'webcal://' + window.location.host + '/wp-content/plugins/OnlineSched/icalby.php?' + query;
     }
 
     wireFeedResetControls();

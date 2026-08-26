@@ -275,7 +275,7 @@ test.describe('03 — Filters', () => {
 
   test('ticking two rooms in the panel filters to both and names the count', async ({ page }) => {
     const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
-    await panel.locator('button').click();
+    await panel.locator('.os-filter-panel-button').click();
     const boxes = panel.locator('.os-filter-panel-row input:not([value="all"]):not([disabled])');
     if (await boxes.count() < 2) return test.skip(true, 'Needs two live rooms');
 
@@ -287,14 +287,14 @@ test.describe('03 — Filters', () => {
     const two = await page.locator(`${S.scheduleItem}:visible`).count();
 
     expect(two).toBeGreaterThan(one);
-    await expect(panel.locator('button')).toHaveText('Rooms: 2 selected');
+    await expect(panel.locator('.os-filter-panel-button')).toHaveText('Rooms: 2 selected');
     expect(page.url()).toMatch(/rooms=[^&]+(,|%2C)/);
   });
 
   // All and Now and Future are modes, so they never coexist with a picked day.
   test('a day mode and a picked day replace each other', async ({ page }) => {
     const panel = page.locator('[data-filter-panel="schedule-select-days"]');
-    await panel.locator('button').click();
+    await panel.locator('.os-filter-panel-button').click();
     const allRow = panel.locator('.os-filter-panel-row input[value="all"]');
     const dayRows = panel.locator(
       '.os-filter-panel-row input:not([value="all"]):not([value="Current"]):not([disabled])');
@@ -315,7 +315,7 @@ test.describe('03 — Filters', () => {
 
   test('a room chip replaces the set instead of joining it', async ({ page }) => {
     const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
-    await panel.locator('button').click();
+    await panel.locator('.os-filter-panel-button').click();
     const boxes = panel.locator('.os-filter-panel-row input:not([value="all"]):not([disabled])');
     if (await boxes.count() < 2) return test.skip(true, 'Needs two live rooms');
     await boxes.nth(0).check();
@@ -329,8 +329,111 @@ test.describe('03 — Filters', () => {
     await chip.click();
     await page.waitForTimeout(400);
 
-    await expect(panel.locator('button')).toHaveText(chipText);
+    await expect(panel.locator('.os-filter-panel-button')).toHaveText(chipText);
     expect(await panel.locator('.os-filter-panel-row input:checked').count()).toBe(1);
+  });
+
+  // A chosen value stays removable even when another facet empties it.
+  test('a checked room stays enabled when a tag excludes it', async ({ page }) => {
+    // A room the tag never appears in is what drives the value to zero matches.
+    const combo = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.schedule-item'));
+      const roomsOf = (item) => Array.from(item.attributes)
+        .filter((a) => a.name.startsWith('data-schedule-room-')).map((a) => a.value);
+      const tagsOf = (item) => Array.from(item.attributes)
+        .filter((a) => a.name.startsWith('data-schedule-tag-')).map((a) => a.value);
+      const options = Array.from(document.querySelectorAll('#schedule-select-tags option'))
+        .filter((option) => option.value !== 'all');
+      for (const option of options) {
+        const slug = window.scheduleMasterTags?.[option.textContent.trim()];
+        if (!slug) continue;
+        const withTag = new Set();
+        const everyRoom = new Set();
+        items.forEach((item) => {
+          const rooms = roomsOf(item);
+          rooms.forEach((room) => everyRoom.add(room));
+          if (tagsOf(item).includes(slug)) rooms.forEach((room) => withTag.add(room));
+        });
+        const without = Array.from(everyRoom).filter((room) => !withTag.has(room));
+        if (withTag.size && without.length) {
+          return { tag: option.value, roomWith: Array.from(withTag)[0], roomWithout: without[0] };
+        }
+      }
+      return null;
+    });
+    if (!combo) return test.skip(true, 'Fixtures have no tag that excludes a room');
+
+    const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
+    await panel.locator('.os-filter-panel-button').click();
+    for (const room of [combo.roomWith, combo.roomWithout]) {
+      await panel.locator(`.os-filter-panel-row input[value="${room}"]`).check();
+      await page.waitForTimeout(200);
+    }
+    await panel.locator('.os-filter-panel-close').click();
+
+    const tagPanel = page.locator('[data-filter-panel="schedule-select-tags"]');
+    await tagPanel.locator('.os-filter-panel-button').click();
+    await tagPanel.locator(`.os-filter-panel-row input[value="${combo.tag}"]`).check();
+    await page.waitForTimeout(400);
+    await tagPanel.locator('.os-filter-panel-close').click();
+
+    await panel.locator('.os-filter-panel-button').click();
+    const excluded = panel.locator(`.os-filter-panel-row input[value="${combo.roomWithout}"]`);
+    await expect(excluded).toBeChecked();
+    await expect(excluded).toBeEnabled();
+
+    await excluded.uncheck();
+    await page.waitForTimeout(300);
+    expect(await excluded.isChecked()).toBe(false);
+  });
+
+  test('Reset clears the plural hash keys so a reload stays clear', async ({ page }) => {
+    const rooms = await page.locator(
+      `${S.selectRooms} option:not([value="all"]):not([disabled])`).evaluateAll(
+        (options) => options.slice(0, 2).map((option) => option.value));
+    if (rooms.length < 2) return test.skip(true, 'Needs two live rooms');
+
+    await page.goto(`/schedule/#days=all&rooms=${rooms.join(',')}`);
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+    await page.click(S.resetButton);
+    await page.waitForTimeout(400);
+
+    expect(page.url()).not.toMatch(/rooms=/);
+    expect(page.url()).not.toMatch(/days=/);
+
+    await page.reload();
+    await page.waitForSelector(S.schedule, { state: 'visible' });
+    await page.waitForTimeout(400);
+    await expect(page.locator(
+      '[data-filter-panel="schedule-select-rooms"] .os-filter-panel-button')).toHaveText('All Rooms');
+  });
+
+  test('the filter panel is announced, closable, and returns focus', async ({ page }) => {
+    const panel = page.locator('[data-filter-panel="schedule-select-rooms"]');
+    const trigger = panel.locator('.os-filter-panel-button');
+    const list = panel.locator('.os-filter-panel-list');
+
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(await trigger.getAttribute('aria-haspopup')).toBeNull();
+
+    await trigger.click();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(list).toHaveAttribute('role', 'group');
+    await expect(list).toHaveAttribute('aria-label', 'Rooms');
+    expect(await trigger.getAttribute('aria-controls')).toBe(await list.getAttribute('id'));
+
+    const close = panel.locator('.os-filter-panel-close');
+    await expect(close).toBeVisible();
+    await expect(close).toHaveAttribute('aria-label', 'Close Rooms filter');
+    await close.click();
+    await expect(list).toBeHidden();
+    expect(await trigger.evaluate((el) => el === document.activeElement)).toBe(true);
+
+    await trigger.click();
+    await page.keyboard.press('Escape');
+    await expect(list).toBeHidden();
+    expect(await trigger.evaluate((el) => el === document.activeElement)).toBe(true);
   });
 
   test('clickable room/tag links are not present on kiosk', async ({ page }) => {

@@ -44,6 +44,8 @@ if (!onlinesched_calendar_subscriptions_enabled()) {
  *
  * room=<names>              One or more room names, comma separated; `all` for every room.
  * tag=<tags>                One or more tag slugs, comma separated; `all` for every tag.
+ * day=<days>                One or more day slugs such as `tuesday-september-15`,
+ *                           comma separated; `all` for every day.
  * events=<ids>              Up to 100 event post IDs, comma separated.
  * feed=<key>                Personal live favorites key; wins over events. Unknown keys 404.
  * limit=<number>            Return only the newest N events.
@@ -233,6 +235,16 @@ if (!empty($sanitized_slugs)) {
 	}
 }
 
+## The page groups by wp_date('l, F j'), so the feed slugs the same label
+## rather than re-deriving a day from the timestamp.
+$requested_days = onlinesched_get_request_slugs(array('day', 'days'));
+if (count($requested_days) === 1 && strtolower($requested_days[0]) === 'all') {
+	$requested_days = array();
+}
+if (!empty($requested_days)) {
+	$filename .= '-day-' . preg_replace('/[^a-z0-9_]/', '_', implode(',', $requested_days));
+}
+
 $limit = -1;
 if (isset($_REQUEST['limit']) && !is_array($_REQUEST['limit'])) {
 	$limit = intval(wp_unslash($_REQUEST['limit']));
@@ -265,8 +277,12 @@ foreach ($postsArr as $item) {
 		continue;
 	}
 
-	$durationRaw = get_post_meta($postId, 'onlinesched_timelen', true);
 	$startTime = intval($startTimeRaw);
+	if (!empty($requested_days) && !in_array(sanitize_title(wp_date('l, F j', $startTime)), $requested_days, true)) {
+		continue;
+	}
+
+	$durationRaw = get_post_meta($postId, 'onlinesched_timelen', true);
 	$duration = (is_numeric($durationRaw) && intval($durationRaw) >= 0) ? intval($durationRaw) : 0;
 	$endTime = $startTime + ($duration * 60);
 

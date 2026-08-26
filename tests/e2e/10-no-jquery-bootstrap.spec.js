@@ -121,8 +121,9 @@ test.describe('10 — No jQuery / Bootstrap (Phase 6+)', () => {
   });
 
   test('os- namespaced classes present on key elements', async ({ page }) => {
-    // Scope .os-btn to #schedule to avoid matching buttons inside closed <dialog> elements
-    await expect(page.locator('#schedule .os-btn').first()).toBeVisible();
+    // Scope .os-btn to #schedule to avoid matching buttons inside closed
+    // <dialog> elements and inside collapsed filter panels.
+    await expect(page.locator('#schedule .os-btn:visible').first()).toBeVisible();
     await expect(page.locator('.os-tabs')).toBeVisible();
     await expect(page.locator('.os-form-control').first()).toBeVisible();
     await expect(page.locator('dialog.os-modal').first()).toBeAttached();

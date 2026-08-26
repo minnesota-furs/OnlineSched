@@ -22,16 +22,17 @@ function optionRows(select) {
     }));
 }
 
-function buildPanel(select, { modeValues, onChange, summarize }) {
+function buildPanel(select, { label, modeValues, onChange, summarize }) {
     const wrapper = document.createElement('div');
     wrapper.className = 'os-filter-panel';
     wrapper.dataset.filterPanel = select.id;
 
+    const listId = `${select.id}-panel-list`;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'os-form-control os-filter-panel-button';
-    button.setAttribute('aria-haspopup', 'true');
     button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-controls', listId);
 
     const buttonLabel = document.createElement('span');
     buttonLabel.className = 'os-filter-panel-button-label';
@@ -39,9 +40,28 @@ function buildPanel(select, { modeValues, onChange, summarize }) {
 
     const list = document.createElement('div');
     list.className = 'os-filter-panel-list';
+    list.id = listId;
     list.hidden = true;
     list.setAttribute('role', 'group');
+    list.setAttribute('aria-label', label);
 
+    const header = document.createElement('div');
+    header.className = 'os-filter-panel-header';
+    const title = document.createElement('span');
+    title.className = 'os-filter-panel-title';
+    title.textContent = label;
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'os-btn os-btn--default os-btn--sm os-filter-panel-close';
+    close.textContent = 'Close';
+    close.setAttribute('aria-label', `Close ${label} filter`);
+
+    const rows = document.createElement('div');
+    rows.className = 'os-filter-panel-rows';
+
+    header.append(title, close);
+    list.append(header, rows);
     wrapper.append(button, list);
     select.parentNode.insertBefore(wrapper, select);
 
@@ -51,7 +71,7 @@ function buildPanel(select, { modeValues, onChange, summarize }) {
     select.setAttribute('aria-hidden', 'true');
     select.setAttribute('tabindex', '-1');
 
-    const panel = { select, wrapper, button, buttonLabel, list, modeValues, onChange, summarize };
+    const panel = { select, wrapper, button, buttonLabel, list, rows, modeValues, onChange, summarize };
     PANELS.push(panel);
 
     button.addEventListener('click', () => {
@@ -62,13 +82,15 @@ function buildPanel(select, { modeValues, onChange, summarize }) {
         syncScrim();
     });
 
+    close.addEventListener('click', () => closeAllPanels({ restoreFocus: true }));
+
     renderRows(panel);
     return panel;
 }
 
 function renderRows(panel) {
-    const { list, select, modeValues } = panel;
-    list.replaceChildren();
+    const { rows, select, modeValues } = panel;
+    rows.replaceChildren();
 
     optionRows(select).forEach((row) => {
         const label = document.createElement('label');
@@ -86,7 +108,7 @@ function renderRows(panel) {
         box.addEventListener('change', () => panel.onChange(row.value, box.checked));
 
         label.append(box, text);
-        list.append(label);
+        rows.append(label);
     });
 }
 
@@ -95,10 +117,10 @@ function renderRows(panel) {
 export function refreshFilterPanels(state) {
     PANELS.forEach((panel) => {
         const rows = optionRows(panel.select);
-        const boxes = Array.from(panel.list.querySelectorAll('input[type="checkbox"]'));
+        const boxes = Array.from(panel.rows.querySelectorAll('input[type="checkbox"]'));
         if (boxes.length !== rows.length) renderRows(panel);
 
-        Array.from(panel.list.querySelectorAll('input[type="checkbox"]')).forEach((box) => {
+        Array.from(panel.rows.querySelectorAll('input[type="checkbox"]')).forEach((box) => {
             const row = rows.find((candidate) => candidate.value === box.value);
             if (!row) return;
             box.disabled = row.disabled;
@@ -109,12 +131,16 @@ export function refreshFilterPanels(state) {
     });
 }
 
-export function closeAllPanels() {
+// Escape and the close control hand focus back to the button that opened the
+// panel; an outside click must not, the person is reaching for something else.
+export function closeAllPanels({ restoreFocus = false } = {}) {
+    const open = PANELS.find((panel) => !panel.list.hidden);
     PANELS.forEach((panel) => {
         panel.list.hidden = true;
         panel.button.setAttribute('aria-expanded', 'false');
     });
     syncScrim();
+    if (restoreFocus && open) open.button.focus();
 }
 
 export function createFilterPanels(config) {
@@ -130,14 +156,16 @@ export function createFilterPanels(config) {
         scrim = document.createElement('div');
         scrim.className = 'os-filter-panel-scrim';
         scrim.hidden = true;
-        scrim.addEventListener('click', closeAllPanels);
+        scrim.setAttribute('aria-hidden', 'true');
+        scrim.addEventListener('click', () => closeAllPanels());
         document.body.append(scrim);
     }
 
     document.addEventListener('click', (event) => {
-        if (!event.target.closest('.os-filter-panel')) closeAllPanels();
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target?.closest('.os-filter-panel')) closeAllPanels();
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeAllPanels();
+        if (event.key === 'Escape') closeAllPanels({ restoreFocus: true });
     });
 }

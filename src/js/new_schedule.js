@@ -695,7 +695,11 @@ export function new_schedule() {
     });
 
     $('#schedule-reset')?.addEventListener('click', function () {
-        updateHashState({ day: null, tag: null, room: null, q: null }, true);
+        updateHashState({
+            day: null, tag: null, room: null,
+            days: null, tags: null, rooms: null,
+            q: null,
+        }, true);
         resetDropDowns();
         window.favoritesFilterActive = false;
         const favoritesToggle = $('#schedule-favorites-toggle');
@@ -972,28 +976,29 @@ function hasMatchingAttribute(item, prefix, value) {
         setOddEven();
     }
 
-    // Availability greys options; membership never changes here. all and
-    // Current stay live, and the selection never disables under the user.
-    function refreshSelectAvailability(select, available) {
+    // Availability greys options; membership never changes here. The menu holds
+    // only the first member of a set, so the set keeps a chosen row removable.
+    function refreshSelectAvailability(select, available, chosen) {
         if (!select) return;
         Array.from(select.options).forEach((option) => {
             if (option.value === 'all' || option.value === 'Current') return;
-            const isSelected = String(select.value) === String(option.value);
-            option.disabled = !available.has(String(option.value)) && !isSelected;
+            const value = String(option.value);
+            const isChosen = String(select.value) === value || !!chosen?.has(value);
+            option.disabled = !available.has(value) && !isChosen;
         });
         setOddEven();
     }
 
     function resetSelectDays() {
-        refreshSelectAvailability($('#schedule-select-days'), dayAvailability);
+        refreshSelectAvailability($('#schedule-select-days'), dayAvailability, filterState.days);
     }
 
     function resetSelectTags() {
-        refreshSelectAvailability($('#schedule-select-tags'), tagAvailability);
+        refreshSelectAvailability($('#schedule-select-tags'), tagAvailability, filterState.tags);
     }
 
     function resetSelectRooms() {
-        refreshSelectAvailability($('#schedule-select-rooms'), roomAvailability);
+        refreshSelectAvailability($('#schedule-select-rooms'), roomAvailability, filterState.rooms);
     }
 
     function sort_options_by_id(id) {
@@ -1049,6 +1054,15 @@ function hasMatchingAttribute(item, prefix, value) {
     // is what every existing bookmark and inbound link still carries.
 
     function readFilterHash(state) {
+        const carriesFilter = ['rooms', 'room', 'tags', 'tag', 'days', 'day']
+            .some((key) => state[key] !== undefined);
+        if (!carriesFilter) {
+            filterState.rooms.clear();
+            filterState.tags.clear();
+            setDayMode('Current');
+            return;
+        }
+
         const roomList = state.rooms !== undefined
             ? splitFilterList(state.rooms)
             : (state.room !== undefined ? legacyValue(state.room) : null);
@@ -1117,6 +1131,7 @@ function hasMatchingAttribute(item, prefix, value) {
         createFilterPanels([
             {
                 selector: '#schedule-select-rooms',
+                label: 'Rooms',
                 modeValues: ['all'],
                 isChecked: (value) => value === 'all'
                     ? filterState.rooms.size === 0
@@ -1134,6 +1149,7 @@ function hasMatchingAttribute(item, prefix, value) {
             },
             {
                 selector: '#schedule-select-tags',
+                label: 'Tags',
                 modeValues: ['all'],
                 isChecked: (value) => value === 'all'
                     ? filterState.tags.size === 0
@@ -1151,6 +1167,7 @@ function hasMatchingAttribute(item, prefix, value) {
             },
             {
                 selector: '#schedule-select-days',
+                label: 'Days',
                 modeValues: ['all', 'Current'],
                 isChecked: (value) => (value === 'all' || value === 'Current')
                     ? filterState.dayMode === value
@@ -1340,25 +1357,34 @@ function hasMatchingAttribute(item, prefix, value) {
     window.addEventListener('popstate', handleHashRouting);
     window.addEventListener('hashchange', handleHashRouting);
 
-    // icalby.php takes one room and one tag, so a wider selection has no feed.
-    function calendarFacetIsMultiValued() {
-        return filterState.rooms.size > 1 || filterState.tags.size > 1;
+    function tagSlugForValue(value) {
+        const label = optionLabel('#schedule-select-tags', value);
+        return window.scheduleMasterTags ? window.scheduleMasterTags[label] : null;
     }
-    window.scheduleCalendarFacetIsMultiValued = calendarFacetIsMultiValued;
+
+    // What the feed can express. Search is absent by design: icalby.php has no
+    // text query, so the blurb says so rather than quietly widening the feed.
+    function currentFeedFilters() {
+        return {
+            rooms: Array.from(filterState.rooms),
+            tags: Array.from(filterState.tags).map(tagSlugForValue).filter(Boolean),
+            days: filterState.dayMode ? [] : Array.from(filterState.days).map(dayRouteForValue),
+        };
+    }
+    window.scheduleFeedFilters = currentFeedFilters;
 
     function messageAtBottomForCalendar() {
         const message = $('#schedule-add-to-calendar-message');
         if (!message) return;
 
-        if (calendarFacetIsMultiValued()) {
-            message.innerHTML = 'Calendar only takes one room and one tag. Remove multiple selections or add to your favorites instead';
-            return;
-        }
+        const feed = currentFeedFilters();
+        const narrowed = feed.rooms.length || feed.tags.length || feed.days.length;
 
-        if (
-            (($('#schedule-search-text')?.value || '').trim() === '') &&
-            (($('#schedule-select-tags')?.value !== 'all') || ($('#schedule-select-rooms')?.value !== 'all'))
-        ) {
+        if (($('#schedule-search-text')?.value || '').trim() !== '') {
+            message.innerHTML = narrowed
+                ? 'Your calendar gets the room, tag and day filters. Search text is not part of a calendar feed.'
+                : 'Your calendar gets the full schedule. Search text is not part of a calendar feed.';
+        } else if (narrowed) {
             message.innerHTML = 'Add this filtered list to your calendar!';
         } else {
             message.innerHTML = 'Import the full schedule into your calendar!';
