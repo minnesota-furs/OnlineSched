@@ -220,9 +220,9 @@ foreach ($made as $term_id) {
 }
 
 // The enqueue once pointed at a file that was not there: a 404, nothing thrown,
-// and the widget simply never appeared. Render and parse checks both missed it.
+// and the widget never appeared. Render and parse checks both missed it.
 $_GET['page'] = 'onlinesched-settings';
-do_action('admin_enqueue_scripts', 'settings_page_onlinesched-settings');
+onlinesched_enqueue_room_order_assets();
 unset($_GET['page']);
 
 $registered = wp_scripts()->registered;

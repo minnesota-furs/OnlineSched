@@ -80,7 +80,8 @@ function onlinesched_room_sort_priority_row()
     <?php
 }
 
-add_action('admin_enqueue_scripts', function ($hook) {
+function onlinesched_enqueue_room_order_assets()
+{
     if (!isset($_GET['page']) || 'onlinesched-settings' !== $_GET['page']) {
         return;
     }
@@ -92,14 +93,10 @@ add_action('admin_enqueue_scripts', function ($hook) {
         file_exists($path) ? filemtime($path) : '1.0',
         true
     );
-});
+}
 
-/**
- * @param string $slug Room slug.
- * @param string $name Room name.
- * @param bool $pinned Whether the room is in the ordered list.
- * @return void
- */
+add_action('admin_enqueue_scripts', 'onlinesched_enqueue_room_order_assets');
+
 function onlinesched_room_order_item($slug, $name, $pinned)
 {
     ?>
