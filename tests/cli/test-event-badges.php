@@ -24,8 +24,7 @@ $check = static function ($label, $expected, $actual) use (&$failures) {
 
 $made_tags = array();
 
-// Fixture terms are prefixed and created fresh. An earlier version deleted
-// whatever already held the slug it wanted, taking real terms with it.
+// Never replace an existing term while creating fixtures.
 $make_tag = static function ($slug, $name, $badge_type) use (&$made_tags) {
 	if (0 !== strpos($slug, 'aft-badge-')) {
 		WP_CLI::error('Fixture slugs must be prefixed aft-badge-, refusing ' . $slug);
@@ -42,11 +41,13 @@ $make_tag = static function ($slug, $name, $badge_type) use (&$made_tags) {
 	return $term['term_id'];
 };
 
-// Badge types are set explicitly rather than leaning on the slug defaults, so
-// the fixture never needs a real slug such as guest-of-honor or essentials.
 $make_tag('aft-badge-dance', 'AFT Badge Dance', 'Dance');
 $make_tag('aft-badge-goh', 'AFT Badge GoH', 'Guest Of Honor');
 $make_tag('aft-badge-essentials', 'AFT Badge Essentials', 'Essentials');
+$make_tag('aft-badge-adult', 'AFT Badge Adult', 'Adult');
+
+$original_type_keys = get_option(ONLINESCHED_BADGE_TYPE_KEYS_OPTION, false);
+onlinesched_ensure_badge_type_keys(array('Adult'));
 
 $post_id = wp_insert_post(array(
 	'post_type'   => 'os_event',
@@ -65,6 +66,16 @@ $check('a guest of honor tag publishes its badge type', array('guest-of-honor'),
 
 wp_set_object_terms($post_id, array('aft-badge-dance'), 'os_tag');
 $check('a badge type set in term meta is published', array('dance'), onlinesched_app_feed_event_badges($post_id));
+
+wp_set_object_terms($post_id, array('aft-badge-adult'), 'os_tag');
+$adult_badges = onlinesched_app_feed_event_badges($post_id);
+$check('an adult tag publishes its badge type', array('adult'), $adult_badges);
+$check('an adult badge sets the legacy adult flag', true, onlinesched_app_feed_event_is_adult($adult_badges, array()));
+$check('the legacy Restricted tag still sets the adult flag', true, onlinesched_app_feed_event_is_adult(array(), array('restricted')));
+
+onlinesched_reconcile_badge_type_key('Adult', 'Mature');
+$check('renaming Adult keeps its client key', 'adult', onlinesched_badge_type_key('Mature'));
+$check('a renamed Adult badge keeps the legacy adult flag', true, onlinesched_app_feed_event_is_adult(array(onlinesched_badge_type_key('Mature')), array()));
 
 wp_set_object_terms(
 	$post_id,
@@ -86,6 +97,12 @@ foreach ($made_tags as $slug => $term_id) {
 	if ($term && (int) $term->term_id === (int) $term_id) {
 		wp_delete_term($term_id, 'os_tag');
 	}
+}
+
+if (false === $original_type_keys) {
+	delete_option(ONLINESCHED_BADGE_TYPE_KEYS_OPTION);
+} else {
+	update_option(ONLINESCHED_BADGE_TYPE_KEYS_OPTION, $original_type_keys);
 }
 
 if ($failures > 0) {

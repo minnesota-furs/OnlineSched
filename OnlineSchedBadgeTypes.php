@@ -1,8 +1,4 @@
 <?php
-// OnlineSchedBadgeTypes.php
-// Admin page for managing badge types
-
-// Enqueue admin CSS/JS only for badge types page
 add_action('admin_enqueue_scripts', function($hook) {
     if (!isset($_GET['page']) || $_GET['page'] !== 'onlinesched-badge-types') return;
     
@@ -14,18 +10,16 @@ add_action('admin_enqueue_scripts', function($hook) {
     wp_localize_script('onlinesched-badge-types-admin', 'OnlineSchedBadgeTypes', array(
         'nonce' => wp_create_nonce('onlinesched_badge_types'),
     ));
-
-    // Removed direct enqueue of Font Awesome. It will be imported via admin-badge-types.scss and compiled by webpack
 });
 
 function onlinesched_badge_types_page() {
-	// Handle add/edit/delete/restore
 	if (!current_user_can('manage_os_tag')) {
 		wp_die('You do not have permission to manage badge types.');
 	}
 
 	$option_name = 'onlinesched_badge_types';
 	$badge_types = get_option($option_name, array());
+	onlinesched_ensure_badge_type_keys($badge_types);
 	$display_option_name = 'onlinesched_badge_types_display';
 	$badge_types_display = get_option($display_option_name, array());
 	$action = isset($_POST['badge_action']) ? $_POST['badge_action'] : '';
@@ -46,7 +40,7 @@ function onlinesched_badge_types_page() {
 	$fg_colors_option_name = 'onlinesched_badge_types_fg_colors';
 	$badge_types_fg_colors = get_option($fg_colors_option_name, array());
 
-	$default_badge_types_config = array( // Renamed to avoid conflict with $default_name in the loop
+	$default_badge_types_config = array(
         'Adult' => array('color' => '#d12229', 'fg_color' => '#ffffff', 'show_badge' => true),
         'Sensory' => array('color' => '#0a58ca', 'fg_color' => '#ffffff', 'show_badge' => true),
         'VIP' => array('row_color' => '#fff0b2', 'show_badge' => true),
@@ -57,7 +51,6 @@ function onlinesched_badge_types_page() {
         'Cancelled' => array()
     );
 
-	// Sort badge types for display in table
 	if (!empty($badge_types)) {
 		natcasesort($badge_types);
 	}
@@ -71,7 +64,6 @@ function onlinesched_badge_types_page() {
 		$new_badge_types_fg_colors = array();
 		$new_badge_types_row_colors = array();
 
-		// First, preserve existing custom badge types
 		foreach ($badge_types as $existing_badge_name) {
 			if (!array_key_exists($existing_badge_name, $default_badge_types_config)) {
 				$new_badge_types[] = $existing_badge_name;
@@ -83,7 +75,6 @@ function onlinesched_badge_types_page() {
 			}
 		}
 
-		// Then, add/overwrite default badge types
 		foreach ($default_badge_types_config as $default_name => $attrs) {
 			if (!in_array($default_name, $new_badge_types)) {
 				$new_badge_types[] = $default_name;
@@ -96,15 +87,15 @@ function onlinesched_badge_types_page() {
 			$updated_count++;
 		}
         
-        // Sort the final list of badge types alphabetically
         natcasesort($new_badge_types);
 
-		update_option($option_name, array_values($new_badge_types)); // Re-index array
+		update_option($option_name, array_values($new_badge_types));
 		update_option($display_option_name, $new_badge_types_display);
 		update_option($icons_option_name, $new_badge_types_icons);
 		update_option($colors_option_name, $new_badge_types_colors);
 		update_option($fg_colors_option_name, $new_badge_types_fg_colors);
 		update_option($row_colors_option_name, $new_badge_types_row_colors);
+		onlinesched_ensure_badge_type_keys($new_badge_types);
 		
 		$message = 'Default badge types restored and custom badge types preserved (' . $updated_count . ' defaults updated).';
 	}
@@ -148,6 +139,7 @@ function onlinesched_badge_types_page() {
 			update_option($colors_option_name, $badge_types_colors);
 			update_option($fg_colors_option_name, $badge_types_fg_colors);
 			update_option($row_colors_option_name, $badge_types_row_colors);
+			onlinesched_ensure_badge_type_keys($badge_types);
 			$message = 'Badge type added.';
 		} else {
 			$message = 'Badge type already exists.';
@@ -187,7 +179,6 @@ function onlinesched_badge_types_page() {
 			update_option($colors_option_name, $badge_types_colors);
 			update_option($fg_colors_option_name, $badge_types_fg_colors);
 			update_option($row_colors_option_name, $badge_types_row_colors);
-			// Remove badge_type meta from all tags referencing this badge type
 			$tags = get_terms([
 				'taxonomy' => 'os_tag',
 				'hide_empty' => false,
@@ -199,6 +190,7 @@ function onlinesched_badge_types_page() {
 				}
 			}
 			$unmapped = onlinesched_reconcile_tag_badge_map($del, null);
+			onlinesched_reconcile_badge_type_key($del, null);
 			$message = 'Badge type deleted. ' . $unmapped . ' tag mapping(s) released.';
 		}
 	}
@@ -249,6 +241,7 @@ function onlinesched_badge_types_page() {
 			update_option($colors_option_name, $badge_types_colors);
 			update_option($fg_colors_option_name, $badge_types_fg_colors);
 			update_option($row_colors_option_name, $badge_types_row_colors);
+			onlinesched_reconcile_badge_type_key($old, $new);
 			$moved = onlinesched_reconcile_tag_badge_map($old, $new);
 			$message = 'Badge type updated. ' . $moved . ' tag mapping(s) followed the rename.';
 		} else {
@@ -263,7 +256,6 @@ function onlinesched_badge_types_page() {
 
         
         <script>
-            // Hardcoded to prevent cache issues
             function showEditFormOS(badge_slug) {
                 document.querySelectorAll('.badge-edit-row').forEach(function(row) {
                     row.style.display = 'none';
@@ -288,18 +280,13 @@ function onlinesched_badge_types_page() {
             }
         </script>
 
-		<form method="post" style="margin-bottom:1em;">
-			<!-- Removed global icon usage toggle -->
-		</form>
 		<?php if ($message) {
 			$class = (strpos($message, 'error') !== false || strpos($message, 'exists') !== false) ? 'upload-error' : 'schedule-updated';
 			echo '<div class="' . $class . '"><button class="close-message" onclick="closeMessageBox(this)">&times;</button><p>' . esc_html($message) . '</p></div>';
 		} ?>
-		<!-- Add Badge Type Button -->
 		<div style="margin-bottom:18px;">
 			<button type="button" id="show-add-badge-type-btn" class="button button-primary" style="font-size:16px; padding:8px 18px; border-radius:4px;">+ Add Badge Type</button>
 		</div>
-		<!-- Add Badge Type Form (hidden by default, fallback to visible if no JS) -->
 		<div class="badge-add-form-card" id="badge-add-form-card" style="display:none; margin-bottom:2em; border:2px solid #e5e5e5; background:#f7fbff; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px 24px; border-radius:8px; max-width:900px;">
 			<h3 style="margin-top:0; margin-bottom:18px; font-weight:600; color:#1890ff;">Add New Badge Type</h3>
 		<form method="post" id="add-badge-type-form" aria-label="Add New Badge Type">
@@ -342,7 +329,6 @@ function onlinesched_badge_types_page() {
 					<button type="button" class="badge-action-btn" id="cancel-add-badge-type-btn">Cancel</button>
 				</div>
 				<script>
-				// When transparent is checked, disable color picker
 				document.getElementById('badge_type_color_transparent').onchange = function() {
 					document.getElementById('badge_type_color').disabled = this.checked;
 				};
@@ -517,7 +503,6 @@ function onlinesched_badge_types_page() {
 	<?php
 }
 
-// Add badge type field to ADD tag screen
 add_action('os_tag_add_form_fields', function() {
     $badge_types = get_option('onlinesched_badge_types', array());
     if (!empty($badge_types)) {
@@ -527,17 +512,16 @@ add_action('os_tag_add_form_fields', function() {
     <div class="form-field">
         <label for="badge_type">Badge Type</label>
         <select name="badge_type" id="badge_type">
-            <option value="">None</option>
+            <option value="">No badge</option>
             <?php foreach ($badge_types as $type) : ?>
                 <option value="<?php echo esc_attr($type); ?>"><?php echo esc_html($type); ?></option>
             <?php endforeach; ?>
         </select>
-        <p class="description">Select a badge type for this tag (optional).</p>
+        <p class="description">Assign this tag to a badge type.</p>
     </div>
     <?php
 });
 
-// Add badge type field to EDIT tag screen
 add_action('os_tag_edit_form_fields', function($term) {
     $badge_types = get_option('onlinesched_badge_types', array());
     if (!empty($badge_types)) {
@@ -549,18 +533,17 @@ add_action('os_tag_edit_form_fields', function($term) {
         <th scope="row"><label for="badge_type">Badge Type</label></th>
         <td>
             <select name="badge_type" id="badge_type">
-                <option value="">None</option>
+                <option value="">No badge</option>
                 <?php foreach ($badge_types as $type) : ?>
                     <option value="<?php echo esc_attr($type); ?>" <?php selected($selected, $type); ?>><?php echo esc_html($type); ?></option>
                 <?php endforeach; ?>
             </select>
-            <p class="description">Select a badge type for this tag (optional).</p>
+            <p class="description">Assign this tag to a badge type.</p>
         </td>
     </tr>
     <?php
 }, 10, 1);
 
-// Save badge type on tag CREATE
 add_action('created_os_tag', function($term_id) {
     $term = get_term($term_id, 'os_tag');
     if (!$term || is_wp_error($term)) {
@@ -570,15 +553,13 @@ add_action('created_os_tag', function($term_id) {
         return;
     }
     $badge_type = sanitize_text_field($_POST['badge_type']);
-    // An empty choice on the create form is None, the same as on edit. Left as
-    // no action, a slug the built-in rule knows would quietly get a type back.
+    // No badge suppresses built-in rules.
     onlinesched_set_tag_badge_type(
         $term->slug,
         '' === $badge_type ? ONLINESCHED_BADGE_NONE : $badge_type
     );
 }, 10, 1);
 
-// Save badge type on tag EDIT
 add_action('edited_os_tag', function($term_id) {
     if (!isset($_POST['badge_type'])) {
         return;
@@ -588,8 +569,7 @@ add_action('edited_os_tag', function($term_id) {
         return;
     }
     $badge_type = sanitize_text_field($_POST['badge_type']);
-    // An empty choice is None, not "leave it alone". Without this the screen
-    // offers None and nothing happens.
+    // No badge suppresses built-in rules.
     onlinesched_set_tag_badge_type(
         $term->slug,
         '' === $badge_type ? ONLINESCHED_BADGE_NONE : $badge_type
@@ -622,8 +602,7 @@ function onlinesched_fill_default_badge_types() {
     $map = onlinesched_get_tag_badge_map();
     $updated = 0;
     foreach ($tags as $tag) {
-        // A slug the map already answers for was decided by staff, and that
-        // includes an explicit None. Filling defaults must not overrule it.
+        // Explicit assignments override defaults.
         if (isset($map[$tag->slug])) {
             continue;
         }
@@ -639,14 +618,6 @@ function onlinesched_fill_default_badge_types() {
 }
 add_action('wp_ajax_onlinesched_assign_default_badge_types', 'onlinesched_assign_default_badge_types_ajax');
 
-/**
- * The association screen: badge types down the page, each holding the schedule
- * tags assigned to it. Names are shown because staff recognise names; slugs are
- * what gets stored.
- *
- * @param string[] $badge_types Configured badge type names.
- * @return void
- */
 function onlinesched_render_tag_association_panel($badge_types) {
 	$rows = onlinesched_tag_badge_rows();
 	$by_type = array();
@@ -667,9 +638,8 @@ function onlinesched_render_tag_association_panel($badge_types) {
 	<div class="card" style="max-width:none; padding:12px 16px; margin-bottom:20px;">
 		<h3 style="margin-top:0;">Tags in each badge type</h3>
 		<p class="description">
-			One badge type holds many tags; a tag belongs to at most one type.
-			Hold command or control to select several. A tag left out of every
-			list is unassigned and shows below.
+			Assign each tag to one badge type or No badge. Hold Command on Mac or
+			Control on Windows to select several tags. Unassigned tags appear below.
 		</p>
 		<form method="post">
 			<?php wp_nonce_field('onlinesched_badge_types'); ?>
@@ -683,8 +653,6 @@ function onlinesched_render_tag_association_panel($badge_types) {
 						</th>
 						<td>
 							<?php
-							// This type's tags plus the unclaimed ones. The whole
-							// catalogue made every box look like it held every tag.
 							$choices = array_values(array_filter(
 								$rows,
 								static function ($row) use ($type) {
@@ -711,8 +679,7 @@ function onlinesched_render_tag_association_panel($badge_types) {
 								<?php endforeach; ?>
 							</select>
 							<p class="description">
-								<?php echo (int) $mine; ?> assigned. The rest of this list is
-								unassigned tags you can add.
+								<?php echo (int) $mine; ?> assigned. Other choices are unassigned.
 							</p>
 						</td>
 					</tr>
@@ -739,8 +706,8 @@ function onlinesched_render_tag_association_panel($badge_types) {
 								<?php endforeach; ?>
 							</select>
 							<p class="description">
-								Selected tags carry no badge deliberately, and the built-in
-								rule will not put one back.
+								Unassigned tags may receive a default badge. Tags selected here
+								stay without one.
 							</p>
 						</td>
 					</tr>
@@ -770,8 +737,7 @@ function onlinesched_render_tag_association_panel($badge_types) {
 		<?php if ($stale) : ?>
 			<h4>Mapped to a badge type that no longer exists</h4>
 			<p class="description">
-				These keep their mapping rather than vanishing. Recreate the type or
-				move the tag.
+				Recreate the badge type or assign these tags to another one.
 			</p>
 			<ul style="margin-left:1em;">
 				<?php foreach ($stale as $slug => $type) : ?>
@@ -781,7 +747,7 @@ function onlinesched_render_tag_association_panel($badge_types) {
 		<?php endif; ?>
 
 		<?php if ($no_badge) : ?>
-			<h4>Deliberately no badge</h4>
+			<h4>No badge</h4>
 			<ul style="margin-left:1em;">
 				<?php foreach ($no_badge as $row) : ?>
 					<li>
@@ -795,18 +761,16 @@ function onlinesched_render_tag_association_panel($badge_types) {
 
 		<h4>Unassigned tags</h4>
 		<?php if (empty($unassigned)) : ?>
-			<p class="description">Every tag carries a badge type.</p>
+			<p class="description">No unassigned tags.</p>
 		<?php else : ?>
 			<p class="description">
-				A newly imported spelling lands here. That is the signal to map it,
-				not something to infer.
+				Assign each imported tag to a badge type or No badge.
 			</p>
 			<ul style="margin-left:1em;">
 				<?php foreach ($unassigned as $row) : ?>
 					<li>
 						<?php echo esc_html($row['name']); ?>
 						<code><?php echo esc_html($row['slug']); ?></code>
-						<?php echo $row['missing'] ? '<em>(mapping kept, tag missing)</em>' : ''; ?>
 					</li>
 				<?php endforeach; ?>
 			</ul>
@@ -816,7 +780,7 @@ function onlinesched_render_tag_association_panel($badge_types) {
 }
 
 /**
- * Turns a posted association form into the map it should become.
+ * Builds a tag map from the association form.
  *
  * @param array $posted Badge type name to array of tag slugs.
  * @param string[] $badge_types Configured badge type names.
@@ -843,8 +807,7 @@ function onlinesched_tag_map_from_submission($posted, $badge_types, $offered = a
 	$conflicts = array();
 	foreach ($claims as $slug => $types) {
 		$types = array_values(array_unique($types));
-		// A tag belongs to one type, so a second claim is a conflict to report
-		// rather than a duplicate to store or a winner to pick silently.
+		// Reject multiple badge claims instead of choosing a winner.
 		if (count($types) > 1) {
 			$conflicts[] = $slug;
 			continue;
@@ -852,8 +815,7 @@ function onlinesched_tag_map_from_submission($posted, $badge_types, $offered = a
 		$map[$slug] = $types[0];
 	}
 
-	// A tag the form showed and nobody picked is released. A mapping it never
-	// showed is not this form's to throw away.
+	// Unselected visible tags are released. Hidden mappings are preserved.
 	$shown = array();
 	foreach ((array) $offered as $slug) {
 		$shown[sanitize_title((string) $slug)] = true;

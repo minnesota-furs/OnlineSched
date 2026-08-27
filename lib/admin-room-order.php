@@ -1,9 +1,4 @@
 <?php
-/**
- * Drag-to-order UI for Room Sort Priority. Presentation only: the ordering is
- * shared with the app feed, but this widget is not.
- */
-
 function onlinesched_room_sort_priority_row()
 {
     $option_name = 'onlinesched_room_sort_priority';
@@ -19,8 +14,7 @@ function onlinesched_room_sort_priority_row()
         $names[$room->slug] = $room->name;
     }
 
-    // A stored slug whose room is gone still shows, so an order is never
-    // silently shortened by a room being renamed away.
+    // Keep missing slugs visible so staff can repair the order.
     $ordered = array();
     foreach ($chosen as $slug) {
         $ordered[$slug] = isset($names[$slug]) ? $names[$slug] : $slug . ' (no such room)';

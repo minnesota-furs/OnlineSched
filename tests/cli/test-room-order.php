@@ -29,8 +29,6 @@ $slugs = static function ($rooms) {
 	}, $rooms);
 };
 
-// Sorting is a pure function of the rooms and the priority list, so most of
-// this needs no fixtures.
 $rooms = array(
 	'zebra-hall'  => array('slug' => 'zebra-hall', 'name' => 'Zebra Hall'),
 	'main-stage'  => array('slug' => 'main-stage', 'name' => 'Main Stage'),
@@ -56,8 +54,6 @@ $check(
 	array_column($ordered, 'sort')
 );
 
-// The point of keying on slug: renaming a room must not move it. "Main Stage"
-// becomes "Zulu Stage", which would sort last by name.
 $renamed = $rooms;
 $renamed['main-stage']['name'] = 'Zulu Stage';
 $check(
@@ -72,13 +68,11 @@ $check(
 	$slugs(onlinesched_app_feed_sort_rooms($rooms, array('gone-room', 'lakeshore', 'alpha-room')))
 );
 
-// The one-time converter. It rewrites the stored setting, so nothing has to
-// resolve names at read time.
 $terms = array(
 	array('slug' => 'main-stage', 'name' => 'Main Stage'),
 	array('slug' => 'greenway-a', 'name' => 'Greenway (A)'),
 	array('slug' => 'lakeshore', 'name' => 'Lakeshore'),
-	// This room's NAME is another room's SLUG.
+	// This name collides with another room's slug.
 	array('slug' => 'decoy-room', 'name' => 'lakeshore'),
 );
 
@@ -122,8 +116,6 @@ $converted = onlinesched_convert_room_priority_tokens(
 );
 $check('padding and empty entries are handled', array('main-stage', 'greenway-a'), $converted['slugs']);
 
-// End to end against real terms: convert once, then rename, and the order
-// holds because what is stored is a slug.
 $made = array();
 $fixtures = array(
 	'aft-order-one' => 'AFT Order One',
@@ -219,8 +211,6 @@ foreach ($made as $term_id) {
 	wp_delete_term($term_id, 'os_room');
 }
 
-// The enqueue once pointed at a file that was not there: a 404, nothing thrown,
-// and the widget never appeared. Render and parse checks both missed it.
 $_GET['page'] = 'onlinesched-settings';
 onlinesched_enqueue_room_order_assets();
 unset($_GET['page']);

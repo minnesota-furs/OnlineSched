@@ -1,6 +1,6 @@
 <?php
 /**
- * The tag-to-badge-type map: one option, one authority.
+ * Stores each tag's badge type.
  *
  * Term meta stays readable as a migration fallback and is mirrored on save,
  * but it never outranks the map. A mapping is keyed by tag slug and survives
@@ -9,8 +9,95 @@
 
 const ONLINESCHED_TAG_BADGE_MAP_OPTION = 'onlinesched_tag_badge_map';
 
-/** Stored when staff choose None, so the map can say "deliberately nothing". */
+const ONLINESCHED_BADGE_TYPE_KEYS_OPTION = 'onlinesched_badge_type_keys';
+
+/** Stored for an explicit No badge assignment. */
 const ONLINESCHED_BADGE_NONE = '__none__';
+
+/**
+ * @return array<string,string> Badge type name to permanent client key.
+ */
+function onlinesched_get_badge_type_keys() {
+	$keys = get_option(ONLINESCHED_BADGE_TYPE_KEYS_OPTION, array());
+	return is_array($keys) ? $keys : array();
+}
+
+/**
+ * @param array<string,string> $keys Badge type name to permanent client key.
+ * @return void
+ */
+function onlinesched_save_badge_type_keys($keys) {
+	$clean = array();
+	foreach ($keys as $name => $key) {
+		$name = sanitize_text_field((string) $name);
+		$key = sanitize_title((string) $key);
+		if ('' !== $name && '' !== $key) {
+			$clean[$name] = $key;
+		}
+	}
+	ksort($clean);
+	update_option(ONLINESCHED_BADGE_TYPE_KEYS_OPTION, $clean);
+}
+
+/**
+ * @param string[] $types Badge type names.
+ * @return array<string,string> Badge type name to permanent client key.
+ */
+function onlinesched_ensure_badge_type_keys($types) {
+	$keys = onlinesched_get_badge_type_keys();
+	$used = array_fill_keys(array_values($keys), true);
+	$changed = false;
+
+	foreach ($types as $type) {
+		$type = sanitize_text_field((string) $type);
+		if ('' === $type || !empty($keys[$type])) {
+			continue;
+		}
+
+		$base = sanitize_title($type);
+		if ('' === $base) {
+			continue;
+		}
+		$key = $base;
+		$suffix = 2;
+		while (isset($used[$key])) {
+			$key = $base . '-' . $suffix;
+			$suffix++;
+		}
+		$keys[$type] = $key;
+		$used[$key] = true;
+		$changed = true;
+	}
+
+	if ($changed) {
+		onlinesched_save_badge_type_keys($keys);
+	}
+	return $keys;
+}
+
+/**
+ * @param string $type Badge type name.
+ * @return string Permanent client key.
+ */
+function onlinesched_badge_type_key($type) {
+	$keys = onlinesched_get_badge_type_keys();
+	return isset($keys[$type]) ? $keys[$type] : sanitize_title($type);
+}
+
+/**
+ * @param string $from Existing badge type name.
+ * @param string|null $to New name, or null when deleting the type.
+ * @return void
+ */
+function onlinesched_reconcile_badge_type_key($from, $to) {
+	$keys = onlinesched_get_badge_type_keys();
+	$key = isset($keys[$from]) ? $keys[$from] : sanitize_title($from);
+	unset($keys[$from]);
+	if (null !== $to && '' !== $key) {
+		$keys[$to] = $key;
+	}
+	onlinesched_save_badge_type_keys($keys);
+}
 
 /**
  * @return array<string,string> Tag slug to badge type name, or the None marker.
@@ -124,8 +211,7 @@ function onlinesched_set_tag_badge_type($slug, $type) {
 	}
 
 	$type = sanitize_text_field((string) $type);
-	// A type nobody configured would map a tag to a name the Badge Types page
-	// cannot show, which is how an assignment becomes invisible.
+	// Reject types the Badge Types page cannot display.
 	if (!onlinesched_badge_type_is_configured($type)) {
 		return;
 	}
@@ -195,15 +281,13 @@ function onlinesched_tag_badge_rows() {
 			'type'     => onlinesched_badge_type_for_tag($term->slug, $term->term_id),
 			'missing'  => false,
 			'explicit' => isset($map[$term->slug]),
-			// A deliberate None and a tag nobody has classified both resolve to
-			// no type. They are not the same thing and must not read alike.
+			// Keep an explicit No badge distinct from an unassigned tag.
 			'none'     => isset($map[$term->slug])
 				&& ONLINESCHED_BADGE_NONE === $map[$term->slug],
 		);
 	}
 
-	// A mapping whose tag is gone stays visible: that is what lets a re-imported
-	// tag with the same slug pick its type back up.
+	// Missing tags stay mapped in case the same slug is imported again.
 	foreach ($map as $slug => $type) {
 		if (isset($seen[$slug])) {
 			continue;

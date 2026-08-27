@@ -451,7 +451,7 @@ function onlinesched_app_feed_schedule(array $filters = array(), $revisions = nu
 
 		$tag_names = array_map('strtolower', wp_list_pluck($tags, 'name'));
 		$cancelled = in_array('canceled', $tag_names, true) || in_array('cancelled', $tag_names, true);
-		$adult = in_array('restricted', $tag_names, true);
+		$adult = onlinesched_app_feed_event_is_adult($badges, $tag_names);
 
 		$payload['events'][] = array(
 			'event_uid'        => $event_uid,
@@ -590,9 +590,9 @@ function onlinesched_app_feed_event_badges($post_id) {
 		if ('' === trim($badge_type)) {
 			continue;
 		}
-		// The badge type is the meaning and the slug is its stable spelling, so
-		// a client never has to match on a staff-typed name.
-		$slug = sanitize_title($badge_type);
+		$slug = function_exists('onlinesched_badge_type_key')
+			? onlinesched_badge_type_key($badge_type)
+			: sanitize_title($badge_type);
 		if ('' !== $slug) {
 			$badges[$slug] = $slug;
 		}
@@ -600,6 +600,15 @@ function onlinesched_app_feed_event_badges($post_id) {
 
 	ksort($badges);
 	return array_values($badges);
+}
+
+/**
+ * @param string[] $badges Badge type slugs.
+ * @param string[] $tag_names Lowercase tag names.
+ * @return bool
+ */
+function onlinesched_app_feed_event_is_adult($badges, $tag_names) {
+	return in_array('adult', $badges, true) || in_array('restricted', $tag_names, true);
 }
 
 /**
