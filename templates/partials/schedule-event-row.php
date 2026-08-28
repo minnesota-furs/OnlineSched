@@ -27,8 +27,6 @@ foreach ($badge_types_present as $type => $terms) {
             $icon_class_raw = $badge_types_icons[$type];
             $icon_class = esc_attr($icon_class_raw);
             $label = esc_html(ucwords($type));
-            // The visible label and the icon share the span's colours; an
-            // icon-only badge said nothing and a span-less fg missed the text.
             $icon_span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
             if (strpos($icon_class_raw, 'fa-') !== false) {
                 $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . $icon_span_style . "><i class='" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
