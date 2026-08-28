@@ -43,6 +43,7 @@ function onlinesched_badge_types_page() {
 	$default_badge_types_config = array(
         'Adult' => array('color' => '#d12229', 'fg_color' => '#ffffff', 'show_badge' => true),
         'Sensory' => array('color' => '#0a58ca', 'fg_color' => '#ffffff', 'show_badge' => true),
+        'ASL' => array('color' => '#5e35b1', 'fg_color' => '#ffffff', 'icon' => 'fa-solid fa-hands-asl-interpreting', 'show_badge' => true),
         'VIP' => array('row_color' => '#fff0b2', 'show_badge' => true),
         'Essentials' => array(),
         'Guest Of Honor' => array('row_color' => '#b5d8ac', 'icon' => 'fas fa-star', 'show_badge' => false),

@@ -45,9 +45,10 @@ $make_tag('aft-badge-dance', 'AFT Badge Dance', 'Dance');
 $make_tag('aft-badge-goh', 'AFT Badge GoH', 'Guest Of Honor');
 $make_tag('aft-badge-essentials', 'AFT Badge Essentials', 'Essentials');
 $make_tag('aft-badge-adult', 'AFT Badge Adult', 'Adult');
+$make_tag('aft-badge-asl', 'AFT Badge ASL', 'ASL');
 
 $original_type_keys = get_option(ONLINESCHED_BADGE_TYPE_KEYS_OPTION, false);
-onlinesched_ensure_badge_type_keys(array('Adult'));
+onlinesched_ensure_badge_type_keys(array('Adult', 'ASL'));
 
 $post_id = wp_insert_post(array(
 	'post_type'   => 'os_event',
@@ -72,6 +73,14 @@ $adult_badges = onlinesched_app_feed_event_badges($post_id);
 $check('an adult tag publishes its badge type', array('adult'), $adult_badges);
 $check('an adult badge sets the legacy adult flag', true, onlinesched_app_feed_event_is_adult($adult_badges, array()));
 $check('the legacy Restricted tag still sets the adult flag', true, onlinesched_app_feed_event_is_adult(array(), array('restricted')));
+
+wp_set_object_terms($post_id, array('aft-badge-asl'), 'os_tag');
+$check('an ASL tag publishes its badge type', array('asl'), onlinesched_app_feed_event_badges($post_id));
+$check('an ASL badge does not set the adult flag', false, onlinesched_app_feed_event_is_adult(onlinesched_app_feed_event_badges($post_id), array()));
+
+onlinesched_reconcile_badge_type_key('ASL', 'Sign Language');
+$check('renaming ASL keeps its client key', 'asl', onlinesched_badge_type_key('Sign Language'));
+onlinesched_reconcile_badge_type_key('Sign Language', 'ASL');
 
 onlinesched_reconcile_badge_type_key('Adult', 'Mature');
 $check('renaming Adult keeps its client key', 'adult', onlinesched_badge_type_key('Mature'));
