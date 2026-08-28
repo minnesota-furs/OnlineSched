@@ -86,6 +86,7 @@ const pluginSelectors = {
   badge:                '.os-badge',
   badgeDanger:          '.os-badge--danger',
   badgeSensory:         '.os-badge--sensory',
+  badgeAsl:             '.os-badge--asl',
   badgeVip:             '.os-badge--vip',
   badgeEssentials:      '.os-badge--essentials',
   badgeCancelled:       '.os-badge--cancelled',

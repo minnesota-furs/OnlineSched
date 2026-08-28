@@ -64,7 +64,8 @@ if [ "$EXISTING" -ge 1 ]; then
     "Closing Howl and Dead Dog" \
     "After Dark Howl" \
     "Quiet Paws Chill Zone" \
-    "VIP Tail Care Lounge"; do
+    "VIP Tail Care Lounge" \
+    "Signing Circle Social"; do
     IDS=$(wp_run post list \
       --post_type=os_event --post_status=publish \
       --fields=ID,post_title --format=csv 2>/dev/null \
@@ -91,27 +92,27 @@ echo "Set onlinesched_essentials_tags to [\"essential\"]"
 echo "Setting up default badge types..."
 
 wp_run option update onlinesched_badge_types \
-  '["Adult","Cancelled","Essentials","Guest Of Honor","Sensory","Special Guest","Streaming","VIP"]' \
+  '["ASL","Adult","Cancelled","Essentials","Guest Of Honor","Sensory","Special Guest","Streaming","VIP"]' \
   --format=json 2>/dev/null || true
 
 wp_run option update onlinesched_badge_types_display \
-  '{"Adult":true,"Sensory":true,"VIP":true,"Essentials":true,"Guest Of Honor":false,"Special Guest":false,"Streaming":true,"Cancelled":true}' \
+  '{"ASL":true,"Adult":true,"Sensory":true,"VIP":true,"Essentials":true,"Guest Of Honor":false,"Special Guest":false,"Streaming":true,"Cancelled":true}' \
   --format=json 2>/dev/null || true
 
 wp_run option update onlinesched_badge_types_colors \
-  '{"Adult":"#d12229","Sensory":"#0a58ca","VIP":"","Essentials":"","Guest Of Honor":"","Special Guest":"","Streaming":"","Cancelled":""}' \
+  '{"ASL":"#5e35b1","Adult":"#d12229","Sensory":"#0a58ca","VIP":"","Essentials":"","Guest Of Honor":"","Special Guest":"","Streaming":"","Cancelled":""}' \
   --format=json 2>/dev/null || true
 
 wp_run option update onlinesched_badge_types_fg_colors \
-  '{"Adult":"#ffffff","Sensory":"#ffffff","VIP":"","Essentials":"","Guest Of Honor":"","Special Guest":"","Streaming":"","Cancelled":""}' \
+  '{"ASL":"#ffffff","Adult":"#ffffff","Sensory":"#ffffff","VIP":"","Essentials":"","Guest Of Honor":"","Special Guest":"","Streaming":"","Cancelled":""}' \
   --format=json 2>/dev/null || true
 
 wp_run option update onlinesched_badge_types_row_colors \
-  '{"Adult":"","Sensory":"","VIP":"#fff0b2","Essentials":"","Guest Of Honor":"#b5d8ac","Special Guest":"#b5d8ac","Streaming":"","Cancelled":""}' \
+  '{"ASL":"","Adult":"","Sensory":"","VIP":"#fff0b2","Essentials":"","Guest Of Honor":"#b5d8ac","Special Guest":"#b5d8ac","Streaming":"","Cancelled":""}' \
   --format=json 2>/dev/null || true
 
 wp_run option update onlinesched_badge_types_icons \
-  '{"Adult":"","Sensory":"","VIP":"","Essentials":"","Guest Of Honor":"fas fa-star","Special Guest":"fas fa-star","Streaming":"","Cancelled":""}' \
+  '{"ASL":"fa-solid fa-hands-asl-interpreting","Adult":"","Sensory":"","VIP":"","Essentials":"","Guest Of Honor":"fas fa-star","Special Guest":"fas fa-star","Streaming":"","Cancelled":""}' \
   --format=json 2>/dev/null || true
 
 echo "Badge type options set."
@@ -177,7 +178,7 @@ create_event() {
   echo "  Created: $TITLE (ID: $POST_ID)"
 }
 
-echo "Seeding 12 test events for $YEAR..."
+echo "Seeding 13 test events for $YEAR..."
 
 # Friday
 create_event "Opening Howl Ceremony" \
@@ -227,6 +228,10 @@ create_event "Quiet Paws Chill Zone" \
   $((NEXT_SUNDAY + 43200)) 60 "Panel Room A" "Sensory" "" \
   "A low-stimulation space for furs who need a sensory break. Dim lights, soft music, bean bags."
 
+create_event "Signing Circle Social" \
+  $((NEXT_SATURDAY + 46800)) 60 "Panel Room A" "ASL" "" \
+  "A social hour with ASL interpretation. All welcome, interpreters provided."
+
 create_event "VIP Tail Care Lounge" \
   $((NEXT_SATURDAY + 50400)) 90 "Panel Room B" "VIP" "Kurst Hyperyote" \
   "Exclusive tail care session for VIP badge holders. Includes premium floof brushes, detangling sprays, and a complimentary tail bow."
@@ -238,5 +243,6 @@ assign_badge_type "cancelled" "Cancelled"
 assign_badge_type "restricted" "Adult"
 assign_badge_type "sensory" "Sensory"
 assign_badge_type "vip" "VIP"
+assign_badge_type "asl" "ASL"
 
-echo "Done. 12 test events created for $YEAR."
+echo "Done. 13 test events created for $YEAR."

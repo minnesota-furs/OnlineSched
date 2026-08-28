@@ -8,6 +8,7 @@ const S = require('../helpers/selectors');
 const BADGE_DEFAULTS = {
   'Adult':          { color: '#d12229', fgColor: '#ffffff', showBadge: true,  rowColor: '' },
   'Sensory':        { color: '#0a58ca', fgColor: '#ffffff', showBadge: true,  rowColor: '' },
+  'ASL':            { color: '#5e35b1', fgColor: '#ffffff', showBadge: true,  rowColor: '', icon: 'fa-solid fa-hands-asl-interpreting' },
   'VIP':            { color: '',        fgColor: '',        showBadge: true,  rowColor: '#fff0b2' },
   'Essentials':     { color: '',        fgColor: '',        showBadge: true,  rowColor: '' },
   'Guest Of Honor': { color: '',        fgColor: '',        showBadge: false, rowColor: '#b5d8ac', icon: 'fas fa-star' },
@@ -34,7 +35,12 @@ test.describe('11 — Badges', () => {
   test('Essentials badge renders on Essential-tagged events', async ({ page }) => {
     await page.fill(S.searchInput, 'Opening Howl Ceremony');
     await page.waitForTimeout(400);
-    const item = page.locator(`${S.scheduleItem}:visible`).first();
+    // Demo imports clone this title with suffixes and no tags; hold the
+    // exact seed title so first() cannot land on a clone.
+    const item = page
+      .locator(`${S.scheduleItem}:visible`)
+      .filter({ has: page.getByText('Opening Howl Ceremony', { exact: true }) })
+      .first();
     const badge = item.locator(S.badgeEssentials);
     await expect(badge).toBeVisible();
     await expect(badge).toContainText('Essentials');
@@ -82,6 +88,19 @@ test.describe('11 — Badges', () => {
     await expect(badge).toContainText('VIP');
   });
 
+  test('ASL badge renders with a visible label and its icon', async ({ page }) => {
+    await page.fill(S.searchInput, 'Signing Circle Social');
+    await page.waitForTimeout(400);
+    const items = page.locator(`${S.scheduleItem}:visible`);
+    if (await items.count() === 0) return test.skip(true, 'ASL seed event not found - reseed with --force');
+    const badge = items.first().locator(S.badgeAsl);
+    await expect(badge).toBeVisible();
+    // The label must be readable text, not hidden behind the icon.
+    await expect(badge).toContainText('ASL');
+    expect(await badge.locator('.os-sr-only').count()).toBe(0);
+    await expect(badge.locator('i.fa-hands-asl-interpreting')).toHaveCount(1);
+  });
+
   // -- Badge Colors --
 
   test('Adult badge has red background (#d12229) and white text', async ({ page }) => {
@@ -103,6 +122,17 @@ test.describe('11 — Badges', () => {
     const badge = items.first().locator(S.badgeSensory);
     const style = await badge.getAttribute('style') || '';
     expect(style.toLowerCase()).toContain('#0a58ca');
+    expect(style.toLowerCase()).toContain('#ffffff');
+  });
+
+  test('ASL badge has purple background (#5e35b1) and white text', async ({ page }) => {
+    await page.fill(S.searchInput, 'Signing Circle Social');
+    await page.waitForTimeout(400);
+    const items = page.locator(`${S.scheduleItem}:visible`);
+    if (await items.count() === 0) return test.skip(true, 'ASL seed event not found');
+    const badge = items.first().locator(S.badgeAsl);
+    const style = await badge.getAttribute('style') || '';
+    expect(style.toLowerCase()).toContain('#5e35b1');
     expect(style.toLowerCase()).toContain('#ffffff');
   });
 
@@ -162,6 +192,14 @@ test.describe('11 — Badges', () => {
       expect(style.toLowerCase()).toContain('#d12229');
     });
 
+    test('ASL badge visible with icon on kiosk', async ({ page }) => {
+      const badges = page.locator(S.badgeAsl);
+      const count = await badges.count();
+      if (count === 0) return test.skip(true, 'No ASL badge on kiosk - reseed with --force');
+      await expect(badges.first()).toContainText('ASL');
+      await expect(badges.first().locator('i.fa-hands-asl-interpreting')).toHaveCount(1);
+    });
+
     test('VIP event has row highlight on kiosk', async ({ page }) => {
       const vipItems = await page.evaluate((sel) => {
         const items = document.querySelectorAll(sel);
@@ -186,6 +224,7 @@ test.describe('11 — Badges', () => {
     const expectedBadges = [
       { selector: S.badgeEssentials, name: 'Essentials' },
       { selector: S.badgeCancelled,  name: 'Cancelled' },
+      { selector: S.badgeAsl,        name: 'ASL' },
     ];
 
     for (const { selector, name } of expectedBadges) {

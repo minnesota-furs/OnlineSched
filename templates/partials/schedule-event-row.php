@@ -27,12 +27,13 @@ foreach ($badge_types_present as $type => $terms) {
             $icon_class_raw = $badge_types_icons[$type];
             $icon_class = esc_attr($icon_class_raw);
             $label = esc_html(ucwords($type));
+            // The visible label and the icon share the span's colours; an
+            // icon-only badge said nothing and a span-less fg missed the text.
+            $icon_span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
             if (strpos($icon_class_raw, 'fa-') !== false) {
-                // The label stays visible beside the icon. Hidden in
-                // os-sr-only, an icon-only badge says nothing at a glance.
-                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> " . $label . "</span>";
+                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . $icon_span_style . "><i class='" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
             } else {
-                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . ($style ? " style='" . esc_attr($style) . "'" : '') . "><i class='fa-classic fa-" . $icon_class . "'" . ($fg_style ? " style='" . esc_attr($fg_style) . "'" : '') . " aria-hidden='true'></i> " . $label . "</span>";
+                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . $icon_span_style . "><i class='fa-classic fa-" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
             }
         } elseif (isset($canonical_badges[$type_lc])) {
             $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
