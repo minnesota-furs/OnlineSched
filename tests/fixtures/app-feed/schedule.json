@@ -7,11 +7,13 @@
   "rooms": [
     {
       "slug": "main-stage",
-      "name": "Main Stage"
+      "name": "Main Stage",
+      "sort": 0
     },
     {
       "slug": "panel-room-a",
-      "name": "Panel Room A"
+      "name": "Panel Room A",
+      "sort": 1
     }
   ],
   "tags": [

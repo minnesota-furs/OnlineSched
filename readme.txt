@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 3.7.2
+Stable tag: 3.7.3
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -123,13 +123,21 @@ OnlineSched began as a prototype built by the original Furry Migration team, wit
 
 == Changelog ==
 
+= 3.7.3 =
+
+* Made favorite calendar subscriptions live and added subscriptions for the current schedule filters.
+* Reworked schedule filters as accessible checkbox panels with independent room and tag selections.
+* Added an authoritative tag-to-badge mapping screen and published every badge type carried by an event, including Sensory and ASL.
+* Added drag-and-drop room priority settings and published the room order in the app feed.
+* Kept map content out of the kiosk schedule introduction.
+* Made matching revisioned Schedule, Hours, and Info app-feed URLs immutable. Stale revisions now return a non-cacheable conflict while legacy URLs retain their 60-second lifetime.
+
 = 3.7.2 =
 
 * Added calendar subscriptions for all favorites or the favorites visible in the current filtered view.
 * Simplified the calendar choices when the current view does not contain a distinct set of favorites.
 * Fixed schedule filters leaving empty hour headings and failing on hidden schedule items.
 * Updated Telegram login setup for its OpenID scopes and Web Login Client credentials.
-* Made matching revisioned Schedule, Hours, and Info app-feed URLs immutable. Stale revisions now return a non-cacheable conflict while legacy URLs retain their 60-second lifetime.
 
 = 3.7.1 =
 

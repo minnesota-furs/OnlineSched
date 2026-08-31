@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.7.3
+
+- Made favorite calendar subscriptions live and added subscriptions that
+  retain the current schedule filters.
+- Reworked schedule filters as accessible checkbox panels with independent
+  room and tag selections.
+- Added one authoritative tag-to-badge mapping screen and published every
+  badge type carried by an event, including Sensory and ASL. Badge meanings
+  remain stable when their labels change, and tags may be deliberately left
+  without a badge.
+- Added drag-and-drop room priority settings backed by stable room slugs and
+  published the resulting order in the app feed.
+- Kept map content out of the kiosk schedule introduction.
+- Made matching revisioned Schedule, Hours, and Info app-feed URLs immutable.
+  Stale revisions now return a non-cacheable conflict while legacy URLs retain
+  their 60-second lifetime.
+
 ## 3.7.2
 
 - Added calendar subscriptions for all favorites or the favorites visible in
@@ -10,9 +27,6 @@
   schedule items.
 - Updated Telegram login setup for its OpenID scopes and Web Login Client
   credentials.
-- Made matching revisioned Schedule, Hours, and Info app-feed URLs immutable.
-  Stale revisions now return a non-cacheable conflict while legacy URLs retain
-  their 60-second lifetime.
 
 ## 3.7.1
 

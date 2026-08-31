@@ -286,6 +286,8 @@ $option_names = array(
 	// anything (including our own legacy-migration test below) touches it.
 	'onlinesched_feed_revisions',
 	'onlinesched_feed_schema_installed',
+	'onlinesched_tag_badge_map',
+	'onlinesched_badge_type_keys',
 	'timezone_string',
 	'gmt_offset',
 );
@@ -1630,6 +1632,8 @@ try {
 	update_option('onlinesched_con_end', '2031-06-03');
 	update_option('onlinesched_public_date_start', '2031-05-31T10:00');
 	update_option('onlinesched_public_date_end', '2031-06-02T18:00');
+	delete_option('onlinesched_tag_badge_map');
+	delete_option('onlinesched_badge_type_keys');
 
 	$shapes_room = wp_insert_term('AFT Shapes Room ' . $run_id, 'os_room');
 	$assert(!is_wp_error($shapes_room), 'Shapes room term must be created.');
@@ -1964,9 +1968,10 @@ try {
 	$pass('cancelled/adult flags derive from tag names (Cancelled/Restricted)');
 
 	$assert(array('sensory') === $events_by_id[$event_normal]['badges'], 'Multiple Sensory tags must emit one canonical sensory badge.');
-	$assert(array() === $events_by_id[$event_cancelled]['badges'], 'An unrelated tag must not emit a sensory badge.');
+	$assert(array('cancelled') === $events_by_id[$event_cancelled]['badges'], 'The cancelled tag must emit its own badge.');
+	$assert(array('adult') === $events_by_id[$event_adult]['badges'], 'The restricted tag must emit the adult badge.');
 	$assert(array('sensory') === $events_by_id[$event_sensory_default]['badges'], 'The sensory slug must emit a default sensory badge when metadata is absent.');
-	$assert(array() === $events_by_id[$event_sensory_override]['badges'], 'Explicit non-Sensory metadata must override the sensory-friendly slug default.');
+	$assert(array('essentials') === $events_by_id[$event_sensory_override]['badges'], 'Explicit metadata must override the sensory-friendly slug default.');
 	$assert('Sensory' === onlinesched_default_badge_type_for_tag_slug('sensory'), 'The sensory slug must default to the Sensory badge type.');
 	$assert('Sensory' === onlinesched_default_badge_type_for_tag_slug('sensory-friendly'), 'The sensory-friendly slug must default to the Sensory badge type.');
 	$pass('schedule badges use explicit tag metadata and canonical sensory defaults');
