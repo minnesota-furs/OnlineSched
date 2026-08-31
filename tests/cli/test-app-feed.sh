@@ -119,6 +119,7 @@ if ! grep -qi '^cache-control:.*public.*max-age=60' "$response_dir/headers"; the
 	cat "$response_dir/headers" >&2
 	exit 1
 fi
+cp "$response_dir/body" "$response_dir/meta.json"
 echo "PASS: section=meta returns 200 + application/json + ETag + explicit Expires ($etag)"
 
 # 2. Same request with the exact or mod_deflate-wrapped If-None-Match must
@@ -154,7 +155,44 @@ for key in '"schedule_published"' '"events"' '"rooms"' '"tags"'; do
 		exit 1
 	fi
 done
+if ! grep -qi '^cache-control:.*public.*max-age=60' "$response_dir/headers"; then
+	echo "FAIL: bare json.php did not retain the legacy Cache-Control: public, max-age=60 contract." >&2
+	exit 1
+fi
 echo "PASS: bare json.php defaults to the schedule section"
+
+# A Meta-advertised revision URL identifies one immutable representation.
+schedule_revision="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["resources"]["schedule"]["revision"])' "$response_dir/meta.json")"
+revisioned_schedule_url="$BASE_URL/wp-content/plugins/OnlineSched/json.php?section=schedule&rev=$schedule_revision"
+http_status_code="$(http_status "$revisioned_schedule_url")"
+if [[ "$http_status_code" != "200" ]]; then
+	echo "FAIL: revisioned section=schedule returned HTTP $http_status_code, expected 200." >&2
+	exit 1
+fi
+if ! grep -qi '^cache-control:.*public.*max-age=31536000.*immutable' "$response_dir/headers"; then
+	echo "FAIL: matching revisioned section=schedule was not immutable." >&2
+	cat "$response_dir/headers" >&2
+	exit 1
+fi
+revisioned_etag="$(grep -i '^etag:' "$response_dir/headers" | head -n1 | sed -E 's/^[Ee][Tt][Aa][Gg]: *//' | tr -d '\r\n')"
+http_status_code="$(http_status "$revisioned_schedule_url" -H "If-None-Match: $revisioned_etag")"
+if [[ "$http_status_code" != "304" ]]; then
+	echo "FAIL: matching revisioned section=schedule did not return 304 for its ETag." >&2
+	exit 1
+fi
+
+stale_schedule_revision=$((schedule_revision + 1))
+http_status_code="$(http_status "$BASE_URL/wp-content/plugins/OnlineSched/json.php?section=schedule&rev=$stale_schedule_revision")"
+if [[ "$http_status_code" != "409" ]]; then
+	echo "FAIL: stale revisioned section=schedule returned HTTP $http_status_code, expected 409." >&2
+	exit 1
+fi
+if ! grep -qi '^cache-control:.*no-store' "$response_dir/headers"; then
+	echo "FAIL: stale revisioned section=schedule was cacheable." >&2
+	cat "$response_dir/headers" >&2
+	exit 1
+fi
+echo "PASS: matching revisioned schedule URLs are immutable and stale revisions are rejected"
 
 # 4. section=info&page=<unknown slug> must 404.
 http_status_code="$(http_status "$BASE_URL/wp-content/plugins/OnlineSched/json.php?section=info&page=onlinesched-app-feed-test-missing-page")"

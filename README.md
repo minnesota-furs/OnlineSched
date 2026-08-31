@@ -302,7 +302,9 @@ configured info-page index.
 An app can poll `meta` cheaply. A `304 Not Modified` ends the pass. On a changed
 response, `resources` gives each core section's exact revisioned URL, schema,
 enabled state, and opaque revision. Clients fetch only resources whose published
-revision differs from their last successful local commit.
+revision differs from their last successful local commit. A matching revisioned
+URL is immutable. A stale revision returns `409` with `Cache-Control: no-store`.
+Legacy URLs without `rev` remain available with a 60-second lifetime.
 
 `essentials` contains the label and tag slugs selected by an administrator on
 the Essentials settings page. A deliberately empty `tags` array remains empty;
@@ -436,6 +438,11 @@ hash of the exact response bytes — so an ETag changes if and only if the
 representation changes, and identical representations keep identical ETags. Body,
 `ETag`, and `Last-Modified` are always derived from one coherent revision snapshot,
 even when schedule edits land mid-request.
+
+Meta and legacy section URLs send `Cache-Control: public, max-age=60`. A matching
+revisioned Schedule, Hours, or Info URL sends
+`Cache-Control: public, max-age=31536000, immutable`. Cache keys must retain the
+complete query string, including Schedule filters and the Info page slug.
 
 #### Event UID
 

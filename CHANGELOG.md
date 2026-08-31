@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.7.2
+
+- Added calendar subscriptions for all favorites or the favorites visible in
+  the current filtered view.
+- Simplified the calendar choices when the current view does not contain a
+  distinct set of favorites.
+- Fixed schedule filters leaving empty hour headings and failing on hidden
+  schedule items.
+- Updated Telegram login setup for its OpenID scopes and Web Login Client
+  credentials.
+- Made matching revisioned Schedule, Hours, and Info app-feed URLs immutable.
+  Stale revisions now return a non-cacheable conflict while legacy URLs retain
+  their 60-second lifetime.
+
 ## 3.7.1
 
 - Fixed rooms whose names contain punctuation appearing twice in the schedule

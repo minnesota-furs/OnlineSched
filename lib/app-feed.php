@@ -981,6 +981,18 @@ function onlinesched_app_feed_meta_fingerprint($revisions = null) {
  */
 function onlinesched_app_feed_send(array $payload, $section, $variant = '', $revisions = null) {
 	$revisions = is_array($revisions) ? $revisions : onlinesched_get_feed_revisions();
+	$requested_revision = onlinesched_app_feed_requested_revision();
+	$revisioned = 'meta' !== $section && null !== $requested_revision;
+	$current_revision = isset($revisions[$section]['rev'])
+		? (string) $revisions[$section]['rev']
+		: '';
+
+	if ($revisioned && ('' === $requested_revision
+		|| '' === $current_revision
+		|| !hash_equals($current_revision, $requested_revision))) {
+		onlinesched_app_feed_send_revision_mismatch($section);
+	}
+
 	$body = wp_json_encode($payload);
 	$etag = onlinesched_app_feed_etag($section, $variant, $revisions, md5($body));
 
@@ -993,8 +1005,13 @@ function onlinesched_app_feed_send(array $payload, $section, $variant = '', $rev
 		$last_modified_time = isset($revisions[$section]) ? $revisions[$section]['time'] : 0;
 	}
 
-	header('Cache-Control: public, max-age=60');
-	header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 60) . ' GMT');
+	if ($revisioned) {
+		header('Cache-Control: public, max-age=31536000, immutable');
+		header('Expires: ' . gmdate('D, d M Y H:i:s', time() + YEAR_IN_SECONDS) . ' GMT');
+	} else {
+		header('Cache-Control: public, max-age=60');
+		header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 60) . ' GMT');
+	}
 	header('ETag: ' . $etag);
 	if ($last_modified_time > 0) {
 		header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $last_modified_time) . ' GMT');
@@ -1013,6 +1030,37 @@ function onlinesched_app_feed_send(array $payload, $section, $variant = '', $rev
 	// Emit the exact hashed bytes (wp_send_json would re-encode).
 	header('Content-Type: application/json; charset=' . get_option('blog_charset'));
 	echo $body;
+	exit;
+}
+
+/**
+ * Requested revision, or null when the legacy URL omitted it.
+ *
+ * @return string|null
+ */
+function onlinesched_app_feed_requested_revision() {
+	if (!array_key_exists('rev', $_GET)) {
+		return null;
+	}
+	if (is_array($_GET['rev'])) {
+		return '';
+	}
+	return sanitize_text_field(wp_unslash($_GET['rev']));
+}
+
+/**
+ * Reject a URL whose revision no longer identifies the response body.
+ *
+ * @param string $section Feed section.
+ */
+function onlinesched_app_feed_send_revision_mismatch($section) {
+	status_header(409);
+	header('Cache-Control: no-store');
+	header('Expires: Wed, 11 Jan 1984 05:00:00 GMT');
+	header('Content-Type: application/json; charset=' . get_option('blog_charset'));
+	echo wp_json_encode(array(
+		'code' => 'onlinesched_' . sanitize_key($section) . '_revision_mismatch',
+	));
 	exit;
 }
 
