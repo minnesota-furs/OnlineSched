@@ -15,6 +15,8 @@
 .os-text-right   { text-align: right; }
 .os-float-right  { float: right; }
 .os-lead         { font-size: 1.25em; font-weight: 300; }
+.os-lead strong,
+.os-lead b       { font-weight: 700; }
 
 .os-clearfix::after {
   content: '';
