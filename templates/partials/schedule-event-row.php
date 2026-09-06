@@ -12,7 +12,8 @@ $titleLg = $liveStreaming ? ' os-col-lg-7' : '';
 
 $badgeSpans = '';
 foreach ($badge_types_present as $type => $terms) {
-    $type_lc = strtolower($type);
+    $badge_key = onlinesched_badge_type_key($type);
+    $badge_class = isset($canonical_badges[$badge_key]) ? $canonical_badges[$badge_key] : 'os-badge--' . $badge_key;
     $show_badge = true;
     if (isset($badge_types_display[$type])) {
         $show_badge = $badge_types_display[$type];
@@ -29,18 +30,14 @@ foreach ($badge_types_present as $type => $terms) {
             $label = esc_html(ucwords($type));
             $icon_span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
             if (strpos($icon_class_raw, 'fa-') !== false) {
-                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . $icon_span_style . "><i class='" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
+                $badgeSpans .= " <span class='os-badge os-badge--icon " . esc_attr($badge_class) . "'" . $icon_span_style . "><i class='" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
             } else {
-                $badgeSpans .= " <span class='os-badge os-badge--icon os-badge--" . sanitize_title_with_dashes($type) . "'" . $icon_span_style . "><i class='fa-classic fa-" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
+                $badgeSpans .= " <span class='os-badge os-badge--icon " . esc_attr($badge_class) . "'" . $icon_span_style . "><i class='fa-classic fa-" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
             }
-        } elseif (isset($canonical_badges[$type_lc])) {
-            $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
-            $badgeSpans .= str_replace("'>", "'" . $span_style . ">", $canonical_badges[$type_lc]);
         } else {
-            $class = 'os-badge--' . sanitize_title_with_dashes($type);
             $label = esc_html(ucwords($type));
             $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
-            $badgeSpans .= " <span class='os-badge $class'$span_style>$label</span>";
+            $badgeSpans .= " <span class='os-badge " . esc_attr($badge_class) . "'$span_style>$label</span>";
         }
     }
 }

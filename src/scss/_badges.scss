@@ -12,15 +12,11 @@
   white-space: nowrap;
   vertical-align: middle;
 
-  &--essentials  { background: $os-green;   color: #fff; }
   &--cancelled   { background: $os-danger;  color: #fff; }
   &--danger,
-  &--adult       { background: $os-danger;  color: #fff; }
-  &--sensory     { background: $os-sensory; color: #fff; }
   &--vip         { background: #6f42c1;     color: #fff; }
   &--goh         { background: #333;        color: #fff; }
   &--specialguest { background: #555;       color: #fff; }
-  &--streaming   { background: $os-blue;    color: #fff; }
 
   &--icon {
     background: none;

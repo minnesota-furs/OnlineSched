@@ -354,6 +354,7 @@ function onlinesched_badge_types_page() {
 			<thead>
 				<tr>
 					<th>Name</th>
+					<th>Key <span class="help-tip" title="Permanent identity of this badge type. The app feed and the site's badge classes use it, so renaming the badge keeps its meaning."><i class="fa fa-info-circle"></i></span></th>
 					<th>Show Badge?</th>
 					<th>Font Awesome Icon</th>
 					<th>Badge Background Color</th>
@@ -368,6 +369,7 @@ function onlinesched_badge_types_page() {
 ?>
 <tr id="badge-row-<?php echo esc_attr($badge_slug); ?>" class="main-row">
     <td><?php echo esc_html($badge); ?></td>
+    <td><code><?php echo esc_html(onlinesched_badge_type_key($badge)); ?></code></td>
     <td><?php echo (!empty($badge_types_display[$badge])) ? 'Yes' : 'No'; ?></td>
     <td><?php echo isset($badge_types_icons[$badge]) && $badge_types_icons[$badge] ? '<i class="' . esc_attr($badge_types_icons[$badge]) . '"></i> ' . esc_html($badge_types_icons[$badge]) : ''; ?></td>
     <td>

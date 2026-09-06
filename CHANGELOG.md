@@ -6,6 +6,10 @@
   type management. Event Settings, Social Login, Badge Types, Essential
   Tab Settings and the CSV Uploader now require the new manage_onlinesched
   capability, held by OnlineSched Admin and site administrators.
+- Badge classes on the schedule now come from each badge type's permanent
+  key, so renaming a badge keeps its styling, and the Badge Types screen
+  shows that key. Essentials, Adult, Sensory and Streaming badge colours
+  come from the Badge Types screen; their stylesheet fallbacks are gone.
 
 ## 3.7.3
 

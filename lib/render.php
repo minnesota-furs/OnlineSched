@@ -201,15 +201,14 @@ function onlinesched_render_schedule($args = array()) {
                     $badge_types_fg_colors = get_option('onlinesched_badge_types_fg_colors', array());
                     $badge_types_row_colors = get_option('onlinesched_badge_types_row_colors', array());
 
+                    // Keyed by the badge's permanent key, never its display
+                    // name, so a rename cannot orphan a class.
                     $canonical_badges = [
-                        'adult' => " <span class='os-badge os-badge--danger'>Adult</span>",
-                        'sensory' => " <span class='os-badge os-badge--sensory'>Sensory</span>",
-                        'vip' => " <span class='os-badge os-badge--vip'>VIP</span>",
-                        'essentials' => " <span class='os-badge os-badge--essentials'>Essentials</span>",
-                        'guest of honor' => " <span class='os-badge os-badge--goh'>Guest Of Honor</span>",
-                        'special guest' => " <span class='os-badge os-badge--specialguest'>Special Guest</span>",
-                        'streaming' => " <span class='os-badge os-badge--streaming'>Streaming</span>",
-                        'cancelled' => " <span class='os-badge os-badge--cancelled'>Cancelled</span>",
+                        'adult' => 'os-badge--danger',
+                        'vip' => 'os-badge--vip',
+                        'guest-of-honor' => 'os-badge--goh',
+                        'special-guest' => 'os-badge--specialguest',
+                        'cancelled' => 'os-badge--cancelled',
                     ];
 
                     $masterTags = array();
@@ -284,17 +283,17 @@ function onlinesched_render_schedule($args = array()) {
 
                         $addVIPClass = ''; $addGOHClass = ''; $addSpecialGuestClass = ''; $addCanceledClass = '';
                         foreach ($badge_types_present as $type => $terms) {
-                            $lc_type = strtolower($type);
-                            if ($lc_type === 'vip') $addVIPClass = ' vip';
-                            if ($lc_type === 'guest of honor') $addGOHClass = ' goh';
-                            if ($lc_type === 'special guest') $addSpecialGuestClass = ' specialguest';
-                            if ($lc_type === 'cancelled' || $lc_type === 'canceled') $addCanceledClass = ' canceled';
+                            $badge_key = onlinesched_badge_type_key($type);
+                            if ($badge_key === 'vip') $addVIPClass = ' vip';
+                            if ($badge_key === 'guest-of-honor') $addGOHClass = ' goh';
+                            if ($badge_key === 'special-guest') $addSpecialGuestClass = ' specialguest';
+                            if ($badge_key === 'cancelled' || $badge_key === 'canceled') $addCanceledClass = ' canceled';
                         }
 
                         $tagsEssentialArray = $tagsArray;
                         $setStrong = false;
                         foreach ($badge_types_present as $type => $terms) {
-                            if (strtolower($type) === 'essentials') {
+                            if (onlinesched_badge_type_key($type) === 'essentials') {
                                 foreach ($terms as $term) {
                                     foreach ($tagsEssentialArray as &$tag) {
                                         if (strtolower($tag) === strtolower($term->name)) {
