@@ -15,7 +15,7 @@ function os_event_csv_export_handler()
 
 function os_event_csv_uploader_page()
 {
-	if (!current_user_can('manage_os_room')) {
+	if (!current_user_can('manage_onlinesched')) {
 		wp_die(esc_html__('You do not have permission to import event schedules.', 'onlinesched'));
 	}
 

@@ -13,7 +13,7 @@ add_action('admin_enqueue_scripts', function($hook) {
 });
 
 function onlinesched_badge_types_page() {
-	if (!current_user_can('manage_os_tag')) {
+	if (!current_user_can('manage_onlinesched')) {
 		wp_die('You do not have permission to manage badge types.');
 	}
 
@@ -580,7 +580,7 @@ add_action('edited_os_tag', function($term_id) {
 function onlinesched_assign_default_badge_types_ajax() {
     check_ajax_referer('onlinesched_badge_types', 'nonce');
 
-    if (!current_user_can('manage_os_tag')) {
+    if (!current_user_can('manage_onlinesched')) {
         wp_send_json_error('Permission denied');
     }
     wp_send_json_success([ 'updated' => onlinesched_fill_default_badge_types() ]);

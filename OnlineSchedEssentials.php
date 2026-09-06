@@ -3,7 +3,7 @@
 // Admin page for managing Essentials tags
 
 function onlinesched_essentials_page() {
-	if (!current_user_can('manage_os_tag')) {
+	if (!current_user_can('manage_onlinesched')) {
 		wp_die('You do not have permission to manage Essentials settings.');
 	}
 	$option_name = 'onlinesched_essentials_tags';

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Added the OnlineSched Lead role: the editor set plus room, tag and day
+  type management. Event Settings, Social Login, Badge Types, Essential
+  Tab Settings and the CSV Uploader now require the new manage_onlinesched
+  capability, held by OnlineSched Admin and site administrators.
+
 ## 3.7.3
 
 - Made favorite calendar subscriptions live and added subscriptions that

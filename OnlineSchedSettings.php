@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 
 function onlinesched_settings_capability()
 {
-    return 'edit_onlinesched_event_schedules';
+    return 'manage_onlinesched';
 }
 
 // Settings groups are admin-form internals with no external consumers, so a
@@ -428,7 +428,7 @@ function OnlineSched_register_options_page()
         'edit.php?post_type=os_event',
         'Event Schedule Settings',
         'Event Settings',
-        'edit_onlinesched_event_schedules',
+        'manage_onlinesched',
         'onlinesched-settings',
         'OnlineSched_options_page'
     );
@@ -597,6 +597,9 @@ function onlinesched_active_settings_tab()
 
 function OnlineSched_options_page()
 {
+    if (!current_user_can('manage_onlinesched')) {
+        wp_die(__('You do not have permission to change these settings.', 'onlinesched'));
+    }
     $tabs = onlinesched_settings_tabs();
     $active_tab = onlinesched_active_settings_tab();
     $tab_base_url = admin_url('edit.php?post_type=os_event&page=onlinesched-settings');

@@ -187,10 +187,42 @@ function onlinesched_editor_capabilities()
 	));
 }
 
+/**
+ * Everything an editor has, plus the room, tag and day taxonomies. Plugin
+ * settings and imports stay behind manage_onlinesched.
+ */
+function onlinesched_lead_capabilities()
+{
+	return onlinesched_capability_map(array(
+		'read',
+		'edit_onlinesched_event_schedules',
+		'publish_onlinesched_event_schedules',
+		'read_onlinesched_event_schedules',
+		'delete_onlinesched_event_schedules',
+		'manage_os_room',
+		'edit_os_room',
+		'delete_os_room',
+		'assign_os_room',
+		'manage_os_tag',
+		'edit_os_tag',
+		'delete_os_tag',
+		'assign_os_tag',
+		'manage_os_day',
+		'edit_os_day',
+		'delete_os_day',
+		'assign_os_day',
+		'manage_os_panelist',
+		'edit_os_panelist',
+		'delete_os_panelist',
+		'assign_os_panelist',
+	));
+}
+
 function onlinesched_admin_capabilities()
 {
 	return onlinesched_capability_map(array(
 		'read',
+		'manage_onlinesched',
 		'edit_onlinesched_event_schedules',
 		'publish_onlinesched_event_schedules',
 		'read_onlinesched_event_schedules',
@@ -294,6 +326,7 @@ function onlinesched_add_capabilities_to_existing_role($role_name, array $capabi
 function onlinesched_ensure_roles()
 {
 	onlinesched_apply_capabilities_to_role('onlinesched_editor', 'OnlineSched Editor', onlinesched_editor_capabilities());
+	onlinesched_apply_capabilities_to_role('onlinesched_lead', 'OnlineSched Lead', onlinesched_lead_capabilities());
 	onlinesched_apply_capabilities_to_role('onlinesched_admin', 'OnlineSched Admin', onlinesched_admin_capabilities());
 	onlinesched_add_capabilities_to_existing_role('administrator', onlinesched_admin_capabilities());
 	onlinesched_add_capabilities_to_existing_role('editor', onlinesched_editor_capabilities());
@@ -739,7 +772,7 @@ function onlinesched_register_submenus() {
         'edit.php?post_type=os_event',
         'Badge Types',
         'Badge Types',
-        'manage_os_tag',
+        'manage_onlinesched',
         'onlinesched-badge-types',
         'onlinesched_badge_types_page'
     );
@@ -747,7 +780,7 @@ function onlinesched_register_submenus() {
         'edit.php?post_type=os_event',
         'Essential Tab Settings',
         'Essential Tab Settings',
-        'manage_os_tag',
+        'manage_onlinesched',
         'onlinesched-essentials',
         'onlinesched_essentials_page'
     );
@@ -755,7 +788,7 @@ function onlinesched_register_submenus() {
         'edit.php?post_type=os_event',
         'CSV Uploader',
         'CSV Uploader',
-        'manage_os_room',
+        'manage_onlinesched',
         'event-schedule-csv-uploader',
         'os_event_csv_uploader_page'
     );

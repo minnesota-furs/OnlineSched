@@ -116,7 +116,7 @@ function OnlineSched_register_social_login_page()
         'edit.php?post_type=os_event',
         'Social Login Settings',
         'Social Login',
-        'edit_onlinesched_event_schedules',
+        'manage_onlinesched',
         'onlinesched-social-login',
         'OnlineSched_social_login_page'
     );
@@ -124,6 +124,9 @@ function OnlineSched_register_social_login_page()
 
 function OnlineSched_social_login_page()
 {
+    if (!current_user_can('manage_onlinesched')) {
+        wp_die(__('You do not have permission to change these settings.', 'onlinesched'));
+    }
     $social_config = require ONLINESCHED_PLUGIN_DIR . 'includes/social_providers_config.php';
     $callback_url = onlinesched_social_login_callback_url();
     ?>
