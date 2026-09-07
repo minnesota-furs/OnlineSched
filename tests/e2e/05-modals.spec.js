@@ -10,6 +10,25 @@ test.describe('05 — Modals', () => {
     await page.waitForTimeout(300);
   });
 
+  test('cancelled popup emphasizes status without changing the row', async ({ page }) => {
+    const row = page.locator('.schedule-item.canceled').first();
+    const listTitle = row.locator('.schedule-title');
+    const originalTitle = await listTitle.innerHTML();
+    const badge = await row.locator('.os-event-cancelled-badge').innerHTML();
+    expect(badge).toContain('os-badge');
+    await listTitle.locator('a').click();
+    const title = page.locator('#modal-schedule-title');
+    await expect(title.locator('s')).toHaveText(await listTitle.locator('a').innerText());
+    await expect(title.locator('.os-badge--cancelled, .os-badge--canceled')).toHaveCount(1);
+    expect(await title.innerHTML()).toContain(badge);
+    await expect(page.locator('#modal-schedule-extra .fm-schedule-popup-map-link')).toHaveCount(0);
+    expect(await listTitle.innerHTML()).toBe(originalTitle);
+    await page.keyboard.press('Escape');
+    await page.locator('.schedule-item:not(.canceled) .schedule-title a').first().click();
+    await expect(title.locator('s')).toHaveCount(0);
+    await expect(title.locator('.os-badge--cancelled, .os-badge--canceled')).toHaveCount(0);
+  });
+
   test.describe('Login Modal', () => {
     test('opens on login button click', async ({ page }) => {
       await page.click(S.loginModalBtn);

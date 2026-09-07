@@ -11,8 +11,10 @@ $hiddenLg = $liveStreaming ? ' os-hide-desktop' : '';
 $titleLg = $liveStreaming ? ' os-col-lg-7' : '';
 
 $badgeSpans = '';
+$cancelledBadge = '';
 foreach ($badge_types_present as $type => $terms) {
     $badge_key = onlinesched_badge_type_key($type);
+    $is_cancelled_badge = in_array($badge_key, array('cancelled', 'canceled'), true);
     $badge_class = isset($canonical_badges[$badge_key]) ? $canonical_badges[$badge_key] : 'os-badge--' . $badge_key;
     $show_badge = true;
     if (isset($badge_types_display[$type])) {
@@ -23,28 +25,38 @@ foreach ($badge_types_present as $type => $terms) {
     $fg_color = isset($badge_types_fg_colors[$type]) && $badge_types_fg_colors[$type] ? $badge_types_fg_colors[$type] : '';
     $fg_style = ($fg_color !== '') ? "color: $fg_color;" : '';
 
-    if ($show_badge) {
+    $badgeHtml = '';
+    if ($show_badge || $is_cancelled_badge) {
         if (!empty($badge_types_icons[$type])) {
             $icon_class_raw = $badge_types_icons[$type];
             $icon_class = esc_attr($icon_class_raw);
             $label = esc_html(ucwords($type));
             $icon_span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
             if (strpos($icon_class_raw, 'fa-') !== false) {
-                $badgeSpans .= " <span class='os-badge os-badge--icon " . esc_attr($badge_class) . "'" . $icon_span_style . "><i class='" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
+                $badgeHtml = " <span class='os-badge os-badge--icon " . esc_attr($badge_class) . "'" . $icon_span_style . "><i class='" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
             } else {
-                $badgeSpans .= " <span class='os-badge os-badge--icon " . esc_attr($badge_class) . "'" . $icon_span_style . "><i class='fa-classic fa-" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
+                $badgeHtml = " <span class='os-badge os-badge--icon " . esc_attr($badge_class) . "'" . $icon_span_style . "><i class='fa-classic fa-" . $icon_class . "' aria-hidden='true'></i> " . $label . "</span>";
             }
         } else {
             $label = esc_html(ucwords($type));
             $span_style = ($style || $fg_style) ? " style='" . esc_attr($style . $fg_style) . "'" : '';
-            $badgeSpans .= " <span class='os-badge " . esc_attr($badge_class) . "'$span_style>$label</span>";
+            $badgeHtml = " <span class='os-badge " . esc_attr($badge_class) . "'$span_style>$label</span>";
         }
+    }
+    if ($is_cancelled_badge) {
+        $cancelledBadge .= $badgeHtml;
+    }
+    if ($show_badge) {
+        $badgeSpans .= $badgeHtml;
     }
 }
 
 $badgeSpans = apply_filters('os_event_badge_html', $badgeSpans, get_the_ID());
 
 echo '<div class="os-col-md-3 os-col-xs-9 schedule-title' . $titleLg . '"><a href="#" data-target="#modal-schedule">' . esc_html(get_the_title(get_the_ID())) . '</a>' . $badgeSpans . '</div>';
+if ($eventCancelled) {
+    echo '<template class="os-event-cancelled-badge">' . $cancelledBadge . '</template>';
+}
 echo '<hr class="os-schedule-separator-sm">';
 $filterLinkClass = ($theming != 'schedule') ? ' schedule-filter-link' : '';
 echo '<dl class="os-col-md-2 os-col-sm-3 schedule-meta-room' . $hiddenLg . '">';
@@ -93,7 +105,7 @@ if (!$eventCancelled) {
     echo '<div class="schedule-description">' . wp_kses_post($eventDescription) . '</div>';
 }
 
-$popupExtra = onlinesched_event_popup_extra_html(get_the_ID());
+$popupExtra = onlinesched_event_popup_extra_html(get_the_ID(), $eventCancelled);
 if ('' !== $popupExtra) {
     echo '<template class="os-event-popup-extra">' . $popupExtra . '</template>';
 }

@@ -209,6 +209,7 @@ function onlinesched_render_schedule($args = array()) {
                         'guest-of-honor' => 'os-badge--goh',
                         'special-guest' => 'os-badge--specialguest',
                         'cancelled' => 'os-badge--cancelled',
+                        'canceled' => 'os-badge--cancelled',
                     ];
 
                     $masterTags = array();
@@ -438,8 +439,8 @@ function onlinesched_render_schedule($args = array()) {
     }
 }
 
-function onlinesched_event_popup_extra_html($event_id) {
-    $html = apply_filters('os_event_popup_extra_html', '', absint($event_id));
+function onlinesched_event_popup_extra_html($event_id, $cancelled = false) {
+    $html = apply_filters('os_event_popup_extra_html', '', absint($event_id), $cancelled);
     return is_string($html) ? wp_kses_post($html) : '';
 }
 

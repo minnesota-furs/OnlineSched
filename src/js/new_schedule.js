@@ -426,6 +426,7 @@ export function new_schedule() {
         const panelists = eventDetails.panelists;
         const titleLink = item.querySelector('.schedule-title a');
         const title = titleLink ? titleLink.innerHTML : '';
+        const cancelled = item.classList.contains('canceled');
         const description = eventDetails.description;
         const day = item.closest('.schedule-day');
         const date = item.dataset.osEventDate || day?.querySelector('h2')?.innerHTML || '';
@@ -437,6 +438,9 @@ export function new_schedule() {
 
         const badges = item.querySelector('.schedule-title')?.cloneNode(true);
         badges?.querySelectorAll('a').forEach((anchor) => anchor.remove());
+        if (cancelled) {
+            badges?.querySelectorAll('.os-badge--cancelled, .os-badge--canceled').forEach((badge) => badge.remove());
+        }
         const badgesHtml = badges?.innerHTML || '';
 
         let isFavorite = item.getAttribute('data-favorite') === 'true';
@@ -449,7 +453,9 @@ export function new_schedule() {
 
         const modalTitle = $('#modal-schedule-title');
         if (modalTitle) {
-            modalTitle.innerHTML = favBtn + title + badgesHtml;
+            const titleHtml = cancelled ? '<s>' + title + '</s>' : title;
+            const cancellationBadge = cancelled ? item.querySelector('.os-event-cancelled-badge')?.innerHTML || '' : '';
+            modalTitle.innerHTML = favBtn + titleHtml + cancellationBadge + badgesHtml;
         }
 
         function updateModalFavoriteStar(state) {
