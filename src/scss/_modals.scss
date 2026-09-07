@@ -49,6 +49,10 @@ dialog.os-modal {
   border-top: 1px solid #e3e3e3;
 }
 
+#modal-schedule .os-modal__footer [hidden] {
+  display: none;
+}
+
 @media (max-width: $os-bp-mobile) {
   dialog.os-modal {
     width: calc(100vw - 20px);

@@ -531,6 +531,9 @@ export function new_schedule() {
 
         $('#modal-schedule-ical')?.setAttribute('href', ical);
         $('#modal-schedule-google')?.setAttribute('href', googleCal);
+        $$('#modal-schedule-ical, #modal-schedule-google').forEach((link) => {
+            link.hidden = cancelled;
+        });
 
         window.currentModalEventId = cleanId;
         if (options.writeHistory !== false && getHashState().evt !== cleanId) {

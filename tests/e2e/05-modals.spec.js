@@ -22,11 +22,17 @@ test.describe('05 — Modals', () => {
     await expect(title.locator('.os-badge--cancelled, .os-badge--canceled')).toHaveCount(1);
     expect(await title.innerHTML()).toContain(badge);
     await expect(page.locator('#modal-schedule-extra .fm-schedule-popup-map-link')).toHaveCount(0);
+    await expect(page.locator(S.modalIcal)).toBeHidden();
+    await expect(page.locator(S.modalGoogle)).toBeHidden();
+    await expect(page.locator(S.modalCopyUrl)).toBeVisible();
     expect(await listTitle.innerHTML()).toBe(originalTitle);
     await page.keyboard.press('Escape');
     await page.locator('.schedule-item:not(.canceled) .schedule-title a').first().click();
     await expect(title.locator('s')).toHaveCount(0);
     await expect(title.locator('.os-badge--cancelled, .os-badge--canceled')).toHaveCount(0);
+    await expect(page.locator(S.modalIcal)).toBeVisible();
+    await expect(page.locator(S.modalGoogle)).toBeVisible();
+    await expect(page.locator(S.modalCopyUrl)).toBeVisible();
   });
 
   test.describe('Login Modal', () => {

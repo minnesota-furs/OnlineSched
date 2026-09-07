@@ -4,7 +4,8 @@
 
 - Cancelled event popups now cross out the title and show the configured
   cancellation badge independently of list badge visibility. Map links are
-  omitted for cancelled events; schedule list styling is unchanged.
+  omitted for cancelled events, as are Apple and Google calendar buttons;
+  the Copy link remains available. Schedule list styling is unchanged.
 - Added the OnlineSched Lead role: the editor set plus room, tag and day
   type management. Event Settings, Social Login, Badge Types, Essential
   Tab Settings and the CSV Uploader now require the new manage_onlinesched
