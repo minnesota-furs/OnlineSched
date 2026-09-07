@@ -10,6 +10,9 @@
   key, so renaming a badge keeps its styling, and the Badge Types screen
   shows that key. Essentials, Adult, Sensory and Streaming badge colours
   come from the Badge Types screen; their stylesheet fallbacks are gone.
+- Restored the danger badge's own stylesheet fallback, which had been
+  folded into the VIP colour, and fixed the Badge Types edit row spanning
+  one column short.
 
 ## 3.7.3
 

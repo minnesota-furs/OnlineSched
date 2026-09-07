@@ -91,7 +91,9 @@ if (function_exists('fm_roles_register_schedule_lead')) {
 	if ($composite) {
 		$wp_editor = get_role('editor');
 		$missing = array();
-		foreach (array_keys(array_filter($wp_editor->capabilities)) + array_keys($lead) as $capability) {
+		// Union the capability maps first; a union of key lists renumbers and drops entries.
+		$required = array_filter($wp_editor->capabilities) + array_filter($lead);
+		foreach (array_keys($required) as $capability) {
 			if (empty($composite->capabilities[$capability])) {
 				$missing[] = $capability;
 			}

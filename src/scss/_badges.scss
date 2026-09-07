@@ -13,7 +13,7 @@
   vertical-align: middle;
 
   &--cancelled   { background: $os-danger;  color: #fff; }
-  &--danger,
+  &--danger      { background: $os-danger;  color: #fff; }
   &--vip         { background: #6f42c1;     color: #fff; }
   &--goh         { background: #333;        color: #fff; }
   &--specialguest { background: #555;       color: #fff; }

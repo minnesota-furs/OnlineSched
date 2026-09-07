@@ -350,6 +350,7 @@ function onlinesched_badge_types_page() {
 			</form>
 		</div>
 		<h3>Existing Badge Types</h3>
+		<p class="description">Key is the permanent identity of a badge type. The app feed and the site's badge classes use it, so renaming a badge keeps its meaning.</p>
 		<table class="badge-types-table widefat">
 			<thead>
 				<tr>
@@ -422,7 +423,7 @@ function onlinesched_badge_types_page() {
     </td>
 </tr>
 <tr id="badge-edit-row-<?php echo esc_attr($badge_slug); ?>" class="badge-edit-row" style="display:none;">
-    <td colspan="7" style="padding:0;">
+    <td colspan="8" style="padding:0;">
         <form method="post" class="badge-edit-form active" id="badge-edit-form-<?php echo esc_attr($badge_slug); ?>" style="margin:10px; border:2px solid #e5e5e5; background:#f7fbff; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px 24px; border-radius:8px;">
             <?php wp_nonce_field('onlinesched_badge_types'); ?>
             <h4 style="margin-top:0; margin-bottom:18px; font-weight:600; color:#1890ff;">Edit Badge Type: <?php echo esc_html($badge); ?></h4>
