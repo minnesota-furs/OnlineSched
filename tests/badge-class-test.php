@@ -82,9 +82,10 @@ $row_start = strpos($html, 'id="onlineevt-' . $post_id . '"');
 $row = false === $row_start ? '' : substr($html, $row_start, 4000);
 
 $check('the test event rendered', true, '' !== $row);
-$check('renamed badge keeps the essentials class', 1, preg_match("/os-badge--essentials'[^>]*>Essential</", $row));
+// A configured icon sits between the tag and the label; the class is the claim.
+$check('renamed badge keeps the essentials class', 1, preg_match("/os-badge--essentials'[^>]*>(?:<i[^>]*><\/i>\s*)?Essential</", $row));
 $check('no class is built from the display name', 0, preg_match("/os-badge--essential'/", $row));
-$check('guest of honor keeps its fixed badge class', 1, preg_match("/os-badge--goh'[^>]*>Guest Of Honor</", $row));
+$check('guest of honor keeps its fixed badge class', 1, preg_match("/os-badge--goh'[^>]*>(?:<i[^>]*><\/i>\s*)?Guest Of Honor</", $row));
 $check('guest of honor keeps its row class', 1, preg_match('/class="os-row schedule-item[^"]* goh[ "]/', $row));
 
 wp_delete_post($post_id, true);
