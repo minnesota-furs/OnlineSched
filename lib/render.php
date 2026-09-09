@@ -21,6 +21,40 @@ function onlinesched_schedule_intro_html($post, $use_content = true) {
     return trim($intro) === '' ? '' : '<div class="os-lead">' . $intro . '</div>';
 }
 
+function onlinesched_live_embed_url_allowed($url) {
+    if (preg_match('/[\x00-\x20\\\\]/', $url)) {
+        return false;
+    }
+    $parts = wp_parse_url($url);
+    if (!$parts || strtolower($parts['scheme'] ?? '') !== 'https'
+        || isset($parts['user']) || isset($parts['pass']) || isset($parts['port'])) {
+        return false;
+    }
+    $host = strtolower($parts['host'] ?? '');
+    $path = $parts['path'] ?? '/';
+    return ($host === 'player.twitch.tv' && $path === '/')
+        || ($host === 'www.twitch.tv' && preg_match('~^/embed/[a-zA-Z0-9_]+/chat$~', $path));
+}
+
+function onlinesched_live_content_html($content) {
+    $allowed_html = wp_kses_allowed_html('post');
+    $allowed_html['iframe'] = array(
+        'src' => array('required' => true, 'value_callback' => 'onlinesched_live_embed_url_allowed'),
+        'class' => true,
+        'title' => true,
+        'width' => true,
+        'height' => true,
+        'frameborder' => true,
+        'allowfullscreen' => true,
+        'scrolling' => true,
+        'loading' => true,
+        'allow' => array('values' => array('autoplay; fullscreen', 'autoplay; fullscreen; picture-in-picture')),
+    );
+    $html = wp_kses($content, $allowed_html);
+    // KSES leaves a bare frame when a required source is rejected.
+    return preg_replace('~<iframe>\s*</iframe>~i', '', $html);
+}
+
 function onlinesched_render_schedule($args = array()) {
     static $depth = 0;
     if ($depth > 0) {
@@ -107,9 +141,8 @@ function onlinesched_render_schedule($args = array()) {
 
         if ($liveStreaming) {
             echo '<div class="os-row"><div class="os-col-lg-6 schedule-live-left">';
-            // In live mode, if it's the page, we output content
             if (is_page() && !has_shortcode(get_post()->post_content, 'onlinesched_schedule')) {
-                echo wp_kses_post(apply_filters('the_content', get_post()->post_content));
+                echo onlinesched_live_content_html(apply_filters('the_content', get_post()->post_content));
             }
             echo '</div><div class="os-col-lg-6 schedule-live-right">';
         }
