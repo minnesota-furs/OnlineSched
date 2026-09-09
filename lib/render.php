@@ -220,7 +220,7 @@ function onlinesched_render_schedule($args = array()) {
                         <div class="schedule-day" data-schedule-num-day="<?php echo time(); ?>" data-schedule-day="<?php echo esc_attr(wp_date('l, F j')); ?>">
                             <h2>No date in past or future</h2>
                             <div class="schedule-hour">
-                                <h3>Out of time</h3>
+                                <h3>No events found</h3>
                                 <div class="os-row schedule-item schedule-room-main-stage schedule-tag-essential schedule-tag-streaming os-fallback-item"
                                      data-end-time="<?php echo time(); ?>" data-schedule-tag-essential="essential" data-schedule-tag-streaming="streaming" data-schedule-room-main-stage="main-stage" data-os-fallback="true">
                                     <div class="os-col-xs-12 schedule-title">Nothing happening. No valid entries in past or future</div>
