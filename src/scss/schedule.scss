@@ -404,14 +404,14 @@ dl.schedule-meta:after {
     position: -webkit-sticky;
     position: sticky;
     top: var(--os-sticky-top-offset, 0px);
-    z-index: 2;
+    z-index: 31;
   }
 
   .kiosk-schedule .schedule-tabs {
     position: -webkit-sticky;
     position: sticky;
     top: 0px;
-    z-index: 2;
+    z-index: 31;
   }
 }
 

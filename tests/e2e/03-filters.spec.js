@@ -10,6 +10,31 @@ test.describe('03 — Filters', () => {
     await page.waitForTimeout(300);
   });
 
+  test('sticky tabs stay above scrolling filter panels', async ({ page }) => {
+    test.skip(page.viewportSize().width < 768, 'Phones use a fixed bottom sheet');
+    for (const name of ['tags', 'days', 'rooms']) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const panel = page.locator(`[data-filter-panel="schedule-select-${name}"]`);
+      await panel.locator('.os-filter-panel-button').click();
+      await expect(panel.locator('.os-filter-panel-list')).toBeVisible();
+      await panel.locator('.os-filter-panel-list').evaluate((list) => {
+        const tabs = document.querySelector('.schedule-tabs');
+        const offset = parseFloat(getComputedStyle(tabs).top) || 0;
+        window.scrollTo(0, window.scrollY + list.getBoundingClientRect().top - offset - 10);
+      });
+      await expect.poll(() => panel.locator('.os-filter-panel-list').evaluate((list) => {
+        const tabs = document.querySelector('.schedule-tabs');
+        const tabRect = tabs.getBoundingClientRect();
+        const listRect = list.getBoundingClientRect();
+        const x = Math.max(tabRect.left, listRect.left) + 10;
+        const y = Math.max(tabRect.top, listRect.top) + 5;
+        return y < Math.min(tabRect.bottom, listRect.bottom)
+          && tabs.contains(document.elementFromPoint(x, y));
+      })).toBe(true);
+      await page.keyboard.press('Escape');
+    }
+  });
+
   test('search filters items', async ({ page }) => {
     const totalBefore = await page.locator(`${S.scheduleItem}:visible`).count();
     await page.fill(S.searchInput, 'Coyote');
