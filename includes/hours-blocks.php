@@ -36,6 +36,19 @@ function onlinesched_register_hours_blocks()
     $style_path = ONLINESCHED_PLUGIN_DIR . 'build/main.css';
     $script_handle = null;
     $style_handle = null;
+    $open_now_handle = null;
+
+    $open_now = ONLINESCHED_PLUGIN_DIR . 'build/hours-open-now.bundle.js';
+    if (file_exists($open_now)) {
+        $open_now_handle = 'onlinesched-hours-open-now';
+        wp_register_script(
+            $open_now_handle,
+            ONLINESCHED_PLUGIN_URL . 'build/hours-open-now.bundle.js',
+            array(),
+            filemtime($open_now),
+            true
+        );
+    }
 
     if (file_exists($style_path)) {
         $style_handle = 'online-schedule-css';
@@ -74,6 +87,9 @@ function onlinesched_register_hours_blocks()
         $args = array(
             'render_callback' => $render_callback,
         );
+        if ('hours-of-operations' === $block && $open_now_handle) {
+            $args['view_script'] = $open_now_handle;
+        }
         if ($script_handle) {
             $args['editor_script'] = $script_handle;
         }
@@ -112,15 +128,8 @@ function onlinesched_enqueue_hours_assets_if_needed()
         onlinesched_add_color_inline_style('online-schedule-css');
     }
 
-    $open_now = ONLINESCHED_PLUGIN_DIR . 'build/hours-open-now.bundle.js';
-    if (file_exists($open_now)) {
-        wp_enqueue_script(
-            'onlinesched-hours-open-now',
-            ONLINESCHED_PLUGIN_URL . 'build/hours-open-now.bundle.js',
-            array(),
-            filemtime($open_now),
-            true
-        );
+    if (wp_script_is('onlinesched-hours-open-now', 'registered')) {
+        wp_enqueue_script('onlinesched-hours-open-now');
     }
 }
 

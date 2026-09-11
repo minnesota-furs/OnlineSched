@@ -46,6 +46,12 @@ async function skipIfHoursNotMigrated(page) {
 }
 
 test.describe('13 — Hours block', () => {
+  test('embedded Hours loads its open-now script once', async ({ page }) => {
+    await openHoursTab(page);
+    await expect(page.locator(S.hoursBlock)).toBeVisible();
+    await expect(page.locator('script[src*="hours-open-now.bundle.js"]')).toHaveCount(1);
+  });
+
   test('renders native Hours markup without Bootstrap grid', async ({ page }) => {
     await openHoursTab(page);
     await skipIfHoursNotMigrated(page);
