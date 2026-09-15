@@ -208,6 +208,26 @@ Each browser environment has its own seed path:
 The deterministic 150-event fixture is separate from the smaller browser seeds. It exists
 for importer and maintenance-command coverage, not as a replacement for the focused UI data.
 
+### Missing fixtures after a skipped seed
+
+Browser preflight requires exact event titles and their expected tags. The seed script's
+skip check matches a title substring, so `Opening Howl Ceremony (Event #4001)` can make it
+skip even when the required `Opening Howl Ceremony` fixture is absent.
+
+If preflight still reports missing fixtures after a skipped seed, confirm the target is a
+disposable local test database before forcing a reseed. This deletes matching seed posts,
+sets the schedule year and Essentials tags, and resets badge options to their test defaults.
+It is not safe for production or a database whose current configuration must be preserved.
+
+From the plugin directory, for the disposable Furry Migration test stack:
+
+```bash
+OS_TEST_CONTAINER=fm-php bash tests/fixtures/seed-test-events.sh --force
+```
+
+For the other environments, use their seed path above. A generated CSV is not a substitute
+for the exact browser fixtures.
+
 ## Quick Reference
 
 ```bash
