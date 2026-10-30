@@ -529,9 +529,11 @@ export function new_schedule() {
             extraEl.hidden = !extraEl.childElementCount && !extraEl.textContent.trim();
         }
 
+        const eventEnd = item.querySelector('.schedule-ical')?.getAttribute('data-os-event-end') || item.dataset.endTime || '';
         $('#modal-schedule-ical')?.setAttribute('href', ical);
         $('#modal-schedule-google')?.setAttribute('href', googleCal);
         $$('#modal-schedule-ical, #modal-schedule-google').forEach((link) => {
+            link.setAttribute('data-os-event-end', eventEnd);
             link.hidden = cancelled;
         });
 
@@ -1411,7 +1413,19 @@ export function new_schedule() {
         return confirmCalendarSubscription(link, 'Apple');
     };
 
+    // Shared with calendarHelpers.js; both bundles can load on one page.
+    const PAST_EVENT_MESSAGE = 'This event has already happened, so it can\'t be added to your calendar.';
+
+    function eventHasEnded(link) {
+        const end = parseInt(link.getAttribute('data-os-event-end') || '0', 10);
+        return end > 0 && end * 1000 < Date.now();
+    }
+
     window.confirmCalendarGoogleSubscription = function (link) {
+        if (eventHasEnded(link)) {
+            window.alert(PAST_EVENT_MESSAGE);
+            return false;
+        }
         if (window.isAndroidDevice?.()) {
             const googleUrl = rewriteGoogleCalendarUrlForAndroid(link.href);
             let rawLink = '';
@@ -1446,6 +1460,10 @@ export function new_schedule() {
     };
 
     window.confirmCalendarSubscription = function (link, service) {
+        if (eventHasEnded(link)) {
+            window.alert(PAST_EVENT_MESSAGE);
+            return false;
+        }
         if (confirm('This will subscribe you to your ' + service + ' calendar. This will keep updating until you delete it. Do you want to continue?')) {
             window.gtag_event?.('click', 'engagement', 'subscribe-' + service + '-calendar-single');
             setTimeout(function () {

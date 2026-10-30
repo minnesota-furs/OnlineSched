@@ -109,4 +109,35 @@ function OnlineSched_terms_list_desc($term) {
 
 	return $tags;
 }
+
+/**
+ * Calendar subscription links for a single event, plus its end time.
+ *
+ * Subscriptions keep a time or room change in step on the phone; the end
+ * time lets the page refuse new subscriptions to finished events. A finished
+ * event gets "#" so crawlers have no dead feed to follow; the button stays.
+ *
+ * @param int      $post_id Event post ID.
+ * @param int|null $now     Current timestamp; defaults to time().
+ * @return array{ical:string,google:string,end:int}
+ */
+function onlinesched_single_event_calendar_links($post_id, $now = null) {
+	$post_id = absint($post_id);
+	$start = (int) get_post_meta($post_id, 'onlinesched_sorttime', true);
+	$duration = max(0, (int) get_post_meta($post_id, 'onlinesched_timelen', true));
+	$end = $start > 0 ? $start + ($duration * 60) : 0;
+
+	$now = null === $now ? time() : (int) $now;
+	if ($end > 0 && $end < $now) {
+		return array('ical' => '#', 'google' => '#', 'end' => $end);
+	}
+
+	$ical = 'webcal://' . preg_replace('/^https?:\/\//', '', ONLINESCHED_PLUGIN_URL) . 'ical.php?cal-id=' . $post_id;
+
+	return array(
+		'ical' => $ical,
+		'google' => 'https://calendar.google.com/calendar/r?cid=' . urlencode($ical),
+		'end' => $end,
+	);
+}
 ?>

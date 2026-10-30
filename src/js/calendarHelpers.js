@@ -40,7 +40,22 @@
     /**
      * Confirm a calendar subscription.
      */
+    var PAST_EVENT_MESSAGE = 'This event has already happened, so it can\'t be added to your calendar.';
+
+    /**
+     * True when the link's event finished before now.
+     */
+    function eventHasEnded(link) {
+        var end = parseInt(link.getAttribute('data-os-event-end') || '0', 10);
+        return end > 0 && end * 1000 < Date.now();
+    }
+
     function confirmCalendarSubscription(link, service) {
+        // A finished event has nothing left to sync, so no new subscription.
+        if (eventHasEnded(link)) {
+            window.alert(PAST_EVENT_MESSAGE);
+            return false;
+        }
         if (confirm('This will subscribe you to your ' + service + ' calendar. This will keep updating until you delete it. Do you want to continue?')) {
             if (window.gtag_event) {
                 window.gtag_event('click', 'engagement', 'subscribe-' + service + '-calendar-single');
@@ -64,6 +79,10 @@
      * Confirm Google Calendar subscription (with Android modal support).
      */
     window.confirmCalendarGoogleSubscription = function(link) {
+        if (eventHasEnded(link)) {
+            window.alert(PAST_EVENT_MESSAGE);
+            return false;
+        }
         if (isAndroidDevice() && window.showAndroidGoogleCalendarModal) {
             const googleUrl = rewriteGoogleCalendarUrlForAndroid(link.href);
             let rawLink = '';

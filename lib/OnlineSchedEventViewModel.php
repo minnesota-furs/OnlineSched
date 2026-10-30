@@ -204,18 +204,16 @@ class OnlineSchedEventViewModel {
 			return [];
 		}
 
-		$ical_base_url = ONLINESCHED_PLUGIN_URL;
-		$ical_base_url = preg_replace( '/^https?:\/\//', '', $ical_base_url );
-		$ical_link = 'webcal://' . $ical_base_url . 'ical.php?cal-id=' . $this->id;
-		$google_link = 'https://calendar.google.com/calendar/r?cid=' . urlencode( $ical_link );
+		$calendar_links = onlinesched_single_event_calendar_links( $this->id );
 
 		// Get schedule page URL.
 		$schedule_page_id = get_option( 'onlinesched_schedule_page_id' );
 		$base_url = $schedule_page_id ? get_permalink( $schedule_page_id ) : home_url( '/' );
 
 		return [
-			'ical' => $ical_link,
-			'google' => $google_link,
+			'ical' => $calendar_links['ical'],
+			'google' => $calendar_links['google'],
+			'end' => $calendar_links['end'],
 			'share' => $base_url . '#evt=' . $this->id,
 		];
 	}

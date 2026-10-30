@@ -1,7 +1,15 @@
 # Changelog
 
-## Unreleased
+## 3.8.0
 
+- Single-event calendar subscriptions keep working for upcoming and running
+  events, so time and room changes still reach subscribers. Finished events
+  no longer offer a subscription link and say so when tapped.
+- Calendar feeds now suggest a refresh interval: hourly during the
+  convention dates, daily outside them, and monthly for a finished event.
+  Single-event feeds can be cached by shared caches and answer unchanged
+  requests with 304 Not Modified, so a CDN can serve repeat polls. The
+  personal favorites feed stays private.
 - Cancelled event popups now cross out the title and show the configured
   cancellation badge independently of list badge visibility. Map links are
   omitted for cancelled events, as are Apple and Google calendar buttons;
@@ -17,6 +25,11 @@
 - Restored the danger badge's own stylesheet fallback, which had been
   folded into the VIP colour, and fixed the Badge Types edit row spanning
   one column short.
+- Restored Twitch player and chat embeds in live schedule content, limited
+  to HTTPS Twitch sources; other content keeps the standard post filtering.
+- The Hours block loads its open-now script wherever the block is used.
+- Schedule tabs stay above the filter panels while they scroll.
+- An empty schedule now reads "No events found".
 
 ## 3.7.3
 

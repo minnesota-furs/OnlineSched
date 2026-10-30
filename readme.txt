@@ -4,7 +4,7 @@ Tags: events, schedule, calendar, convention, timetable
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 3.7.3
+Stable tag: 3.8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -122,6 +122,16 @@ Yes. Copy any template from wp-content/plugins/OnlineSched/templates/ into a mat
 OnlineSched began as a prototype built by the original Furry Migration team, with Ringer and Mouring as key builders. It was subsequently expanded, updated, and cleaned up, and this open-source release reflects the work of everyone who contributed along the way.
 
 == Changelog ==
+
+= 3.8.0 =
+
+* Single-event calendar subscriptions keep working for upcoming and running events. Finished events no longer offer a subscription link.
+* Calendar feeds suggest a refresh interval, and single-event feeds can be cached and answer unchanged requests with 304 Not Modified.
+* Added the OnlineSched Lead role. Settings screens now require the new manage_onlinesched capability.
+* Badge classes come from each badge type's permanent key, so renaming a badge keeps its styling.
+* Cancelled event popups cross out the title and omit map and calendar actions.
+* Restored Twitch player and chat embeds in live schedule content.
+* Fixed the Hours block open-now script, sticky schedule tabs over filter panels, and the empty schedule message.
 
 = 3.7.3 =
 

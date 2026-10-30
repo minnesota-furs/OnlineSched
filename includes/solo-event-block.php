@@ -169,10 +169,10 @@ function onlinesched_render_solo_event_block( $attributes ) {
 			if ( ! empty( $links ) ) :
 				?>
 				<div class="os-solo-event-card__actions" style="justify-content: center;">
-					<a href="<?php echo esc_url( $links['ical'] ); ?>" class="os-btn os-btn--small schedule-ical" title="<?php esc_attr_e( 'Add to Apple Calendar', 'onlinesched' ); ?>" onclick="return confirmCalendarAppleSubscription(this);">
+					<a href="<?php echo esc_url( $links['ical'] ); ?>" class="os-btn os-btn--small schedule-ical" data-os-event-end="<?php echo esc_attr( $links['end'] ); ?>" title="<?php esc_attr_e( 'Add to Apple Calendar', 'onlinesched' ); ?>" onclick="return confirmCalendarAppleSubscription(this);">
 						<i class="fab fa-apple" aria-hidden="true"></i> <?php esc_html_e( 'APPLE', 'onlinesched' ); ?>
 					</a>
-					<a href="<?php echo esc_url( $links['google'] ); ?>" class="os-btn os-btn--small schedule-google" title="<?php esc_attr_e( 'Add to Google Calendar', 'onlinesched' ); ?>" onclick="return confirmCalendarGoogleSubscription(this);">
+					<a href="<?php echo esc_url( $links['google'] ); ?>" class="os-btn os-btn--small schedule-google" data-os-event-end="<?php echo esc_attr( $links['end'] ); ?>" title="<?php esc_attr_e( 'Add to Google Calendar', 'onlinesched' ); ?>" onclick="return confirmCalendarGoogleSubscription(this);">
 						<i class="fab fa-google" aria-hidden="true"></i> <?php esc_html_e( 'GOOGLE', 'onlinesched' ); ?>
 					</a>
 					<button type="button" class="os-btn os-btn--small schedule-clipboard" title="<?php esc_attr_e( 'Copy link', 'onlinesched' ); ?>" data-url="<?php echo esc_url( $links['share'] ); ?>">

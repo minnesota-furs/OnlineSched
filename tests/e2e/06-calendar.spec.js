@@ -102,10 +102,34 @@ test.describe('06 — Calendar', () => {
     await page.waitForTimeout(300);
   });
 
+  test.describe('Finished event rows', () => {
+    test('expose no feed address but keep both buttons', async ({ page }) => {
+      const finished = page.locator(S.scheduleItem).filter({ has: page.locator(`${S.scheduleIcalLink}[href="#"]`) }).first();
+      test.skip(await finished.count() === 0, 'Needs a finished event');
+      await expect(finished.locator(S.scheduleIcalLink)).toHaveAttribute('href', '#');
+      await expect(finished.locator(S.scheduleGoogleLink)).toHaveAttribute('href', '#');
+      expect(await finished.innerHTML()).not.toContain('cal-id');
+    });
+
+    test('show the message when a button is clicked', async ({ page }) => {
+      const finished = page.locator(S.scheduleItem).filter({ has: page.locator(`${S.scheduleIcalLink}[href="#"]`) }).first();
+      test.skip(await finished.count() === 0, 'Needs a finished event');
+      const messages = [];
+      page.on('dialog', async (dialog) => {
+        messages.push(dialog.message());
+        await dialog.dismiss();
+      });
+      await finished.locator(S.scheduleIcalLink).click();
+      expect(messages).toEqual(["This event has already happened, so it can't be added to your calendar."]);
+    });
+  });
+
   test.describe('Modal Calendar Links', () => {
     test.beforeEach(async ({ page }) => {
-      // Open first event modal
-      await page.locator(S.scheduleTitle).first().click();
+      // Finished events carry no feed link, so open the first upcoming one.
+      const upcoming = page.locator(S.scheduleItem).filter({ has: page.locator(`${S.scheduleIcalLink}[href^="webcal://"]`) }).first();
+      test.skip(await upcoming.count() === 0, 'Needs an upcoming event; run npm run test:seed');
+      await upcoming.locator(S.scheduleTitle).click();
       await page.waitForTimeout(400);
       await expect(page.locator(S.scheduleModal)).toBeVisible();
     });
@@ -116,8 +140,27 @@ test.describe('06 — Calendar', () => {
       expect(href).toContain('ical.php');
     });
 
+    test('a finished event shows a message instead of subscribing', async ({ page }) => {
+      const messages = [];
+      page.on('dialog', async (dialog) => {
+        messages.push(dialog.message());
+        await dialog.dismiss();
+      });
+      await page.locator(S.modalIcal).evaluate((link) => link.setAttribute('data-os-event-end', '1'));
+      await page.locator(S.modalGoogle).evaluate((link) => link.setAttribute('data-os-event-end', '1'));
+      const popups = [];
+      page.on('popup', (popup) => popups.push(popup));
+      await page.locator(S.modalIcal).click();
+      await page.locator(S.modalGoogle).click();
+      expect(messages).toEqual([
+        "This event has already happened, so it can't be added to your calendar.",
+        "This event has already happened, so it can't be added to your calendar.",
+      ]);
+      expect(popups).toHaveLength(0);
+    });
+
     test('Apple Calendar link contains event post ID', async ({ page }) => {
-      const itemId = await page.locator(S.scheduleItem).first().getAttribute('id');
+      const itemId = await page.locator(S.scheduleItem).filter({ has: page.locator(`${S.scheduleIcalLink}[href^="webcal://"]`) }).first().getAttribute('id');
       const postId = itemId?.replace('onlineevt-', '');
       const href = await page.locator(S.modalIcal).getAttribute('href');
       expect(href).toContain(`cal-id=${postId}`);

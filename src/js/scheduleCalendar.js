@@ -432,6 +432,18 @@ export function scheduleCalendar() {
 
     document.getElementById('schedule-calendar-scope')?.addEventListener('change', refreshCalendarFeedScope);
 
+    // Popup buttons: block subscribing to a finished event before any other handler runs.
+    ['modal-schedule-ical', 'modal-schedule-google'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('click', function (e) {
+            const end = parseInt(this.getAttribute('data-os-event-end') || '0', 10);
+            if (end > 0 && end * 1000 < Date.now()) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                window.alert('This event has already happened, so it can\'t be added to your calendar.');
+            }
+        }, true);
+    });
+
     // Modal Google Calendar button (Android logic)
     const modalGoogleBtn = document.getElementById('modal-schedule-google');
     if (modalGoogleBtn) {

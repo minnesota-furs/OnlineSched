@@ -27,6 +27,7 @@ class iCalGen {
 
 	private $output;
 	public $prodid;
+	public $refreshInterval = null;
 
     public function __construct()
     {
@@ -41,9 +42,12 @@ class iCalGen {
 		     $title,
 		     $desc,
 			 $categories,
-		         $cancelled = false) {
+		         $cancelled = false,
+		         $stampTime = 0) {
+			## A stable stamp keeps the body, and so its ETag, unchanged between polls.
+			$stamp = $stampTime > 0 ? gmdate(ONLINESCHED_ICAL_DATE_FORMAT, $stampTime) : gmdate(ONLINESCHED_ICAL_DATE_FORMAT);
 			$this->output .= "BEGIN:VEVENT\r\n" .
-onlinesched_ical_line('DTSTAMP', gmdate(ONLINESCHED_ICAL_DATE_FORMAT), false) .
+onlinesched_ical_line('DTSTAMP', $stamp, false) .
 onlinesched_ical_line('DTSTART', onlinesched_ical_utc_date($startTime), false) .
 onlinesched_ical_line('DTEND', onlinesched_ical_utc_date($endTime), false) .
 onlinesched_ical_line('SUMMARY', $title) .
@@ -57,7 +61,7 @@ onlinesched_ical_line('UID', $uid, false) .
 	}
 
 	function display() {
-		return onlinesched_ical_calendar_header() . $this->output . onlinesched_ical_calendar_footer();
+		return onlinesched_ical_calendar_header('', $this->refreshInterval) . $this->output . onlinesched_ical_calendar_footer();
 	}
 }
 
@@ -116,6 +120,9 @@ if ($eventCancelled) {
 }
 
 $content = onlinesched_ical_html_to_text($_post->post_content);
+$modified = strtotime($_post->post_modified_gmt . ' UTC');
+$modified = $modified ? $modified : 0;
+$iCal->refreshInterval = onlinesched_ical_refresh_interval($endTime);
 
 $iCal->add(onlinesched_ical_uid($id),
 	   $startTime,
@@ -124,7 +131,10 @@ $iCal->add(onlinesched_ical_uid($id),
 	       html_entity_decode($_post->post_title),
 		   $content,
 		   onlinesched_ical_categories($id, 'os_tag'),
-			$eventCancelled
+			$eventCancelled,
+			$modified
 		  );
 
-onlinesched_ical_send_response($iCal->display(), $filename);
+## One public event per URL, so a shared cache is safe; past events change rarely.
+$max_age = $endTime < time() ? DAY_IN_SECONDS : 5 * MINUTE_IN_SECONDS;
+onlinesched_ical_send_public_response($iCal->display(), $filename, $modified, $max_age);

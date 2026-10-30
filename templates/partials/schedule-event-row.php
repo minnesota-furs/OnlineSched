@@ -84,13 +84,11 @@ if (!$eventCancelled) {
     if ($theming != "schedule") {
         $fav_icon_class = onlinesched_get_favorite_icon_classes(false);
         echo '<button class="schedule-favorite-toggle" title="Mark as favorite" data-os-event-id="' . esc_attr(get_the_ID()) . '"><i class="' . esc_attr($fav_icon_class) . '" aria-hidden="true"></i></button>';
-        $ical_base_url = ONLINESCHED_PLUGIN_URL;
-        $ical_base_url = preg_replace('/^https?:\/\//', '', $ical_base_url);
-        $ical_link = 'webcal://' . $ical_base_url . 'ical.php?cal-id=' . get_the_ID();
+        $calendar_links = onlinesched_single_event_calendar_links(get_the_ID());
+        $calendar_end = ' data-os-event-end="' . esc_attr($calendar_links['end']) . '"';
         echo '<button title="copy to clipboard" class="schedule-clipboard"><i class="fas fa-copy" aria-hidden="true"></i></button>';
-        echo '<a href="' . esc_url($ical_link) . '" title="Add to Apple Calendar" class="schedule-ical" target="_blank" onclick="return confirmCalendarAppleSubscription(this);"><i class="fab fa-apple" aria-hidden="true"></i></a>';
-        $googleLink = 'https://calendar.google.com/calendar/r?cid=' . urlencode($ical_link);
-        echo '<a href="' . esc_url($googleLink) . '" title="Add to Google Calendar" class="schedule-google" target="_blank" onclick="return confirmCalendarGoogleSubscription(this);"><i class="fab fa-google" aria-hidden="true"></i></a>';
+        echo '<a href="' . esc_url($calendar_links['ical']) . '" title="Add to Apple Calendar" class="schedule-ical" target="_blank"' . $calendar_end . ' onclick="return confirmCalendarAppleSubscription(this);"><i class="fab fa-apple" aria-hidden="true"></i></a>';
+        echo '<a href="' . esc_url($calendar_links['google']) . '" title="Add to Google Calendar" class="schedule-google" target="_blank"' . $calendar_end . ' onclick="return confirmCalendarGoogleSubscription(this);"><i class="fab fa-google" aria-hidden="true"></i></a>';
     }
 }
 echo '</div>';
