@@ -42,7 +42,8 @@ function onlinesched_ical_html_to_text($html)
 {
     onlinesched_ical_load_composer_autoload();
 
-    return \Soundasleep\Html2Text::convert((string) $html);
+    // Staff write event text by hand, so a bare & is routine input here.
+    return \Soundasleep\Html2Text::convert((string) $html, ['ignore_errors' => true]);
 }
 
 function onlinesched_ical_sanitize_raw_value($value)
